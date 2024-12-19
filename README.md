@@ -26,10 +26,28 @@ Operating under the assumption that wages within a given economic sector and qua
 By leveraging these EXIOBASE wage metrics as a conversion mechanism, we successfully transpose our dataset from ISIC Rev.4 classifications into the EXIOBASE framework.
 
 Then for each EXIOBASE subsector j of its ISIC sector i, country k, gender g and year h we calculated the EXIOBASE subsector employment by: 
+
 ![image](https://github.com/user-attachments/assets/4d7548f8-c7e5-47cf-bde4-b0547d73fa7d)
 
 
+
 Where:
-    •  : the previously calculated ISIC workforce for sector i, country k, gender g and year h
-    •  : The EXIOBASE salary vector of the sub-sector j, country k, gender g and year h
-Then the workforce results are available for each EXIOBASE area/region, gender, year, level of qualification and EXIOBASE sector. The detailed results are directly available in the Supporting Information S2. 
+
+• ![image](https://github.com/user-attachments/assets/439ffe85-c28b-44cd-a69d-0f7ca7ab1ccb)
+   : the previously calculated ISIC workforce for sector i, country k, gender g and year h
+
+ • ![image](https://github.com/user-attachments/assets/af2bfb04-2ad4-498b-806c-9c9c5950e1a0)
+   : The EXIOBASE salary vector of the sub-sector j, country k, gender g and year h
+ 
+Then the workforce results are available for each EXIOBASE area/region, gender, year, level of qualification and EXIOBASE sector. 
+
+# Converting number of employees into number of working hours
+In the final step, it is crucial to shift from looking at the number of employees to the total hours worked. This adjustment is important for a better understanding of the social risks that workers may face. If two countries have the same production levels, social risks, and number of workers we might think the risk of social issues would be the same in both countries. However, if workers in the first country are twice as productive, they would spend half as much time at work compared to the second country. This means they would have a lower chance of facing social issues, simply because they are exposed to the risk for less time. 
+To perform this conversion from the workforce to the number of working hours, we used some external data: Eurostat data, which indicates the average working hour per gender, age, economic activity (NACE classification) and year for European countries and ILO data, which lists the mean weekly hours worked per employed person, detailed per gender and economic activity. For ILO, the dataset was maintained in its entirety except for null values, which were excluded to ensure data quality. By their nature, the Eurostat data was subject to a more targeted selection process:
+    • Age and Gender: Data was filtered to include only individuals aged 15 to 64, with a gender breakdown into male (M) and female (F).
+    • Level of Aggregation: Aggregated values were eliminated in favor of individual country-level data.
+    • Time Commitment: Both full-time and part-time employment statuses were retained.
+    • Employment Status: The dataset was limited to those who are employed and self-employed.
+    • Economic Activity: Data was refined to encompass only NACE activities A and B (i.e., Agriculture and Forestry, sectors where the ISIC classification matches with the NACE classification). 
+    • Time Span: The temporal range was set to include years from 1992 through 2008.
+This meticulous data curation enables a more accurate and nuanced evaluation of workforce-related social risks, particularly by focusing on variables that significantly contribute to the risk exposure time.
