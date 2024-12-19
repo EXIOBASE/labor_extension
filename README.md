@@ -54,3 +54,23 @@ To perform this conversion from the workforce to the number of working hours, we
 * Time Span: The temporal range was set to include years from 1992 through 2008.
 This meticulous data curation enables a more accurate and nuanced evaluation of workforce-related social risks, particularly by focusing on variables that significantly contribute to the risk exposure time.
 
+![image](https://github.com/user-attachments/assets/525faacd-12f8-40fe-8812-bdbdf92a2a9b)
+
+As we can see (Figure above), some data was missing. To estimate the missing data, we proceed to an interpolation followed by an extrapolation. Linear interpolation has been done when one year is missing data for two years with known values. For the extrapolation, different situations have been considered:
+• If only one value is available, this value is kept for all years (the productivity is not changing dramatically from one year to another, and it would induce more uncertainty to try to extrapolate this number),  
+• If there are two known values, we calculate the average and allocate this value to the years where the value is unknown.
+• If there are three or more known values, we look at the number of consecutive values. To get the unknown value before the first known value, we average the known values and allocate the result to the unknown value. We then carry on with the same method by averaging over the same number of known values.
+
+As a last point, it's crucial to address the transition in the International Standard Industrial Classification of All Economic Activities (ISIC) that took place between 2008 and 2009, shifting from ISIC Revision 3 to Revision 4. To maintain data continuity spanning from 1995 to 2020, we translated the ISIC rev.3 values into their ISIC rev.4 equivalents for the period of 1995-2008. This translation introduced a degree of data scatter, most notably within the ISIC rev.3 Sector A, which encompasses Agriculture, Forestry, and Fishing activities (corresponding to NACE sectors A and B), with the effect particularly pronounced in European data. 
+
+To mitigate this data scatter, we opted to replace ISIC rev.3 Sector A values from 1995-2008 with the corresponding NACE sector A data derived from Eurostat, as depicted in the next Figure. This refinement allows for a more coherent longitudinal analysis of economic sectors, particularly in evaluating social risks associated with these sectors. 
+
+ISIC values                |  Values with Eurostat
+:-------------------------:|:-------------------------:
+![](pictures_readme/outliers1.png)   |  ![](pictures_readme/outliers2.png)
+
+
+Finally, the average working hour per EXIOBASE region, economic activity, gender, and year is calculated using the abovementioned ratios. The calculation is detailed at the ISO alpha-3 country level. Then for the EXIOBASE area aggregating several countries, the average working hour for one EXIOBASE region is an average of the different countries of this area weighted by the workforce of this EXIOBASE area.
+This above methode gives us the average working hours per week. 
+In order to get the annual average working hours, we use 
+
