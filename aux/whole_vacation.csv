@@ -1,0 +1,196 @@
+Country,ISO3,EXIO3,Paid Leave Days,Paid Public Holidays,Total Paid Vacation Days
+Afghanistan,AFG,WA,20,15,35
+Albania,ALB,WE,20,14,34
+Algeria,DZA,WF,30,11,41
+Andorra,AND,WE,30,14,44
+Angola,AGO,WF,22,12,34
+Antigua and Barbuda,ATG,WL,12,11,23
+Argentina,ARG,WL,14,16,30
+Armenia,ARM,WA,20,12,32
+Australia,AUS,AU,20,7,27
+Austria,AUT,AT,25,13,38
+Azerbaijan,AZE,WA,21,21,42
+Bahamas,BHS,WL,10,10,20
+Bahrain,BHR,WM,30,14,44
+Bangladesh,BGD,WA,10,24,34
+Barbados,BRB,WL,15,13,28
+Belarus,BLR,WE,24,9,33
+Belgium,BEL,BE,20,10,30
+Belize,BLZ,WL,10,14,24
+Benin,BEN,WF,24,13,37
+Bhutan,BTN,WA,30,14,44
+Bolivia,BOL,WL,15,11,26
+Bosnia and Herzegovina,BIH,WE,20,10,30
+Botswana,BWA,WF,15,8,23
+Brazil,BRA,BR,10,11,21
+Brunei,BRN,WA,7,11,18
+Burking Faso,BFA,WF,22,15,37
+Bulgaria,BGR,BG,20,13,33
+Burundi,BDI,WF,20,15,35
+Cambodia,KHM,WA,18,21,39
+Cameroon,CMR,WF,18,9,27
+Canada,CAN,CA,10,9,19
+Cape Verde,,,22,10,32
+Central African Republic,CAF,WF,24,13,37
+Chad,TCD,WF,24,4,28
+Chile,CHL,WL,15,5,20
+China,CHN,CN,5,11,16
+Colombia,COL,WL,15,18,33
+Comoros,COM,WF,30,9,39
+Congo (Democratic Republic of the),COD,WF,12,9,21
+Costa Rica,CRI,WL,12,11,23
+Cote d'Ivoire (Ivory Coast),CIV,WF,26,15,41
+Croatia,HRV,HR,20,13,33
+Cuba,CUB,WL,10,12,22
+Cyprus,CYP,CY,20,14,34
+Czech Republic,CZE,CZ,20,12,32
+Denmark,DNK,DK,25,9,34
+Djibouti,DJI,WF,30,10,40
+Dominica,DMA,WL,14,12,26
+Dominican Republic,DOM,WL,14,13,27
+Ecuador,ECU,WL,15,12,27
+Egypt,EGY,WM,21,13,34
+El Salvador,SLV,WL,15,11,26
+Equatorial Guinea,GNQ,WF,30,11,41
+Eritrea,ERI,WF,14,8,22
+Estonia,EST,EE,20,11,31
+Fiji,FJI,WA,10,10,20
+Finland,FIN,FI,20,11,31
+France,FRA,FR,25,11,36
+Gabon,GAB,WF,24,11,35
+Georgia,GEO,WA,24,17,41
+Germany,DEU,DE,20,9,29
+Ghana,GHA,WF,15,13,28
+Greece,GRC,GR,20,6,26
+Grenada,GRD,WL,10,12,22
+Guatemala,GTM,WL,15,12,27
+Guinea,GIN,WF,30,11,41
+Guinea-Bissau,GNB,WF,21,9,30
+Guyana,GUY,WL,12,19,31
+Haiti,HTI,WL,15,13,28
+Honduras,HND,WL,10,12,22
+Hungary,HUN,HU,20,11,31
+Iceland,ISL,WE,24,16,40
+India,IND,IN,15,3,18
+Indonesia,IDN,ID,12,16,28
+Iran,IRN,WM,26,27,53
+Iraq,IRQ,WM,20,18,38
+Ireland (Republic of),IRL,IE,20,9,29
+Israel,ISR,WM,16,9,25
+Italy,ITA,IT,20,12,32
+Jamaica,JAM,WL,10,11,21
+Japan,JPN,JP,10,16,26
+Jordan,JOR,WM,14,16,30
+Kazakhstan,KAZ,WA,18,19,37
+Kenya,KEN,WF,21,11,32
+Kiribati,KIR,WA,0,13,13
+Kosovo,XKX,WE,20,11,31
+Kuwait,KWT,WM,30,12,42
+Kyrgyzstan,KGZ,WA,20,12,32
+Laos,LAO,WA,15,8,23
+Latvia,LVA,LV,20,15,35
+Lebanon,LBN,WM,15,2,17
+Lesotho,LSO,WF,12,10,22
+Liberia,LBR,WF,10,11,21
+Libya,LBY,WF,30,0,30
+Liechtenstein,LIE,WE,20,13,33
+Lithuania,LTU,LT,20,15,35
+Luxembourg,LUX,LU,25,10,35
+Macedonia (North),MKD,WE,20,12,32
+Madagascar,MDG,WF,30,13,43
+Malawi,MWI,WF,15,12,27
+Malaysia,MYS,WA,8,11,19
+Maldives,MDV,WA,30,11,41
+Mali,MLI,WF,30,12,42
+Malta,MLT,MT,24,14,38
+Marshall Islands,MHL,WA,30,8,38
+Mauritania,MRT,WF,18,7,25
+Mauritius,MUS,WF,20,14,34
+Mexico,MEX,MX,6,8,14
+Micronesia (Federated States of),FSM,WA,0,9,9
+Moldova,MDA,WE,28,11,39
+Monaco,MCO,WE,30,12,42
+Mongolia,MNG,WA,15,14,29
+Montenegro,MNE,WE,20,8,28
+Morocco,MAR,WF,18,10,28
+Mozambique,MOZ,WF,12,9,21
+Myanmar,MMR,WA,10,20,30
+Namibia,NAM,WF,20,12,32
+Nauru,NRU,WA,0,10,10
+Nepal,NPL,WA,18,13,31
+Netherlands,NLD,NL,20,9,29
+New Zealand,NZL,WA,20,11,31
+Nicaragua,NIC,WL,15,9,24
+Niger,NER,WF,30,13,43
+Nigeria,NGA,WF,6,11,17
+North Korea,PRK,WA,14,10,24
+Norway,NOR,NO,21,10,31
+Oman,OMN,WM,30,9,39
+Pakistan,PAK,WA,14,14,28
+Palau,PLW,WA,1,11,12
+Palestine,PSE,WM,14,8,22
+Panama,PAN,WL,30,11,41
+Papua New Guinea,PNG,WA,14,9,23
+Paraguay,PRY,WL,12,12,24
+Peru,PER,WL,30,12,42
+Philippines,PHL,WA,5,12,17
+Poland,POL,PL,20,13,33
+Portugal,PRT,PT,22,13,35
+Qatar,QAT,WM,18,10,28
+Romania,ROU,RO,20,13,33
+Russia,RUS,RU,28,14,42
+Rwanda,RWA,WF,18,11,29
+Saint Kitts and Nevis,,,14,13,27
+Saint Lucia,,,14,11,25
+Saint Vincent and the Grenadines,,,14,11,25
+Samoa,WSM,WA,10,10,20
+San Marino,SMR,WE,26,20,46
+Sao Tome and Principe,STP,WF,26,8,34
+Saudi Arabia,SAU,WM,21,10,31
+Scotland,,,28,10,38
+Senegal,SEN,WF,24,12,36
+Serbia,SRB,WE,20,11,31
+Seychelles,SYC,WF,21,12,33
+Sierra Leone,SLE,WF,19,11,30
+Singapore,SGP,WA,7,11,18
+Slovakia,SVK,SK,20,15,35
+Slovenia,SVN,SI,20,13,33
+Solomon Islands,SLB,WA,15,9,24
+Somalia,SOM,WF,15,10,25
+South Africa,ZAF,ZA,21,13,34
+South Korea,KOR,KR,15,15,30
+South Sudan,SSD,WF,21,14,35
+Spain,ESP,ES,22,14,36
+Sri Lanka,LKA,WA,14,16,30
+Sudan,SDN,WF,20,8,28
+Suriname,SUR,WL,12,11,23
+Swaziland (Eswatini ),,,12,12,24
+Sweden,SWE,SE,25,10,35
+Switzerland,CHE,CH,20,9,29
+Syria,SYR,WM,14,9,23
+Taiwan,TWN,TW,7,10,17
+Tajikistan,TJK,WA,24,9,33
+Tanzania,TZA,WF,3,17,20
+Thailand,THA,WA,6,13,19
+The Gambia,,,21,13,34
+Timor Leste,TLS,WA,12,17,29
+Togo,TGO,WF,30,13,43
+Tonga,TON,WA,20,11,31
+Trinidad and Tobago,TTO,WL,10,16,26
+Tunisia,TUN,WF,12,6,18
+Turkey,TUR,TR,14,14,28
+Turkmenistan,TKM,WA,30,12,42
+Tuvalu,TUV,WA,12,11,23
+Uganda,UGA,WF,21,13,34
+Ukraine,UKR,WE,24,12,36
+United Arab Emirates,ARE,WM,26,10,36
+United Kingdom,GBR,GB,20,8,28
+United States of America,USA,US,0,10,10
+Uruguay,URY,WL,20,12,32
+Uzbekistan,UZB,WA,15,10,25
+Vanuatu,VUT,WA,15,11,26
+Venezuela,VEN,WL,15,12,27
+Vietnam,VNM,WA,12,11,23
+Yemen,YEM,WM,30,15,45
+Zambia,ZMB,WF,24,11,35
+Zimbabwe,ZWE,WF,22,11,33
