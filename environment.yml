@@ -1,0 +1,15 @@
+name: labor
+channels:
+  - defaults
+  - conda-forge
+
+dependencies:
+  - python >= 3.11.2
+  - country_converter >= 1.0.0
+  - ray-all >= 2.3.1
+  - pandas >= 2.0.0
+  - XlsxWriter >= 3.2.0  
+  - openpyxl >= 3.1.5
+    # testing and developing
+  - ipython  
+
