@@ -26,7 +26,9 @@ def salary_split_year(column_names,final,classif_detail,concordance,aggregation)
             # for b in list_name['Name']:
 
             for b in list_name['Name']:
-                salary_split2=salary_split2.append(pd.Series([code,b,a,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], index=[i for i in column_names]),ignore_index=True)
+                new_row = pd.DataFrame({'Country':[code],   'Sector':[b],   'Mapping': [a],'Compensation of employees; wages, salaries, & employers social contributions: Low-skilled':[0],'Compensation of employees; wages, salaries, & employers social contributions: Middle-skilled':[0],'Compensation of employees; wages, salaries, & employers social contributions: High-skilled':[0],'Compensation of employees; wages, salaries, & employers social contributions: Total':[0],'ILO data /country / sector':[0],'Split':[0],'Split Low qualification employment - total':[0],'Split Middle qualification employment - total':[0],'Split High qualification employment - total':[0],'Split Low qualification employment - male':[0],'Split Middle qualification employment - male':[0],'Split High qualification employment - male':[0],'Split Low qualification employment - female':[0],'Split Middle qualification employment - female':[0],'Split High qualification employment - female':[0]})
+                salary_split2=pd.concat([salary_split2,new_row])
+                #salary_split2=salary_split2.append(pd.Series([code,b,a,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], index=[i for i in column_names]),ignore_index=True)
     
     
     
@@ -53,7 +55,8 @@ def salary_split_year(column_names,final,classif_detail,concordance,aggregation)
 
             print(years,code)
             #data = '/media/ntnu/Xdrive/indecol/Projects/EXIOBASE_dev/exio3/coeff_time_series/fin/current/csv/' + str(code) +'_' + str(years) + '_usebpdom.csv'               
-            data = '/media/ntnu/Xdrive/indecol/Projects/MRIOs/EXIOBASE3/EXIOBASE_3_8_2/upload_to_Box/public/SUT/' + str(code) +'_' + str(years) + '.xls'               
+            #data = '/media/ntnu/Xdrive/indecol/Projects/MRIOs/EXIOBASE3/EXIOBASE_3_8_2/upload_to_Box/public/SUT/' + str(code) +'_' + str(years) + '.xls'               
+            data = '../Xdrive/indecol/Projects/MRIOs/EXIOBASE3/EXIOBASE_3_8_2/upload_to_Box/public/SUT/' + str(code) +'_' + str(years) + '.xls'
 
             #df = pd.read_csv(data)      
 
@@ -161,7 +164,7 @@ def salary_split_year(column_names,final,classif_detail,concordance,aggregation)
 
     for year in range(1995,2023):
         split[year].to_excel(writer, sheet_name=str(year))        
-    writer.save()
+    writer.close()
         
     return split
         # for row in split[years].index:
