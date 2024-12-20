@@ -97,5 +97,27 @@ ISIC values                |  Values with Eurostat
 
 Finally, the average working hour per EXIOBASE region, economic activity, gender, and year is calculated using the abovementioned ratios. The calculation is detailed at the ISO alpha-3 country level. Then for the EXIOBASE area aggregating several countries, the average working hour for one EXIOBASE region is an average of the different countries of this area weighted by the workforce of this EXIOBASE area.
 This above methode gives us the average working hours per week. 
-In order to get the annual average working hours, we use 
+In order to get the annual average working hours, we need information on total paid vacation days per yers and per EXIOBASE region.
+We achieve this by combining data from national government websites, OECD and ILO in a [table](https://github.com/EXIOBASE/labor_extension/blob/main/aux/whole_vacation.csv).
+Finally, we obtain the yearly employment hours by doing : 
+
+yearly employment hours per skill and sex  = (weekly employement hours per skill and sex / 5) * Employment per skill and sex * (365 - total paid vacation days)
+Wwe finaly combine all results in one table, employment hours being in M.hr and employment being in 1000p.
+
+| region                                  | AT                        | AT                   | AT                               |
+|-----------------------------------------|---------------------------|----------------------|----------------------------------|
+| sector                                  | Cultivation of paddy rice | Cultivation of wheat | Cultivation of cereal grains nec |
+| stressor                                |                           |                      |                                  |
+| Employment hours: High-skilled female   | 0                         | 2.119188             | 4.125609                         |
+| Employment hours: High-skilled male     | 0                         | 2.556621             | 4.9772                           |
+| Employment hours: Low-skilled female    | 0                         | 0.569007             | 1.107735                         |
+| Employment hours: Low-skilled male      | 0                         | 0.686457             | 1.33639                          |
+| Employment hours: Medium-skilled female | 0                         | 13.379848            | 26.047733                        |
+| Employment hours: Medium-skilled male   | 0                         | 16.14166             | 31.424389                        |
+| Employment: High-skilled female         | 0                         | 0.690906             | 1.345047                         |
+| Employment: High-skilled male           | 0                         | 0.737586             | 1.435924                         |
+| Employment: Low-skilled female          | 0                         | 0.18551              | 0.361148                         |
+| Employment: Low-skilled male            | 0                         | 0.198043             | 0.385549                         |
+| Employment: Medium-skilled female       | 0                         | 4.36215              | 8.492183                         |
+| Employment: Medium-skilled male         | 0                         | 4.656875             | 9.065948                         |
 
