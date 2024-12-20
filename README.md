@@ -101,8 +101,9 @@ In order to get the annual average working hours, we need information on total p
 We achieve this by combining data from national government websites, OECD and ILO in a [table](https://github.com/EXIOBASE/labor_extension/blob/main/aux/whole_vacation.csv).
 Finally, we obtain the yearly employment hours by doing : 
 
-yearly employment hours per skill and sex  = (weekly employement hours per skill and sex / 5) * Employment per skill and sex * (365 - total paid vacation days)
-Wwe finaly combine all results in one table, employment hours being in M.hr and employment being in 1000p.
+**Employment hours per skill and sex  = (weekly employment hours per skill and sex / 5) * Employment per skill and sex * (365 - total paid vacation days)**
+
+Finaly, we combine all results in one table, employment hours being in M.hr and employment being in 1000p.
 
 | region                                  | AT                        | AT                   | AT                               |
 |-----------------------------------------|---------------------------|----------------------|----------------------------------|
