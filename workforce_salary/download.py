@@ -1,13 +1,13 @@
 from pathlib import Path
 import ilo_download
 
-def download_data(src_url,src_csv,src_url2,src_csv2,src_url3,src_csv3,src_url4,src_csv4):    
+def download_data(src_url,src_csv,src_url2,src_csv2,src_url3,src_csv3,src_url4,src_csv4,storage_root):    
     '''
     Download data from url and store in download folder
     Unzip and store the data in the data folder
     '''
  
-    storage_root = Path(".").absolute()
+    
     download_path = storage_root / "download"
     data_path = storage_root / "data"
     

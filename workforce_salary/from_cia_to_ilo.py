@@ -14,6 +14,11 @@ runtime_env = {
         
      }
 }
+cc = coco.CountryConverter()
+cc.valid_class
+cc.get_correspondence_dict('ISO3', 'EXIO3')
+
+converter=coco.country_converter
 
 def cia_to_ilo(data_list,data_cia,df,missing_data):
     
@@ -41,7 +46,7 @@ def cia_to_ilo(data_list,data_cia,df,missing_data):
 
     
     data_list_old = data_list.copy()
-    data_list_old.to_csv('data_list_old.csv', index=False)
+    #data_list_old.to_csv('data_list_old.csv', index=False)
     
 
 
@@ -141,10 +146,11 @@ def cia_to_ilo(data_list,data_cia,df,missing_data):
             World_Bank_Income_Group = World_Bank_Income_Group.to_string(index=False, header=False)  
             for s in list_sex:
                 for c in classifications :
-
+                    
                     if str(ILO_Subregion_Broad)+': '+str(World_Bank_Income_Group) in data_list_old['ref_area.label'].values:
                         date = int(fetched_data.loc[fetched_data['ISO3']==a,['date']].to_string(index=False, header=False))
-                        pop_known_year_know = float(fetched_data.loc[fetched_data['ISO3']==a,['population']].to_string(index=False, header=False))
+                        pop_known_year_know = float(fetched_data.loc[fetched_data['ISO3']==a,['population']].to_string(index=False, header=False))/1000
+                        print(a,pop_known_year_know)
                         
                         '''
                         case of TCA, population unknown for the corresponding ILO_Subregion_Broad in  1990.
@@ -164,9 +170,10 @@ def cia_to_ilo(data_list,data_cia,df,missing_data):
                             if year == int(fetched_data.loc[fetched_data['ISO3']==a,['date']].to_string(index=False, header=False)):
                                 pop_of_interest = float((data_list_old.loc[(data_list_old['ref_area.label']==str(ILO_Subregion_Broad)+': '+str(World_Bank_Income_Group))&(data_list_old['classif1']==c)&(data_list_old['sex']==s)&(data_list_old['time']==year),['obs_value']].to_string(index=False, header=False)))
                                 # from_cia_to_ilo=from_cia_to_ilo.append(pd.Series([a,cc_all.convert(names = a ,src = 'ISO3',to='name_official'),cc_all.convert(names = a ,src = 'ISO3',to='EXIO3'),s,c,year,pop_known_year_know/pop_total_year_know*pop_of_interest,'ILO_Subregion_Broad'], index=[i for i in column_data_list]),ignore_index=True)
-                                new_line = pd.Series([a,cc_all.convert(names = a ,src = 'ISO3',to='name_official'),cc_all.convert(names = a ,src = 'ISO3',to='EXIO3'),s,c,year,pop_known_year_know/pop_total_year_know*pop_of_interest,'ILO_Subregion_Broad']).to_frame().T
-                                new_line = {'ref_area' : a,'EXIO3' : cc_all.convert(names = a ,src = 'ISO3',to='EXIO3'), 'sex' : s , 'classif1' : c, 'time' : year, 'obs_value' :pop_known_year_know/pop_total_year_know*pop_of_interest, 'obs_status' : 'ILO_Subregion_Broad' ,'ref_area.label' : cc_all.convert(names = a ,src = 'ISO3',to='name_official')}
-
+                                #new_line = pd.Series([a,cc_all.convert(names = a ,src = 'ISO3',to='name_official'),cc_all.convert(names = a ,src = 'ISO3',to='EXIO3'),s,c,year,pop_known_year_know/pop_total_year_know*pop_of_interest,'ILO_Subregion_Broad']).to_frame().T
+                                #print(newline)
+                                new_line = {'ref_area' : a,'EXIO3' : cc_all.convert(names = a ,src = 'ISO3',to='EXIO3'), 'sex' : s , 'classif1' : c, 'time' : year, 'obs_value' :(pop_known_year_know)/pop_total_year_know*pop_of_interest, 'obs_status' : 'ILO_Subregion_Broad' ,'ref_area.label' : cc_all.convert(names = a ,src = 'ISO3',to='name_official')}
+                                #print(newline)
                                 from_cia_to_ilo.loc[len(from_cia_to_ilo)] = new_line
                                 from_cia_to_ilo = from_cia_to_ilo.reset_index(drop=True)
                             else:
@@ -185,13 +192,13 @@ def cia_to_ilo(data_list,data_cia,df,missing_data):
                         if str(ILO_region)+': '+str(World_Bank_Income_Group) in data_list_old['ref_area.label'].values:
                             date = int(fetched_data.loc[fetched_data['ISO3']==a,['date']].to_string(index=False, header=False))
                             pop_total_year_know = float((data_list_old.loc[(data_list_old['ref_area.label']==str(ILO_region)+': '+str(World_Bank_Income_Group))&(data_list_old['classif1']=='ECO_SECTOR_TOTAL')&(data_list_old['sex']=='SEX_T')&(data_list_old['time']==date),['obs_value']].to_string(index=False, header=False)))
-                            pop_known_year_know = float(fetched_data.loc[fetched_data['ISO3']==a,['population']].to_string(index=False, header=False))
+                            pop_known_year_know = float(fetched_data.loc[fetched_data['ISO3']==a,['population']].to_string(index=False, header=False))/1000
                             for year in range(1991,2023):
                                 if year == int(fetched_data.loc[fetched_data['ISO3']==a,['date']].to_string(index=False, header=False)):
                                     pop_of_interest = float((data_list_old.loc[(data_list_old['ref_area.label']==str(ILO_region)+': '+str(World_Bank_Income_Group))&(data_list_old['classif1']==c)&(data_list_old['sex']==s)&(data_list_old['time']==year),['obs_value']].to_string(index=False, header=False)))
                                     # from_cia_to_ilo=from_cia_to_ilo.append(pd.Series([a,cc_all.convert(names = a ,src = 'ISO3',to='name_official'),cc_all.convert(names = a ,src = 'ISO3',to='EXIO3'),s,c,year,pop_known_year_know/pop_total_year_know*pop_of_interest,'ILO_region'], index=[i for i in column_data_list]),ignore_index=True)
                                 
-                                    new_line = {'ref_area' : a,'EXIO3' : cc_all.convert(names = a ,src = 'ISO3',to='EXIO3'), 'sex' : s , 'classif1' : c, 'time' : year, 'obs_value' :pop_known_year_know/pop_total_year_know*pop_of_interest, 'obs_status' : 'ILO_region' ,'ref_area.label' : cc_all.convert(names = a ,src = 'ISO3',to='name_official')}
+                                    new_line = {'ref_area' : a,'EXIO3' : cc_all.convert(names = a ,src = 'ISO3',to='EXIO3'), 'sex' : s , 'classif1' : c, 'time' : year, 'obs_value' :(pop_known_year_know)/pop_total_year_know*pop_of_interest, 'obs_status' : 'ILO_region' ,'ref_area.label' : cc_all.convert(names = a ,src = 'ISO3',to='name_official')}
 
                                     from_cia_to_ilo.loc[len(from_cia_to_ilo)] = new_line
                                     from_cia_to_ilo = from_cia_to_ilo.reset_index(drop=True) 
@@ -217,7 +224,7 @@ def cia_to_ilo(data_list,data_cia,df,missing_data):
 
 
     for a in results : 
-        final_table= pd.concat(a)
+        final_table= pd.concat([a for a in results[0] if not a.empty])
 
     
     ray.shutdown()
@@ -229,7 +236,7 @@ def cia_to_ilo(data_list,data_cia,df,missing_data):
                                     
                                     
                                     
-    from_cia_to_ilo.to_csv('frist_part.csv',index =False)
+    #from_cia_to_ilo.to_csv('frist_part.csv',index =False)
     
     from_cia_to_ilo2 =  pd.DataFrame(data=None,columns=column_data_list)
     ray.init(runtime_env=runtime_env,num_cpus = os.cpu_count()-4)
@@ -244,33 +251,34 @@ def cia_to_ilo(data_list,data_cia,df,missing_data):
 
     # for code in missing_data['ISO3'].values:  # This could be runned in parallel as all the countries are independent- 
         if (len(str(code)) == 3 and str(code) != 'nan'):
-            label  = missing_data.loc[missing_data['ISO3']==code,['Label_short']]
-            print(code)
-            for s in list_sex:
-                for c in classifications:
-                    if label.to_string(index=False, header=False) in data_list_old['ref_area.label'].values:
-                        for year in range(1991,2023):
-                            '''total pop country of interest'''
-                            pop_known_year_know = float(missing_data.loc[missing_data['ISO3']==code,[year]].to_string(index=False, header=False))
-                            '''total population in the region where the country belongs too'''
-                            pop_of_interest = float((data_list_old.loc[(data_list_old['ref_area.label']==label.to_string(index=False, header=False))&(data_list_old['classif1']==c)&(data_list_old['sex']==s)&(data_list_old['time']==year),['obs_value']].to_string(index=False, header=False)))
+            if not code in from_cia_to_ilo.ref_area.unique() :
+                label  = missing_data.loc[missing_data['ISO3']==code,['Label_short']]
+                print(code)
+                for s in list_sex:
+                    for c in classifications:
+                        if label.to_string(index=False, header=False) in data_list_old['ref_area.label'].values:
+                            for year in range(1991,2023):
+                                '''total pop country of interest'''
+                                pop_known_year_know = float(missing_data.loc[missing_data['ISO3']==code,[year]].to_string(index=False, header=False))
+                                '''total population in the region where the country belongs too'''
+                                pop_of_interest = float((data_list_old.loc[(data_list_old['ref_area.label']==label.to_string(index=False, header=False))&(data_list_old['classif1']==c)&(data_list_old['sex']==s)&(data_list_old['time']==year),['obs_value']].to_string(index=False, header=False)))
                             
-                            pop_total_year_know = float((data_list_old.loc[(data_list_old['ref_area.label']==label.to_string(index=False, header=False))&(data_list_old['classif1']=='ECO_SECTOR_TOTAL')&(data_list_old['sex']=='SEX_T')&(data_list_old['time']==year),['obs_value']].to_string(index=False, header=False)))
-                            pop_country=pop_known_year_know*pop_of_interest/pop_total_year_know
+                                pop_total_year_know = float((data_list_old.loc[(data_list_old['ref_area.label']==label.to_string(index=False, header=False))&(data_list_old['classif1']=='ECO_SECTOR_TOTAL')&(data_list_old['sex']=='SEX_T')&(data_list_old['time']==year),['obs_value']].to_string(index=False, header=False)))
+                                pop_country=pop_known_year_know*pop_of_interest/pop_total_year_know
 
-                            # print(code, year,c, pop_known_year_know,pop_of_interest,pop_total_year_know,pop_country)
+                                # print(code, year,c, pop_known_year_know,pop_of_interest,pop_total_year_know,pop_country)
 
                                 # pop_total_year_know = float((data_list_old.loc[(data_list_old['ref_area.label']==label.to_string(index=False, header=False))&(data_list_old['classif1']=='ECO_SECTOR_TOTAL')&(data_list_old['sex']=='SEX_T')&(data_list_old['time']==date),['obs_value']].to_string(index=False, header=False)))
 
-                            # pop_country=pop_known_year_know*pop_of_interest/pop_total_year_know
+                                # pop_country=pop_known_year_know*pop_of_interest/pop_total_year_know
  
 
-                            # from_cia_to_ilo=from_cia_to_ilo.append(pd.Series([code,cc_all.convert(names = code ,src = 'ISO3',to='name_official'),cc_all.convert(names = code ,src = 'ISO3',to='EXIO3'),s,c,year,pop_country,'ILO_Subregion_Broad'], index=[i for i in column_data_list]),ignore_index=True)
+                                # from_cia_to_ilo=from_cia_to_ilo.append(pd.Series([code,cc_all.convert(names = code ,src = 'ISO3',to='name_official'),cc_all.convert(names = code ,src = 'ISO3',to='EXIO3'),s,c,year,pop_country,'ILO_Subregion_Broad'], index=[i for i in column_data_list]),ignore_index=True)
                             
-                            new_line = {'ref_area' : code, 'sex' : s , 'classif1' : c, 'time' : year, 'obs_value' :pop_country, 'obs_status' : 'ILO_Subregion_Broad' ,'ref_area.label' : cc_all.convert(names = code ,src = 'ISO3',to='name_official')}
-                            # print(new_line)
-                            from_cia_to_ilo2.loc[len(from_cia_to_ilo2)] = new_line
-                            from_cia_to_ilo2 = from_cia_to_ilo2.reset_index(drop=True) 
+                                new_line = {'ref_area' : code, 'sex' : s , 'classif1' : c, 'time' : year, 'obs_value' :pop_country, 'obs_status' : 'ILO_Subregion_Broad' ,'ref_area.label' : cc_all.convert(names = code ,src = 'ISO3',to='name_official')}
+                                # print(new_line)
+                                from_cia_to_ilo2.loc[len(from_cia_to_ilo2)] = new_line
+                                from_cia_to_ilo2 = from_cia_to_ilo2.reset_index(drop=True) 
                             
         table_of_interest = from_cia_to_ilo2
 
@@ -280,9 +288,11 @@ def cia_to_ilo(data_list,data_cia,df,missing_data):
 
 
     for a in results : 
-        final_table2= pd.concat(a)
+        final_table2= pd.concat([a for a in results[0] if not a.empty])
 
-    
+    final_table2=final_table2.drop(columns=['EXIO3'],axis = 1) 
+    country_code = list(final_table2['ref_area'])
+    final_table2.insert(1, 'EXIO3', converter.convert(names = country_code, to='EXIO3'))
     ray.shutdown()
     from_cia_to_ilo2 = final_table2
     

@@ -44,7 +44,8 @@ def working_hour(workforce,src_csv2,data_path,src_csv3):
     isic3=hour_list_without_zero[hour_list_without_zero['classif1'].str.contains('ISIC3',regex=True)].copy()
     isic4=hour_list_without_zero[hour_list_without_zero['classif1'].str.contains('ISIC4',regex=True)].copy()
     
-    isic4_from_isic3_data = correspondance_isic(isic3)
+    isic4_from_isic3_data = correspondance_isic(workforce,isic3)
+    
     isic4_from_isic3_data.to_csv('isic4_from_isic3_data.csv') 
     
     '''
@@ -76,7 +77,7 @@ def working_hour(workforce,src_csv2,data_path,src_csv3):
     
     new_table_150222 = combine(hour_list,isic4_from_isic3_data,new_table_150222,new_table_150222_columns,isic4)
 
-    new_table_150222.to_csv('new_table_150222.csv')
+    #new_table_150222.to_csv('new_table_150222.csv')
     
     new_table_150222_pivot = pd.pivot_table(new_table_150222, values="obs_value", index=["ref_area", "sex","classif1"], columns=["time"])
     new_table_150222_pivot=new_table_150222_pivot.reset_index()
@@ -85,7 +86,7 @@ def working_hour(workforce,src_csv2,data_path,src_csv3):
     new_table_150222 = aggregate(new_table_150222,new_table_150222_columns)
 
     
-    new_table_150222.to_csv('new_table_150222_aggregate_ISIC.csv') 
+    #new_table_150222.to_csv('new_table_150222_aggregate_ISIC.csv') 
     
     new_table_150222_pivot = new_table_150222.pivot(index=['ref_area','sex','classif1'],columns='time')['obs_value']
     new_table_150222_pivot.to_csv("new_table_150222_pivot_aggregate_ISIC.csv")  
@@ -99,7 +100,7 @@ def working_hour(workforce,src_csv2,data_path,src_csv3):
     
     new_table_150222_pivot_extrapolate = regression(new_table_150222_pivot_interpolate,1995,2023)
     new_table_150222_pivot_extrapolate=new_table_150222_pivot_extrapolate.round(2)
-    new_table_150222_pivot_extrapolate.to_csv("new_table_150222_pivot_extrapolate_regression3_5_10.csv")
+    #new_table_150222_pivot_extrapolate.to_csv("new_table_150222_pivot_extrapolate_regression3_5_10.csv")
     
     new_table_150222_pivot_extrapolate2 =  new_table_150222_pivot_extrapolate.reset_index()
     
@@ -516,14 +517,17 @@ def working_hour(workforce,src_csv2,data_path,src_csv3):
     workforce_iso3 =   workforce.copy()  
     for code in workforce_iso3.ref_area.unique() : 
         if code in workforce_iso3.ref_area.unique() and code in hours_RoW.ref_area.unique():
+            print(code)
             if code != 'UKR':
                 for sex in ['SEX_F','SEX_M']:
                     for c in workforce_iso3.classif1.unique():
-                        for t in workforce_iso3.time.unique():
-                            P = float(workforce_iso3.loc[(workforce_iso3['ref_area']==code)&(workforce_iso3['sex']==sex)&(workforce_iso3['classif1']==c)&(workforce_iso3['time']==t),['obs_value']].to_string(header=False,index=False))
+                        for t in range(1995,2023):
+                        #aorkforce_iso3.time.unique():
+                            #if not (workforce_iso3.loc[(workforce_iso3['ref_area']==code)&(workforce_iso3['sex']==sex)&(workforce_iso3['classif1']==c)&(workforce_iso3['time']==t),['obs_value']]).isnull :
+                                P = float(workforce_iso3.loc[(workforce_iso3['ref_area']==code)&(workforce_iso3['sex']==sex)&(workforce_iso3['classif1']==c)&(workforce_iso3['time']==t),['obs_value']].to_string(header=False,index=False))
                             #H = float(hours.loc[(hours['ref_area']==code)&(hours['sex']==sex)&(hours['classif1']==c),str(years)].to_string(header=False, index=False))                        
-                            hours_RoW.loc[(hours_RoW['ref_area']==code)&(hours_RoW['sex']==sex)&(hours_RoW['classif1']==c)&(hours_RoW['time']==t),['population (1000)']] = P 
-
+                                hours_RoW.loc[(hours_RoW['ref_area']==code)&(hours_RoW['sex']==sex)&(hours_RoW['classif1']==c)&(hours_RoW['time']==t),['population (1000)']] = P 
+    hours.to_csv('hours2203_1.csv',index = False)
     for code in workforce_iso3.ref_area.unique() : 
         if code in workforce_iso3.ref_area.unique() and code in hours_RoW.ref_area.unique():
             if code == 'UKR' :
@@ -534,6 +538,7 @@ def working_hour(workforce,src_csv2,data_path,src_csv3):
                             #H = float(hours.loc[(hours['ref_area']==code)&(hours['sex']==sex)&(hours['classif1']==c),str(years)].to_string(header=False, index=False))                        
                             
                             hours_RoW.loc[(hours_RoW['ref_area']==code)&(hours_RoW['sex']==sex)&(hours_RoW['classif1']==c)&(hours_RoW['time']==t),['population (1000)']] = P 
+    hours_RoW.to_csv('hoursRoW2403_2.csv',index = False)
 
     hours_RoW = hours_RoW.loc[hours_RoW.ref_area !='SYC']
     hours_RoW = hours_RoW.loc[hours_RoW.ref_area !='REU']
@@ -560,6 +565,7 @@ def working_hour(workforce,src_csv2,data_path,src_csv3):
             for sex in ['SEX_F','SEX_M']:
                 for c in hours_RoW.classif1.unique():
                     print(sex, c)
+                    
                     value_2021 = float(hours_RoW.loc[(hours_RoW['ref_area']=='UKR')&(hours_RoW['sex']==sex)&(hours_RoW['classif1']==c)&(hours_RoW['time']==2021),['population (1000)']].to_string(index=False, header=False))
                     hours_2021 = float(hours_RoW.loc[(hours_RoW['ref_area']=='UKR')&(hours_RoW['sex']==sex)&(hours_RoW['classif1']==c)&(hours_RoW['time']==2021),['average weekly hours']].to_string(index=False, header=False))
                     print(c,value_2021,hours_2021)
@@ -578,9 +584,10 @@ def working_hour(workforce,src_csv2,data_path,src_csv3):
     
     '''WE NEED TO ADD DATA FOR COUNTRIES FOR WHICH WE HAVE WORKFORCE BUT NOT WORKING HOURS'''
     '''we need to add to hours_Row the countries (part of a RoW region) for which we have the population but not the working hours.'''
-    workforce_iso3.drop(workforce_iso3.tail(1276).index,inplace=True)
-    rm = workforce_iso3.loc[819830:821105].index
-    workforce_iso3 = workforce_iso3.drop(rm)
+    #workforce_iso3.drop(workforce_iso3.tail(1276).index,inplace=True)
+    #rm = workforce_iso3.loc[819830:821105].index
+    #workforce_iso3 = workforce_iso3.drop(rm)
+    hours_RoW.to_csv('hours_RoW_2403_3.csv',index=False)
     
     for a in workforce2.ref_area.unique():
          
@@ -613,17 +620,33 @@ def working_hour(workforce,src_csv2,data_path,src_csv3):
                     for  sex in ['SEX_F','SEX_M']:
                         for c in hours_RoW.classif1.unique():
                             for t in range(1995,2023):
-                                 P = float(workforce_iso3.loc[(workforce_iso3['ref_area']==a)&(workforce_iso3['sex']==sex)&(workforce_iso3['classif1']==c)&(workforce_iso3['time']==t),['obs_value']].to_string(header=False,index=False))
-                                 H =  float(av2.loc[(av2.EXIO3 == 'WA' )&(av2.sex == sex)&(av2.classif1 == c)&(av2.time == t),['Weighted average working hours']].to_string(header=False,index=False))
-                                 new_row = pd.DataFrame({'EXIO3' : 'TW' ,'ref_area':[a],'sex':[sex],'classif1':[c],'time' :[t],'average weekly hours': [H], 'population (1000)': [P] })
-                                 hours_main_country=pd.concat([hours_main_country,new_row])  
+                                P = float(workforce_iso3.loc[(workforce_iso3['ref_area']==a)&(workforce_iso3['sex']==sex)&(workforce_iso3['classif1']==c)&(workforce_iso3['time']==t),['obs_value']].to_string(header=False,index=False))
+                                H =  float(av2.loc[(av2.EXIO3 == 'WA' )&(av2.sex == sex)&(av2.classif1 == c)&(av2.time == t),['Weighted average working hours']].to_string(header=False,index=False))
+                                new_row = pd.DataFrame({'EXIO3' : 'TW' ,'ref_area':[a],'sex':[sex],'classif1':[c],'time' :[t],'average weekly hours': [H], 'population (1000)': [P] })
+                                hours_main_country=pd.concat([hours_main_country,new_row])
+
+    for code in workforce_iso3.ref_area.unique() :
+        if code == 'UKR':
+            for sex in ['SEX_F','SEX_M']:
+                for c in hours_RoW.classif1.unique():
+                    print(sex, c)
+                    value_2021 = float(hours_RoW.loc[(hours_RoW['ref_area']=='UKR')&(hours_RoW['sex']==sex)&(hours_RoW['classif1']==c)&(hours_RoW['time']==2021),['population (1000)']].to_string(index=False, header=False))
+                    hours_2021 = float(hours_RoW.loc[(hours_RoW['ref_area']=='UKR')&(hours_RoW['sex']==sex)&(hours_RoW['classif1']==c)&(hours_RoW['time']==2021),['average weekly hours']].to_string(index=False, header=False))
+                    print(c,value_2021,hours_2021)
+                    new_row = pd.DataFrame({'EXIO3' : 'WE','ref_area':'UKR','sex':[sex],'classif1':[c],'time' :2022,'average weekly hours': [hours_2021], 'population (1000)': 0.845 * value_2021 })
+                    hours_RoW=pd.concat([hours_RoW,new_row])
+                    P = float(workforce_iso3.loc[(workforce_iso3['ref_area']==a)&(workforce_iso3['sex']==sex)&(workforce_iso3['classif1']==c)&(workforce_iso3['time']==t),['obs_value']].to_string(header=False,index=False))
+                    H =  float(av2.loc[(av2.EXIO3 == 'WA' )&(av2.sex == sex)&(av2.classif1 == c)&(av2.time == t),['Weighted average working hours']].to_string(header=False,index=False))
+                    new_row = pd.DataFrame({'EXIO3' : 'TW' ,'ref_area':[a],'sex':[sex],'classif1':[c],'time' :[t],'average weekly hours': [H], 'population (1000)': [P] })
+                    hours_main_country=pd.concat([hours_main_country,new_row])  
                                  
     for code in workforce2.ref_area.unique() : 
         if  code in hours_main_country.ref_area.unique():
             if code != 'TWN':
                 if code == 'AUS':
                     for sex in ['SEX_F','SEX_M']:
-                        for c in hours_main_country.classif1.unique():
+                        #for c in hours_main_country.classif1.unique():
+                        for c in workforce2.classif1.unique():
                             for t in workforce2.time.unique():
                                 P = float(workforce2.loc[(workforce2['ref_area']==code)&(workforce2['sex']==sex)&(workforce2['classif1']==c)&(workforce2['time']==t),['obs_value']].to_string(header=False,index=False))
                                 print(code, sex, c,t,P)
@@ -631,7 +654,7 @@ def working_hour(workforce,src_csv2,data_path,src_csv3):
                                 hours_main_country.loc[(hours_main_country['ref_area']==code)&(hours_main_country['sex']==sex)&(hours_main_country['classif1']==c)&(hours_main_country['time']==t),['population (1000)']] = P 
                                     
                     
-    hours_main_country.reset_index()            
+    hours_main_country = hours_main_country.reset_index()            
     hours_main_country = hours_main_country.drop(['index'],axis =1)            
     
     # for code in workforce_iso3.ref_area.unique():
@@ -701,7 +724,7 @@ def working_hour(workforce,src_csv2,data_path,src_csv3):
     vacation = pd.read_csv('aux/whole_vacation.csv')
     #vacation = vacation.drop(['Paid Leave Days'],axis=1)
     #vacation = vacation.drop(['Paid Public Holidays'],axis=1)
-
+    vacation = vacation.drop(['Country','ISO3'],axis =1)
     vacation_average = round(vacation.groupby(['EXIO3']).mean())
     vacation_average = vacation_average.reset_index()
     '''il faut ouvrir split et proceder au calsul pour avoir les heures totales'''
@@ -716,10 +739,10 @@ def working_hour(workforce,src_csv2,data_path,src_csv3):
 
         
     #hours_split_final = hours_split_year(all_countries)
-    
-        hours_split= pd.DataFrame(columns = ['EXIO3','Sector','Mapping', 'Hours High qualification employement - total', 'Hours Middle qualification employement - total', 'Hours Low qualification employement - total','Hours High qualification employement - male', 'Hours Middle qualification employement - male', 'Hours Low qualification employement - male','Hours High qualification employement - female', 'Hours Middle qualification employement - female', 'Hours Low qualification employement - female'])
+    concordance = pd.read_excel('aux/Exiobase_ISIC_Rev-4.xlsx')    
+    hours_split= pd.DataFrame(columns = ['EXIO3','Sector','Mapping', 'Hours High qualification employement - total', 'Hours Middle qualification employement - total', 'Hours Low qualification employement - total','Hours High qualification employement - male', 'Hours Middle qualification employement - male', 'Hours Low qualification employement - male','Hours High qualification employement - female', 'Hours Middle qualification employement - female', 'Hours Low qualification employement - female'])
 
-    for code in all_countries.EXIO3:
+    for code in all_countries:
         # for a in hours_main_country.classif1.unique():
         for a in hours_RoW.classif1.unique():
 
@@ -730,33 +753,38 @@ def working_hour(workforce,src_csv2,data_path,src_csv3):
             # for b in list_name['Name']:
 
             for b in list_name['Name']:
-                hours_split=hours_split.append(pd.Series([code,b,a,0,0,0,0,0,0,0,0,0], index=[i for i in hours_split.columns]),ignore_index=True)
+                new_row = pd.DataFrame({'EXIO3':[code],'Sector':[b],'Mapping':[a], 'Hours High qualification employement - total':0, 'Hours Middle qualification employement - total':0, 'Hours Low qualification employement - total':0,'Hours High qualification employement - male':0, 'Hours Middle qualification employement - male':0, 'Hours Low qualification employement - male':0,'Hours High qualification employement - female':0, 'Hours Middle qualification employement - female':0, 'Hours Low qualification employement - female':0})
+                hours_split=pd.concat([hours_split,new_row])
+
+                #hours_split=hours_split.append(pd.Series([code,b,a,0,0,0,0,0,0,0,0,0], index=[i for i in hours_split.columns]),ignore_index=True)
     hours_split_empty = hours_split.copy()
 
-    xl = pd.ExcelFile('split_updated_1610.xlsx')
-
+    #xl = pd.ExcelFile('split_updated_1610.xlsx')
+    xl = pd.ExcelFile('../tmp/labor/final_table/split_workforce_by_skill_newSUT.xlsx')
 
 
     hourSplit = {}
-    writer = pd.ExcelWriter('hours_split.xlsx',engine='xlsxwriter')
+    #writer = pd.ExcelWriter('hours_split.xlsx',engine='xlsxwriter')
 
-    for years in range(2020,2021):
+    for years in range(1995,2023):
         hours_split = hours_split_empty.copy()
 
         workforce_year = xl.parse(str(years))
+        workforce_year.dropna(subset=['Country'],inplace=True)
+        workforce_year=workforce_year.drop(columns='Unnamed: 0', axis =1)
 
-        for code in  all_countries.EXIO3:
-            print(code)
-            if code =='AT':
+        for code in  all_countries:
+            print(years,code)
+            if code in all_countries:
                 if code in list_RoW :
                     for sector in hours_split['Sector'].unique():
-                        pop_high_skill_men = 1000* float(workforce_year.loc[(workforce_year.Country == code) & (workforce_year.Sector == sector),'Split High qualification employment - male'].to_string(index=False, header=False))
-                        pop_middle_skill_men = 1000* float(workforce_year.loc[(workforce_year.Country == code) & (workforce_year.Sector == sector),'Split Middle qualification employment - male'].to_string(index=False, header=False))
-                        pop_low_skill_men = 1000* float(workforce_year.loc[(workforce_year.Country == code) & (workforce_year.Sector == sector),'Split Low qualification employment - male'].to_string(index=False, header=False))
+                        pop_high_skill_men = 1000* float(workforce_year.loc[(workforce_year.Country == code) & (workforce_year.Sector == concordance.loc[concordance.Name == sector,'CodeNr'].to_string(index=False)),'Split High qualification employment - male'].to_string(index=False, header=False))
+                        pop_middle_skill_men = 1000* float(workforce_year.loc[(workforce_year.Country == code) & (workforce_year.Sector == concordance.loc[concordance.Name == sector,'CodeNr'].to_string(index=False)),'Split Middle qualification employment - male'].to_string(index=False, header=False))
+                        pop_low_skill_men = 1000* float(workforce_year.loc[(workforce_year.Country == code) & (workforce_year.Sector == concordance.loc[concordance.Name == sector,'CodeNr'].to_string(index=False)),'Split Low qualification employment - male'].to_string(index=False, header=False))
 
-                        pop_high_skill_women = 1000* float(workforce_year.loc[(workforce_year.Country == code) & (workforce_year.Sector == sector),'Split High qualification employment - female'].to_string(index=False, header=False))
-                        pop_middle_skill_women = 1000* float(workforce_year.loc[(workforce_year.Country == code) & (workforce_year.Sector == sector),'Split Middle qualification employment - female'].to_string(index=False, header=False))
-                        pop_low_skill_women = 1000* float(workforce_year.loc[(workforce_year.Country == code) & (workforce_year.Sector == sector),'Split Low qualification employment - female'].to_string(index=False, header=False))
+                        pop_high_skill_women = 1000* float(workforce_year.loc[(workforce_year.Country == code) & (workforce_year.Sector == concordance.loc[concordance.Name == sector,'CodeNr'].to_string(index=False)),'Split High qualification employment - female'].to_string(index=False, header=False))
+                        pop_middle_skill_women = 1000* float(workforce_year.loc[(workforce_year.Country == code) & (workforce_year.Sector == concordance.loc[concordance.Name == sector,'CodeNr'].to_string(index=False)),'Split Middle qualification employment - female'].to_string(index=False, header=False))
+                        pop_low_skill_women = 1000* float(workforce_year.loc[(workforce_year.Country == code) & (workforce_year.Sector == concordance.loc[concordance.Name == sector,'CodeNr'].to_string(index=False)),'Split Low qualification employment - female'].to_string(index=False, header=False))
 
 
                         vacation = float(vacation_average.loc[vacation_average.EXIO3 == code,'Total Paid Vacation Days'].to_string(index=False,header=False))
@@ -764,30 +792,38 @@ def working_hour(workforce,src_csv2,data_path,src_csv3):
                         classif1 = concordance.loc[concordance['Name']==sector,['ISIC REV 4_ILO_Alteryx']].to_string(index = False, header = False)
 
                         hours_M = float(av2.loc[(av2.EXIO3 ==code) & (av2.sex == 'SEX_M') &(av2.classif1==classif1)&(av2.time == years),'Weighted average working hours'].to_string(index = False, header = False))
-                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - male' ] = pop_high_skill_men * (hours_M/5) * (365-vacation) / 1000000
-                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - male' ] = pop_middle_skill_men * (hours_M/5) * (365-vacation) / 1000000
-                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - male' ] = pop_low_skill_men * (hours_M/5) * (365-vacation) / 1000000
+                        #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - male' ] = pop_high_skill_men * (hours_M/5) * (365-vacation) / 1000000
+                        #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - male' ] = pop_middle_skill_men * (hours_M/5) * (365-vacation) / 1000000
+                        #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - male' ] = pop_low_skill_men * (hours_M/5) * (365-vacation) / 1000000
+                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - male' ] = pop_high_skill_men * (hours_M) * (52) / 1000000
+                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - male' ] = pop_middle_skill_men * (hours_M) * (52) / 1000000
+                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - male' ] = pop_low_skill_men * (hours_M) * (52) / 1000000
 
                         hours_F = float(av2.loc[(av2.EXIO3 ==code) & (av2.sex == 'SEX_F') &(av2.classif1==classif1)&(av2.time == years),'Weighted average working hours'].to_string(index = False, header = False))
-                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - female' ] = pop_high_skill_women * (hours_F/5) * (365-vacation) / 1000000
-                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - female' ] = pop_middle_skill_women * (hours_F/5) * (365-vacation) / 1000000
-                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - female' ] = pop_low_skill_women * (hours_F/5) * (365-vacation) / 1000000
+                        #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - female' ] = pop_high_skill_women * (hours_F/5) * (365-vacation) / 1000000
+                        #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - female' ] = pop_middle_skill_women * (hours_F/5) * (365-vacation) / 1000000
+                        #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - female' ] = pop_low_skill_women * (hours_F/5) * (365-vacation) / 1000000
 
-                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - total' ] = (pop_high_skill_men * (hours_M/5) * (365-vacation) / 1000000) + (pop_high_skill_women * (hours_F/5) * (365-vacation) / 1000000)
-                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - total' ] = (pop_middle_skill_men * (hours_M/5) * (365-vacation) / 1000000) + (pop_middle_skill_women * (hours_F/5) * (365-vacation) / 1000000)
-                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - total' ] = (pop_low_skill_men * (hours_M/5) * (365-vacation) / 1000000) + (pop_low_skill_women * (hours_F/5) * (365-vacation) / 1000000)
+                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - female' ] = pop_high_skill_women * (hours_F) * (52) / 1000000
+                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - female' ] = pop_middle_skill_women * (hours_F) * (52) / 1000000
+                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - female' ] = pop_low_skill_women * (hours_F) * (52) / 1000000
 
-
+                        #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - total' ] = (pop_high_skill_men * (hours_M/5) * (365-vacation) / 1000000) + (pop_high_skill_women * (hours_F/5) * (365-vacation) / 1000000)
+                        #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - total' ] = (pop_middle_skill_men * (hours_M/5) * (365-vacation) / 1000000) + (pop_middle_skill_women * (hours_F/5) * (365-vacation) / 1000000)
+                        #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - total' ] = (pop_low_skill_men * (hours_M/5) * (365-vacation) / 1000000) + (pop_low_skill_women * (hours_F/5) * (365-vacation) / 1000000)
+                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - total' ] = (pop_high_skill_men * (hours_M) * (52) / 1000000)+(pop_high_skill_women * (hours_F) * (52) / 1000000)
+                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - total' ] = (pop_middle_skill_men * (hours_M) * (52) / 1000000) + (pop_middle_skill_women * (hours_F) * (52) / 1000000)
+                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - total' ] = (pop_low_skill_women * (hours_F) * (52) / 1000000) + (pop_low_skill_men * (hours_M) * (52) / 1000000)
 
                 elif code =='TW':
                     for sector in hours_split['Sector'].unique():
-                        pop_high_skill_men = 1000* float(workforce_year.loc[(workforce_year.Country == code) & (workforce_year.Sector == sector),'Split High qualification employment - male'].to_string(index=False, header=False))
-                        pop_middle_skill_men = 1000* float(workforce_year.loc[(workforce_year.Country == code) & (workforce_year.Sector == sector),'Split Middle qualification employment - male'].to_string(index=False, header=False))
-                        pop_low_skill_men = 1000* float(workforce_year.loc[(workforce_year.Country == code) & (workforce_year.Sector == sector),'Split Low qualification employment - male'].to_string(index=False, header=False))
+                        pop_high_skill_men = 1000* float(workforce_year.loc[(workforce_year.Country == code) & (workforce_year.Sector == concordance.loc[concordance.Name == sector,'CodeNr'].to_string(index=False)),'Split High qualification employment - male'].to_string(index=False, header=False))
+                        pop_middle_skill_men = 1000* float(workforce_year.loc[(workforce_year.Country == code) & (workforce_year.Sector == concordance.loc[concordance.Name == sector,'CodeNr'].to_string(index=False)),'Split Middle qualification employment - male'].to_string(index=False, header=False))
+                        pop_low_skill_men = 1000* float(workforce_year.loc[(workforce_year.Country == code) & (workforce_year.Sector == concordance.loc[concordance.Name == sector,'CodeNr'].to_string(index=False)),'Split Low qualification employment - male'].to_string(index=False, header=False))
 
-                        pop_high_skill_women = 1000* float(workforce_year.loc[(workforce_year.Country == code) & (workforce_year.Sector == sector),'Split High qualification employment - female'].to_string(index=False, header=False))
-                        pop_middle_skill_women = 1000* float(workforce_year.loc[(workforce_year.Country == code) & (workforce_year.Sector == sector),'Split Middle qualification employment - female'].to_string(index=False, header=False))
-                        pop_low_skill_women = 1000* float(workforce_year.loc[(workforce_year.Country == code) & (workforce_year.Sector == sector),'Split Low qualification employment - female'].to_string(index=False, header=False))
+                        pop_high_skill_women = 1000* float(workforce_year.loc[(workforce_year.Country == code) & (workforce_year.Sector == concordance.loc[concordance.Name == sector,'CodeNr'].to_string(index=False)),'Split High qualification employment - female'].to_string(index=False, header=False))
+                        pop_middle_skill_women = 1000* float(workforce_year.loc[(workforce_year.Country == code) & (workforce_year.Sector == concordance.loc[concordance.Name == sector,'CodeNr'].to_string(index=False)),'Split Middle qualification employment - female'].to_string(index=False, header=False))
+                        pop_low_skill_women = 1000* float(workforce_year.loc[(workforce_year.Country == code) & (workforce_year.Sector == concordance.loc[concordance.Name == sector,'CodeNr'].to_string(index=False)),'Split Low qualification employment - female'].to_string(index=False, header=False))
 
 
                         vacation = float(vacation_average.loc[vacation_average.EXIO3 == 'WA','Total Paid Vacation Days'].to_string(index=False,header=False))
@@ -795,52 +831,84 @@ def working_hour(workforce,src_csv2,data_path,src_csv3):
                         classif1 = concordance.loc[concordance['Name']==sector,['ISIC REV 4_ILO_Alteryx']].to_string(index = False, header = False)
 
                         hours_M = float(av2.loc[(av2.EXIO3 =='WA') & (av2.sex == 'SEX_M') &(av2.classif1==classif1)&(av2.time == years),'Weighted average working hours'].to_string(index = False, header = False))
-                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - male' ] = pop_high_skill_men * (hours_M/5) * (365-vacation) / 1000000
-                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - male' ] = pop_middle_skill_men * (hours_M/5) * (365-vacation) / 1000000
-                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - male' ] = pop_low_skill_men * (hours_M/5) * (365-vacation) / 1000000
+                        #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - male' ] = pop_high_skill_men * (hours_M/5) * (365-vacation) / 1000000
+                        #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - male' ] = pop_middle_skill_men * (hours_M/5) * (365-vacation) / 1000000
+                        #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - male' ] = pop_low_skill_men * (hours_M/5) * (365-vacation) / 1000000
+                        #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - male' ] = pop_high_skill_men * (hours_M) * (52-(vacation/5)) / 1000000
+                        #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - male' ] = pop_middle_skill_men * (hours_M) * (52-(vacation/5)) / 1000000
+                        #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - male' ] = pop_low_skill_men * (hours_M) * (52-(vacation/5)) / 1000000
+
+                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - male' ] = pop_high_skill_men * (hours_M) * (52) / 1000000
+                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - male' ] = pop_middle_skill_men * (hours_M) * (52) / 1000000
+                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - male' ] = pop_low_skill_men * (hours_M) * (52) / 1000000
+
 
                         hours_F = float(av2.loc[(av2.EXIO3 =='WA') & (av2.sex == 'SEX_F') &(av2.classif1==classif1)&(av2.time == years),'Weighted average working hours'].to_string(index = False, header = False))
-                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - female' ] = pop_high_skill_women * (hours_F/5) * (365-vacation) / 1000000
-                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - female' ] = pop_middle_skill_women * (hours_F/5) * (365-vacation) / 1000000
-                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - female' ] = pop_low_skill_women * (hours_F/5) * (365-vacation) / 1000000
+                        #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - female' ] = pop_high_skill_women * (hours_F/5) * (365-vacation) / 1000000
+                        #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - female' ] = pop_middle_skill_women * (hours_F/5) * (365-vacation) / 1000000
+                        #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - female' ] = pop_low_skill_women * (hours_F/5) * (365-vacation) / 1000000
+                        #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - female' ] = pop_high_skill_women * (hours_F) * (52-(vacation/5)) / 1000000
+                        #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - female' ] = pop_middle_skill_women * (hours_F) * (52-(vacation/5)) / 1000000
+                        #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - female' ] = pop_low_skill_women * (hours_F) * (52-(vacation/5)) / 1000000
+                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - female' ] = pop_high_skill_women * (hours_F) * (52) / 1000000
+                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - female' ] = pop_middle_skill_women * (hours_F) * (52) / 1000000
+                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - female' ] = pop_low_skill_women * (hours_F) * (52) / 1000000
 
-                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - total' ] = (pop_high_skill_men * (hours_M/5) * (365-vacation) / 1000000) + (pop_high_skill_women * (hours_F/5) * (365-vacation) / 1000000)
-                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - total' ] = (pop_middle_skill_men * (hours_M/5) * (365-vacation) / 1000000) + (pop_middle_skill_women * (hours_F/5) * (365-vacation) / 1000000)
-                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - total' ] = (pop_low_skill_men * (hours_M/5) * (365-vacation) / 1000000) + (pop_low_skill_women * (hours_F/5) * (365-vacation) / 1000000)
+
+                        #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - total' ] = (pop_high_skill_men * (hours_M/5) * (365-vacation) / 1000000) + (pop_high_skill_women * (hours_F/5) * (365-vacation) / 1000000)
+                        #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - total' ] = (pop_middle_skill_men * (hours_M/5) * (365-vacation) / 1000000) + (pop_middle_skill_women * (hours_F/5) * (365-vacation) / 1000000)
+                        #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - total' ] = (pop_low_skill_men * (hours_M/5) * (365-vacation) / 1000000) + (pop_low_skill_women * (hours_F/5) * (365-vacation) / 1000000)
+                        #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - total' ] = (pop_high_skill_men * (hours_M) * (52-(vacation/5)) / 1000000) + (pop_high_skill_women * (hours_F) * (52-(vacation/5)) / 1000000)
+                        #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - total' ] = (pop_middle_skill_men * (hours_M) * (52-(vacation/5)) / 1000000)+(pop_middle_skill_women * (hours_F) * (52-(vacation/5)) / 1000000)
+                        #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - total' ] = (pop_low_skill_men * (hours_M) * (52-(vacation/5)) / 1000000)+(pop_low_skill_women * (hours_F) * (52-(vacation/5)) / 1000000)
+                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - total' ] = (pop_high_skill_men * (hours_M) * (52) / 1000000) + (pop_high_skill_women * (hours_F) * (52) / 1000000)
+                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - total' ] = (pop_middle_skill_men * (hours_M) * (52) / 1000000)+(pop_middle_skill_women * (hours_F) * (52) / 1000000)
+                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - total' ] = (pop_low_skill_men * (hours_M) * (52) / 1000000)+(pop_low_skill_women * (hours_F) * (52) / 1000000)
 
 
                 else :
                     for sector in hours_split['Sector'].unique():
-                        pop_high_skill_men = 1000* float(workforce_year.loc[(workforce_year.Country == code) & (workforce_year.Sector == sector),'Split High qualification employment - male'].to_string(index=False, header=False))
-                        print(sector,pop_high_skill_men)
-                        pop_middle_skill_men = 1000* float(workforce_year.loc[(workforce_year.Country == code) & (workforce_year.Sector == sector),'Split Middle qualification employment - male'].to_string(index=False, header=False))
-                        pop_low_skill_men = 1000* float(workforce_year.loc[(workforce_year.Country == code) & (workforce_year.Sector == sector),'Split Low qualification employment - male'].to_string(index=False, header=False))
+                        pop_high_skill_men = 1000* float(workforce_year.loc[(workforce_year.Country == code) & (workforce_year.Sector == concordance.loc[concordance.Name == sector,'CodeNr'].to_string(index=False)),'Split High qualification employment - male'].to_string(index=False, header=False))
+                        #print(sector,pop_high_skill_men)
+                        
+                        pop_middle_skill_men = 1000* float(workforce_year.loc[(workforce_year.Country == code) & (workforce_year.Sector == concordance.loc[concordance.Name == sector,'CodeNr'].to_string(index=False)),'Split Middle qualification employment - male'].to_string(index=False, header=False))
+                        pop_low_skill_men = 1000* float(workforce_year.loc[(workforce_year.Country == code) & (workforce_year.Sector == concordance.loc[concordance.Name == sector,'CodeNr'].to_string(index=False)),'Split Low qualification employment - male'].to_string(index=False, header=False))
 
-                        pop_high_skill_women = 1000* float(workforce_year.loc[(workforce_year.Country == code) & (workforce_year.Sector == sector),'Split High qualification employment - female'].to_string(index=False, header=False))
-                        pop_middle_skill_women = 1000* float(workforce_year.loc[(workforce_year.Country == code) & (workforce_year.Sector == sector),'Split Middle qualification employment - female'].to_string(index=False, header=False))
-                        pop_low_skill_women = 1000* float(workforce_year.loc[(workforce_year.Country == code) & (workforce_year.Sector == sector),'Split Low qualification employment - female'].to_string(index=False, header=False))
+                        pop_high_skill_women = 1000* float(workforce_year.loc[(workforce_year.Country == code) & (workforce_year.Sector == concordance.loc[concordance.Name == sector,'CodeNr'].to_string(index=False)),'Split High qualification employment - female'].to_string(index=False, header=False))
+                        pop_middle_skill_women = 1000* float(workforce_year.loc[(workforce_year.Country == code) & (workforce_year.Sector == concordance.loc[concordance.Name == sector,'CodeNr'].to_string(index=False)),'Split Middle qualification employment - female'].to_string(index=False, header=False))
+                        pop_low_skill_women = 1000* float(workforce_year.loc[(workforce_year.Country == code) & (workforce_year.Sector == concordance.loc[concordance.Name == sector,'CodeNr'].to_string(index=False)),'Split Low qualification employment - female'].to_string(index=False, header=False))
 
-
+                        
                         vacation = float(vacation_average.loc[vacation_average.EXIO3 == code,'Total Paid Vacation Days'].to_string(index=False,header=False))
                         classif1 = concordance.loc[concordance['Name']==sector,['Summary']].to_string(index = False, header = False)
                         letter = classif1.split('.',1)[0]
                         print(letter)
-                        hours_M = float(hours.loc[(hours.EXIO3 ==code) & (hours.sex == 'SEX_M') &(hours.classif1=='ECO_DETAILS_'+letter)&(hours.time == years),'average weekly hours'].to_string(index = False, header = False))
-                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - male' ] = pop_high_skill_men * (hours_M/5) * (365-vacation) / 1000000
-                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - male' ] = pop_middle_skill_men * (hours_M/5) * (365-vacation) / 1000000
-                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - male' ] = pop_low_skill_men * (hours_M/5) * (365-vacation) / 1000000
-                        hours_F = float(hours.loc[(hours.EXIO3 ==code) & (hours.sex == 'SEX_F') &(hours.classif1=='ECO_DETAILS_'+letter)&(hours.time == years),'average weekly hours'].to_string(index = False, header = False))
+                        hours_M = float(hours_main_country.loc[(hours_main_country.EXIO3 ==code) & (hours_main_country.sex == 'SEX_M') &(hours_main_country.classif1=='ECO_DETAILS_'+letter)&(hours_main_country.time == years),'average weekly hours'].to_string(index = False, header = False))
+                        #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - male' ] = pop_high_skill_men * (hours_M/5) * (365-vacation) / 1000000
+                        #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - male' ] = pop_middle_skill_men * (hours_M/5) * (365-vacation) / 1000000
+                        #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - male' ] = pop_low_skill_men * (hours_M/5) * (365-vacation) / 1000000
+                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - male' ] = pop_high_skill_men * (hours_M) * (52) / 1000000
+                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - male' ] = pop_middle_skill_men * (hours_M) * (52) / 1000000
+                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - male' ] = pop_low_skill_men * (hours_M) * (52) / 1000000
 
-                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - female' ] = pop_high_skill_women * (hours_F/5) * (365-vacation) / 1000000
-                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - female' ] = pop_middle_skill_women * (hours_F/5) * (365-vacation) / 1000000
-                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - female' ] = pop_low_skill_women * (hours_F/5) * (365-vacation) / 1000000
+                        hours_F = float(hours_main_country.loc[(hours_main_country.EXIO3 ==code) & (hours_main_country.sex == 'SEX_F') &(hours_main_country.classif1=='ECO_DETAILS_'+letter)&(hours_main_country.time == years),'average weekly hours'].to_string(index = False, header = False))
+                        print(code, sector, hours_M, hours_F, vacation)
+                        #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - female' ] = pop_high_skill_women * (hours_F/5) * (365-vacation) / 1000000
+                        #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - female' ] = pop_middle_skill_women * (hours_F/5) * (365-vacation) / 1000000
+                        #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - female' ] = pop_low_skill_women * (hours_F/5) * (365-vacation) / 1000000
+                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - female' ] = pop_high_skill_women * (hours_F) * (52) / 1000000
+                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - female' ] = pop_middle_skill_women * (hours_F) * (52) / 1000000
+                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - female' ] = pop_low_skill_women * (hours_F) * (52) / 1000000
 
-                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - total' ] = (pop_high_skill_men * (hours_M/5) * (365-vacation) / 1000000) + (pop_high_skill_women * (hours_F/5) * (365-vacation) / 1000000)
-                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - total' ] = (pop_middle_skill_men * (hours_M/5) * (365-vacation) / 1000000) + (pop_middle_skill_women * (hours_F/5) * (365-vacation) / 1000000)
-                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - total' ] = (pop_low_skill_men * (hours_M/5) * (365-vacation) / 1000000) + (pop_low_skill_women * (hours_F/5) * (365-vacation) / 1000000)
+                        #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - total' ] = (pop_high_skill_men * (hours_M/5) * (365-vacation) / 1000000) + (pop_high_skill_women * (hours_F/5) * (365-vacation) / 1000000)
+                        #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - total' ] = (pop_middle_skill_men * (hours_M/5) * (365-vacation) / 1000000) + (pop_middle_skill_women * (hours_F/5) * (365-vacation) / 1000000)
+                        #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - total' ] = (pop_low_skill_men * (hours_M/5) * (365-vacation) / 1000000) + (pop_low_skill_women * (hours_F/5) * (365-vacation) / 1000000)
+                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - total' ] = (pop_high_skill_men * (hours_M) * (52) / 1000000) + (pop_high_skill_women * (hours_F) * (52) / 1000000)
+                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - total' ] = (pop_middle_skill_men * (hours_M) * (52) / 1000000) + (pop_middle_skill_women * (hours_F) * (52) / 1000000)
+                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - total' ] = (pop_low_skill_men * (hours_M) * (52) / 1000000) + (pop_low_skill_women * (hours_F) * (52) / 1000000)
 
-        hourSplit[years]=hours_split.copy()
-        writer = pd.ExcelWriter('hours_split_0312.xlsx',engine='xlsxwriter')
+            hourSplit[years]=hours_split.copy()
+        writer = pd.ExcelWriter('hours_split_newSUTS.xlsx',engine='xlsxwriter')
 
         for year in range(1995,2023):
             hourSplit[year].to_excel(writer, sheet_name=str(year))
@@ -848,8 +916,8 @@ def working_hour(workforce,src_csv2,data_path,src_csv3):
 
 
 
-        xls = pd.ExcelFile('hours_split_0312.xlsx')
-        xls2 = pd.ExcelFile('split_updated_1610.xlsx')
+        xls = pd.ExcelFile('hours_split.xlsx')
+        xls2 = pd.ExcelFile(final_path / 'split_workforce_by_skill.xlsx')
         exio3_regions = pd.read_csv('aux/region_EXIO3.csv')
 
         final_table= pd.DataFrame(columns = ['region','sector', 'Employment: Low-skilled male', 'Employment: Low-skilled female', 'Employment: Medium-skilled male','Employment: Medium-skilled female', 'Employment: High-skilled male', 'Employment: High-skilled female','Employment hours: Low-skilled male', 'Employment hours: Low-skilled female', 'Employment hours: Medium-skilled male',  'Employment hours: Medium-skilled female','Employment hours: High-skilled male',  'Employment hours: High-skilled female'])
@@ -869,18 +937,24 @@ def working_hour(workforce,src_csv2,data_path,src_csv3):
             for code in  exio3_regions['EXIO3']:
                 print(code)
                 for sector in whours['Sector'].unique():
-                    if not sector in pop.loc[(pop.Country == code),'Sector'].values :
+                    #if not sector in pop.loc[(pop.Country == code),'Sector'].values :
+                    if not concordance.loc[concordance.Name == sector,'CodeNr'].to_string(index=False) in pop.loc[(pop.Country == code),'Sector'].values :
+
                         new_row = pd.DataFrame({'region':[code],   'sector':[sector],   'Employment: Low-skilled male': [0],'Employment: Low-skilled female': [0],'Employment: Medium-skilled male':[0],'Employment: Medium-skilled female': [0],'Employment: High-skilled male':[0],'Employment: High-skilled female':[0], 'Employment hours: Low-skilled male' :[0],  'Employment hours: Low-skilled female' :[0],'Employment hours: Medium-skilled male' :[0],  'Employment hours: Medium-skilled female' :[0],'Employment hours: High-skilled male' :[0],  'Employment hours: High-skilled female' :[0]})
                     else :
 
-                        new_row = pd.DataFrame({'region':[code],   'sector':[sector],   'Employment: Low-skilled male': [float(pop.loc[(pop.Country == code)&(pop.Sector ==sector),'Split Low qualification employment - male'].to_string(header=False,index=False))],'Employment: Low-skilled female': [float(pop.loc[(pop.Country == code)&(pop.Sector ==sector),'Split Low qualification employment - female'].to_string(header=False,index=False))],'Employment: Medium-skilled male':[float(pop.loc[(pop.Country == code)&(pop.Sector ==sector),'Split Middle qualification employment - male'].to_string(header=False,index=False))],'Employment: Medium-skilled female': [float(pop.loc[(pop.Country == code)&(pop.Sector ==sector),'Split Middle qualification employment - female'].to_string(header=False,index=False))],'Employment: High-skilled male':[float(pop.loc[(pop.Country == code)&(pop.Sector ==sector),'Split High qualification employment - male'].to_string(header=False,index=False))],'Employment: High-skilled female':[float(pop.loc[(pop.Country == code)&(pop.Sector ==sector),'Split High qualification employment - female'].to_string(header=False,index=False))], 'Employment hours: Low-skilled male' :[float(whours.loc[(whours.EXIO3 ==code) & (whours.Sector==sector),'Hours Low qualification employement - male' ].to_string(index=False,header=False))],  'Employment hours: Low-skilled female' :[float(whours.loc[(whours.EXIO3 ==code) & (whours.Sector==sector),'Hours Low qualification employement - female' ].to_string(index=False,header=False))],'Employment hours: Medium-skilled male' :[float(whours.loc[(whours.EXIO3 ==code) & (whours.Sector==sector),'Hours Middle qualification employement - male' ].to_string(index=False,header=False))],  'Employment hours: Medium-skilled female' :[float(whours.loc[(whours.EXIO3 ==code) & (whours.Sector==sector),'Hours Middle qualification employement - female' ].to_string(index=False,header=False))],'Employment hours: High-skilled male' :[float(whours.loc[(whours.EXIO3 ==code) & (whours.Sector==sector),'Hours High qualification employement - male' ].to_string(index=False,header=False))],  'Employment hours: High-skilled female' :[float(whours.loc[(whours.EXIO3 ==code) & (whours.Sector==sector),'Hours High qualification employement - female' ].to_string(index=False,header=False))]})
+                        #new_row = pd.DataFrame({'region':[code],   'sector':[sector],   'Employment: Low-skilled male': [float(pop.loc[(pop.Country == code)&(pop.Sector ==sector),'Split Low qualification employment - male'].to_string(header=False,index=False))],'Employment: Low-skilled female': [float(pop.loc[(pop.Country == code)&(pop.Sector ==sector),'Split Low qualification employment - female'].to_string(header=False,index=False))],'Employment: Medium-skilled male':[float(pop.loc[(pop.Country == code)&(pop.Sector ==sector),'Split Middle qualification employment - male'].to_string(header=False,index=False))],'Employment: Medium-skilled female': [float(pop.loc[(pop.Country == code)&(pop.Sector ==sector),'Split Middle qualification employment - female'].to_string(header=False,index=False))],'Employment: High-skilled male':[float(pop.loc[(pop.Country == code)&(pop.Sector ==sector),'Split High qualification employment - male'].to_string(header=False,index=False))],'Employment: High-skilled female':[float(pop.loc[(pop.Country == code)&(pop.Sector ==sector),'Split High qualification employment - female'].to_string(header=False,index=False))], 'Employment hours: Low-skilled male' :[float(whours.loc[(whours.EXIO3 ==code) & (whours.Sector==sector),'Hours Low qualification employement - male' ].to_string(index=False,header=False))],  'Employment hours: Low-skilled female' :[float(whours.loc[(whours.EXIO3 ==code) & (whours.Sector==sector),'Hours Low qualification employement - female' ].to_string(index=False,header=False))],'Employment hours: Medium-skilled male' :[float(whours.loc[(whours.EXIO3 ==code) & (whours.Sector==sector),'Hours Middle qualification employement - male' ].to_string(index=False,header=False))],  'Employment hours: Medium-skilled female' :[float(whours.loc[(whours.EXIO3 ==code) & (whours.Sector==sector),'Hours Middle qualification employement - female' ].to_string(index=False,header=False))],'Employment hours: High-skilled male' :[float(whours.loc[(whours.EXIO3 ==code) & (whours.Sector==sector),'Hours High qualification employement - male' ].to_string(index=False,header=False))],  'Employment hours: High-skilled female' :[float(whours.loc[(whours.EXIO3 ==code) & (whours.Sector==sector),'Hours High qualification employement - female' ].to_string(index=False,header=False))]})
+
+
+                        new_row = pd.DataFrame({'region':[code],   'sector':[sector],   'Employment: Low-skilled male': [float(pop.loc[(pop.Country == code)&(pop.Sector == concordance.loc[concordance.Name == sector,'CodeNr'].to_string(index=False)),'Split Low qualification employment - male'].to_string(header=False,index=False))]  ,'Employment: Low-skilled female': [float(pop.loc[(pop.Country == code)&(pop.Sector == concordance.loc[concordance.Name == sector,'CodeNr'].to_string(index=False)),'Split Low qualification employment - female'].to_string(header=False,index=False))],'Employment: Medium-skilled male':[float(pop.loc[(pop.Country == code)&(pop.Sector == concordance.loc[concordance.Name == sector,'CodeNr'].to_string(index=False)),'Split Middle qualification employment - male'].to_string(header=False,index=False))],'Employment: Medium-skilled female': [float(pop.loc[(pop.Country == code)&(pop.Sector == concordance.loc[concordance.Name == sector,'CodeNr'].to_string(index=False)),'Split Middle qualification employment - female'].to_string(header=False,index=False))],'Employment: High-skilled male':[float(pop.loc[(pop.Country == code)&(pop.Sector == concordance.loc[concordance.Name == sector,'CodeNr'].to_string(index=False)),'Split High qualification employment - male'].to_string(header=False,index=False))],'Employment: High-skilled female':[float(pop.loc[(pop.Country == code)&(pop.Sector == concordance.loc[concordance.Name == sector,'CodeNr'].to_string(index=False)),'Split High qualification employment - female'].to_string(header=False,index=False))], 'Employment hours: Low-skilled male' :[float(whours.loc[(whours.EXIO3 ==code) & (whours.Sector==sector),'Hours Low qualification employement - male' ].to_string(index=False,header=False))],  'Employment hours: Low-skilled female' :[float(whours.loc[(whours.EXIO3 ==code) & (whours.Sector==sector),'Hours Low qualification employement - female' ].to_string(index=False,header=False))],'Employment hours: Medium-skilled male' :[float(whours.loc[(whours.EXIO3 ==code) & (whours.Sector==sector),'Hours Middle qualification employement - male' ].to_string(index=False,header=False))],  'Employment hours: Medium-skilled female' :[float(whours.loc[(whours.EXIO3 ==code) & (whours.Sector==sector),'Hours Middle qualification employement - female' ].to_string(index=False,header=False))],'Employment hours: High-skilled male' :[float(whours.loc[(whours.EXIO3 ==code) & (whours.Sector==sector),'Hours High qualification employement - male' ].to_string(index=False,header=False))],  'Employment hours: High-skilled female' :[float(whours.loc[(whours.EXIO3 ==code) & (whours.Sector==sector),'Hours High qualification employement - female' ].to_string(index=False,header=False))]})
+
 
                     #new_row = pd.DataFrame({'region':[code],   'sector':[sector],   'Employment: Low-skilled male': [float(pop.loc[(pop.Country == code)&(pop.Sector ==sector),'Split Low qualification employment - male'].to_string(header=False,index=False))],'Employment: Low-skilled female': [float(pop.loc[(pop.Country == code)&(pop.Sector ==sector),'Split Low qualification employment - female'].to_string(header=False,index=False))],'Employment: Medium-skilled male':[float(pop.loc[(pop.Country == code)&(pop.Sector ==sector),'Split Middle qualification employment - male'].to_string(header=False,index=False))],'Employment: Medium-skilled female': [float(pop.loc[(pop.Country == code)&(pop.Sector ==sector),'Split Middle qualification employment - female'].to_string(header=False,index=False))],'Employment: High-skilled male':[float(pop.loc[(pop.Country == code)&(pop.Sector ==sector),'Split High qualification employment - male'].to_string(header=False,index=False))],'Employment: High-skilled female':[float(pop.loc[(pop.Country == code)&(pop.Sector ==sector),'Split High qualification employment - female'].to_string(header=False,index=False))], 'Employment hours: Low-skilled male' : [float(whours.loc[(whours.EXIO3 ==code) & (whours.Sector==sector),'Hours Low qualification employement - male'].to_string(index=False,header=False))]})
                     final_table=pd.concat([final_table,new_row])
 
             final[years]=final_table.copy()
 
-        writer = pd.ExcelWriter('final_labor.xlsx',engine='xlsxwriter')
+        writer = pd.ExcelWriter('final_labor_SUTs_3_10.xlsx',engine='xlsxwriter')
 
         for year in range(1995,2023):
             table_pivot = final[year].pivot_table(columns=['region','sector'],sort = False)
