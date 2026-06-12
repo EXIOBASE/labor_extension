@@ -1,5 +1,6 @@
 from pathlib import Path
 import sys
+import ray
 sys.path.insert(1, 'workforce_salary')
 sys.path.insert(2, 'working_hours')
 
@@ -10,7 +11,7 @@ import workforce_salary.workforce
 
 import workforce_salary.download
 import workforce_salary.ref_label
-import workforce_salary.workforce
+
 
 #15:00 22.03.22
 DATAFOLDER: Path = Path('/home/candyd/tmp/labor')
@@ -25,7 +26,7 @@ final_path = Path(DATAFOLDER / "final_table")
 final_path.mkdir(exist_ok=True, parents=True)
 
 
-
+ray.shutdown()
 '''
 URL of tables
 '''

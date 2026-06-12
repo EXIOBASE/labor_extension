@@ -36,6 +36,7 @@ from isic3_to_isic4 import task_U
 from isic3_to_isic4 import task_X
 from complete_hours import complete
 from complete_hours_2 import complete2
+from complete_hours_3 import complete3
 import concurrent.futures
 
 def working_hour(workforce,src_csv2,data_path,src_csv3):
@@ -240,93 +241,7 @@ def working_hour(workforce,src_csv2,data_path,src_csv3):
     
     '''THIS SHOULD USE RAY'''    
     complete_hour = complete(hours)
-    # for code in hours.ref_area.unique() :
-    #     print(code)
-    #     for sex in hours.sex.unique() : 
 
-                
-    #         for years in range(1995, 2024):
-    #     #for b in hours.classif1 :
-    #             if not 'ECO_ISIC4_A' in hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.time == years),['classif1']].values:
-    #                 new_row = pd.DataFrame({'ref_area':[code],'sex':[sex],'classif1':'ECO_ISIC4_A','time' :[years]})
-    #                 hours=pd.concat([hours,new_row])
-    #             if not 'ECO_ISIC4_B' in hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.time == years),['classif1']].values:
-    #                 new_row = pd.DataFrame({'ref_area':[code],'sex':[sex],'classif1':'ECO_ISIC4_B','time' :[years]})
-    #                 hours=pd.concat([hours,new_row])
-    #             if not 'ECO_ISIC4_C' in hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.time == years),['classif1']].values:
-    #                 new_row = pd.DataFrame({'ref_area':[code],'sex':[sex],'classif1':'ECO_ISIC4_C','time' :[years]})
-    #                 hours=pd.concat([hours,new_row])
-    #             if not 'ECO_ISIC4_D' in hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.time == years),['classif1']].values:
-    #                 new_row = pd.DataFrame({'ref_area':[code],'sex':[sex],'classif1':'ECO_ISIC4_D','time' :[years]})
-    #                 hours=pd.concat([hours,new_row])    
-    #             if not 'ECO_ISIC4_E' in hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.time == years),['classif1']].values:
-    #                 new_row = pd.DataFrame({'ref_area':[code],'sex':[sex],'classif1':'ECO_ISIC4_E','time' :[years]})
-    #                 hours=pd.concat([hours,new_row])
-    #             if not 'ECO_ISIC4_F' in hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.time == years),['classif1']].values:
-    #                 new_row = pd.DataFrame({'ref_area':[code],'sex':[sex],'classif1':'ECO_ISIC4_F','time' :[years]})
-    #                 hours=pd.concat([hours,new_row])
-    #             if not 'ECO_ISIC4_G' in hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.time == years),['classif1']].values:
-    #                 new_row = pd.DataFrame({'ref_area':[code],'sex':[sex],'classif1':'ECO_ISIC4_G','time' :[years]})
-    #                 hours=pd.concat([hours,new_row])
-    #             if not 'ECO_ISIC4_H' in hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.time == years),['classif1']].values:
-    #                 new_row = pd.DataFrame({'ref_area':[code],'sex':[sex],'classif1':'ECO_ISIC4_H','time' :[years]})
-    #                 hours=pd.concat([hours,new_row])   
-                    
-    #             if not 'ECO_ISIC4_I' in hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.time == years),['classif1']].values:
-    #                 new_row = pd.DataFrame({'ref_area':[code],'sex':[sex],'classif1':'ECO_ISIC4_I','time' :[years]})
-    #                 hours=pd.concat([hours,new_row])
-    #             if not 'ECO_ISIC4_J' in hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.time == years),['classif1']].values:
-    #                 new_row = pd.DataFrame({'ref_area':[code],'sex':[sex],'classif1':'ECO_ISIC4_J','time' :[years]})
-    #                 hours=pd.concat([hours,new_row])
-    #             if not 'ECO_ISIC4_K' in hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.time == years),['classif1']].values:
-    #                 new_row = pd.DataFrame({'ref_area':[code],'sex':[sex],'classif1':'ECO_ISIC4_K','time' :[years]})
-    #                 hours=pd.concat([hours,new_row])
-    #             if not 'ECO_ISIC4_L' in hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.time == years),['classif1']].values:
-    #                 new_row = pd.DataFrame({'ref_area':[code],'sex':[sex],'classif1':'ECO_ISIC4_L','time' :[years]})
-    #                 hours=pd.concat([hours,new_row])    
-    #             if not 'ECO_ISIC4_M' in hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.time == years),['classif1']].values:
-    #                 new_row = pd.DataFrame({'ref_area':[code],'sex':[sex],'classif1':'ECO_ISIC4_M','time' :[years]})
-    #                 hours=pd.concat([hours,new_row])
-    #             if not 'ECO_ISIC4_N' in hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.time == years),['classif1']].values:
-    #                 new_row = pd.DataFrame({'ref_area':[code],'sex':[sex],'classif1':'ECO_ISIC4_N','time' :[years]})
-    #                 hours=pd.concat([hours,new_row])
-    #             if not 'ECO_ISIC4_O' in hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.time == years),['classif1']].values:
-    #                 new_row = pd.DataFrame({'ref_area':[code],'sex':[sex],'classif1':'ECO_ISIC4_O','time' :[years]})
-    #                 hours=pd.concat([hours,new_row])
-    #             if not 'ECO_ISIC4_P' in hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.time == years),['classif1']].values:
-    #                 new_row = pd.DataFrame({'ref_area':[code],'sex':[sex],'classif1':'ECO_ISIC4_P','time' :[years]})
-    #                 hours=pd.concat([hours,new_row])                  
-                   
-    #             if not 'ECO_ISIC4_Q' in hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.time == years),['classif1']].values:
-    #                 new_row = pd.DataFrame({'ref_area':[code],'sex':[sex],'classif1':'ECO_ISIC4_Q','time' :[years]})
-    #                 hours=pd.concat([hours,new_row])
-    #             if not 'ECO_ISIC4_R' in hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.time == years),['classif1']].values:
-    #                 new_row = pd.DataFrame({'ref_area':[code],'sex':[sex],'classif1':'ECO_ISIC4_R','time' :[years]})
-    #                 hours=pd.concat([hours,new_row])
-    #             if not 'ECO_ISIC4_S' in hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.time == years),['classif1']].values:
-    #                 new_row = pd.DataFrame({'ref_area':[code],'sex':[sex],'classif1':'ECO_ISIC4_S','time' :[years]})
-    #                 hours=pd.concat([hours,new_row])
-    #             if not 'ECO_ISIC4_T' in hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.time == years),['classif1']].values:
-    #                 new_row = pd.DataFrame({'ref_area':[code],'sex':[sex],'classif1':'ECO_ISIC4_T','time' :[years]})
-    #                 hours=pd.concat([hours,new_row])    
-    #             if not 'ECO_ISIC4_U' in hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.time == years),['classif1']].values:
-    #                 new_row = pd.DataFrame({'ref_area':[code],'sex':[sex],'classif1':'ECO_ISIC4_U','time' :[years]})
-    #                 hours=pd.concat([hours,new_row])
-    #             if not 'ECO_ISIC4_X' in hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.time == years),['classif1']].values:
-    #                 new_row = pd.DataFrame({'ref_area':[code],'sex':[sex],'classif1':'ECO_ISIC4_X','time' :[years]})
-    #                 hours=pd.concat([hours,new_row])            
-    #             if not 'ECO_ISIC4_DE' in hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.time == years),['classif1']].values:
-    #                 new_row = pd.DataFrame({'ref_area':[code],'sex':[sex],'classif1':'ECO_ISIC4_DE','time' :[years]})
-    #                 hours=pd.concat([hours,new_row]) 
-    #             if not 'ECO_ISIC4_HJ' in hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.time == years),['classif1']].values:
-    #                 new_row = pd.DataFrame({'ref_area':[code],'sex':[sex],'classif1':'ECO_ISIC4_HJ','time' :[years]})
-    #                 hours=pd.concat([hours,new_row])   
-    #             if not 'ECO_ISIC4_LMN' in hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.time == years),['classif1']].values:
-    #                 new_row = pd.DataFrame({'ref_area':[code],'sex':[sex],'classif1':'ECO_ISIC4_LMN','time' :[years]})
-    #                 hours=pd.concat([hours,new_row])   
-    #             if not 'ECO_ISIC4_RSTU' in hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.time == years),['classif1']].values:
-    #                 new_row = pd.DataFrame({'ref_area':[code],'sex':[sex],'classif1':'ECO_ISIC4_RSTU','time' :[years]})
-    #                 hours=pd.concat([hours,new_row])  
     
     complete_hour = complete_hour.reset_index()
     complete_hour = complete_hour.drop(columns = 'index',axis = 1)
@@ -351,202 +266,7 @@ def working_hour(workforce,src_csv2,data_path,src_csv3):
     #hours.fillna(0)
     
     '''a faire aussi en ray'''
-
-    # for code in hours.ref_area.unique() :
-    #     for sex in hours.sex.unique() :
-    #         for years in range(1995, 2024):
-    #             print(code, sex, years)
-    #             if not (hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_D')&(hours.time == years), 'average weekly hours'].isna().all()):
-    #                 D = float(hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_D')&(hours.time == years), 'average weekly hours'].to_string(header = False,index=False))
-    #                 if not (hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_E')&(hours.time == years), 'average weekly hours'].isna().all()):
-    #                     E = float(hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_E')&(hours.time == years), 'average weekly hours'].to_string(header = False,index=False))
-    #                     DE = (D+E)/2
-    #                     hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_DE')&(hours.time == years), 'average weekly hours']=DE                    
-    #                 else :
-    #                     DE = D
-    #                     hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_DE')&(hours.time == years), 'average weekly hours']=DE           
-    #             elif not (hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_E')&(hours.time == years), 'average weekly hours'].isna().all()):
-    #                 E = float(hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_E')&(hours.time == years), 'average weekly hours'].to_string(header = False,index=False))
-    #                 DE = E
-
-    #                 hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_DE')&(hours.time == years), 'average weekly hours']=DE                      
-    #             else :
-
-    #                 hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_DE')&(hours.time == years), 'average weekly hours']=0                    
-
-                        
-                        
-    # for code in hours.ref_area.unique() :
-    #     for sex in hours.sex.unique() :
-    #         for years in range(1995, 2024):
-    #             print(code, sex, years)
-
-    #             if not (hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_H')&(hours.time == years), 'average weekly hours'].isna().all()):
-    #                 H = float(hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_H')&(hours.time == years), 'average weekly hours'].to_string(header = False,index=False))
-    #                 if not (hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_J')&(hours.time == years), 'average weekly hours'].isna().all()):
-    #                     J = float(hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_J')&(hours.time == years), 'average weekly hours'].to_string(header = False,index=False))
-    #                     HJ = (H+J)/2
-    #                     hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_HJ')&(hours.time == years), 'average weekly hours']=HJ                    
-    #                 else :
-    #                     HJ = H
-    #                     hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_HJ')&(hours.time == years), 'average weekly hours']=HJ          
-    #             elif not (hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_J')&(hours.time == years), 'average weekly hours'].isna().all()):
-    #                 J = float(hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_J')&(hours.time == years), 'average weekly hours'].to_string(header = False,index=False))
-    #                 HJ = J
-
-    #                 hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_HJ')&(hours.time == years), 'average weekly hours']=HJ               
-    #             else :
-
-    #                 hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_HJ')&(hours.time == years), 'average weekly hours']=0                    
-
-                                   
-    # for code in hours.ref_area.unique() :
-    #     for sex in hours.sex.unique() :
-    #         for years in range(1995, 2024):
-    #             print(code, sex, years)
-
-    #             if not (hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_L')&(hours.time == years), 'average weekly hours'].isna().all()):
-    #                 L = float(hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_L')&(hours.time == years), 'average weekly hours'].to_string(header = False,index=False))
-    #                 if not (hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_M')&(hours.time == years), 'average weekly hours'].isna().all()):
-    #                     M = float(hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_M')&(hours.time == years), 'average weekly hours'].to_string(header = False,index=False))
-    #                     if not (hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_N')&(hours.time == years), 'average weekly hours'].isna().all()):
-    #                         N = float(hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_N')&(hours.time == years), 'average weekly hours'].to_string(header = False,index=False))
-                        
-    #                         LMN = (L+M+N)/3
-    #                         hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_LMN')&(hours.time == years), 'average weekly hours']=LMN   
-    #                     else :
-    #                         LMN = (L+M)/2
-    #                         hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_LMN')&(hours.time == years), 'average weekly hours']=LMN   
-    #                 else :
-    #                     if not (hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_N')&(hours.time == years), 'average weekly hours'].isna().all()):
-    #                         N = float(hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_N')&(hours.time == years), 'average weekly hours'].to_string(header = False,index=False))
-                        
-    #                         LMN = (L+N)/2
-    #                         hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_LMN')&(hours.time == years), 'average weekly hours']=LMN   
-    #                     else :
-    #                         LMN = L
-    #                         hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_LMN')&(hours.time == years), 'average weekly hours']=LMN   
-    #             else :
-    #                 if not (hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_M')&(hours.time == years), 'average weekly hours'].isna().all()):
-    #                     M = float(hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_M')&(hours.time == years), 'average weekly hours'].to_string(header = False,index=False))
-    #                     if not (hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_N')&(hours.time == years), 'average weekly hours'].isna().all()):
-    #                         N = float(hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_N')&(hours.time == years), 'average weekly hours'].to_string(header = False,index=False))
-                        
-    #                         LMN = (M+N)/2
-    #                         hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_LMN')&(hours.time == years), 'average weekly hours']=LMN   
-    #                     else :
-    #                         LMN = M
-    #                         hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_LMN')&(hours.time == years), 'average weekly hours']=LMN   
-    #                 else :
-                        
-    #                     if not (hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_N')&(hours.time == years), 'average weekly hours'].isna().all()):
-    #                         N = float(hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_N')&(hours.time == years), 'average weekly hours'].to_string(header = False,index=False))
-                        
-    #                         LMN = N
-    #                         hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_LMN')&(hours.time == years), 'average weekly hours']=LMN   
-    #                     else :
-    #                         LMN = 0
-    #                         hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_LMN')&(hours.time == years), 'average weekly hours']=LMN   
-                        
-                
-                        
-                
-    # for code in hours.ref_area.unique() :
-    #     for sex in hours.sex.unique() :
-    #         for years in range(1995, 2024):
-    #             print(code, sex, years)
-
-    #             if not (hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_R')&(hours.time == years), 'average weekly hours'].isna().all()):
-    #                 R = float(hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_R')&(hours.time == years), 'average weekly hours'].to_string(header = False,index=False))
-    #                 if not (hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_S')&(hours.time == years), 'average weekly hours'].isna().all()):
-    #                     S = float(hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_S')&(hours.time == years), 'average weekly hours'].to_string(header = False,index=False))
-    #                     if not (hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_T')&(hours.time == years), 'average weekly hours'].isna().all()):
-    #                         T = float(hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_T')&(hours.time == years), 'average weekly hours'].to_string(header = False,index=False))
-    #                         if not (hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_U')&(hours.time == years), 'average weekly hours'].isna().all()):
-    #                             U = float(hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_U')&(hours.time == years), 'average weekly hours'].to_string(header = False,index=False)) 
-    #                             RSTU = (R+S+T+U)/4
-    #                             hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_RSTU')&(hours.time == years), 'average weekly hours']=RSTU   
-    #                         else :
-    #                             RSTU = (R+S+T)/3
-    #                             hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_RSTU')&(hours.time == years), 'average weekly hours']=RSTU   
-                                
-    #                     else :
-                            
-    #                         if not (hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_U')&(hours.time == years), 'average weekly hours'].isna().all()):
-    #                             U = float(hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_U')&(hours.time == years), 'average weekly hours'].to_string(header = False,index=False)) 
-    #                             RSTU = (R+S+U)/3
-    #                             hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_RSTU')&(hours.time == years), 'average weekly hours']=RSTU   
-    #                         else :
-    #                             RSTU = (R+S)/2
-    #                             hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_RSTU')&(hours.time == years), 'average weekly hours']=RSTU                               
-                                                            
-    #                 else :
-    #                     if not (hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_T')&(hours.time == years), 'average weekly hours'].isna().all()):
-    #                         T = float(hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_T')&(hours.time == years), 'average weekly hours'].to_string(header = False,index=False))
-    #                         if not (hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_U')&(hours.time == years), 'average weekly hours'].isna().all()):
-    #                             U = float(hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_U')&(hours.time == years), 'average weekly hours'].to_string(header = False,index=False)) 
-    #                             RSTU = (R+T+U)/3
-    #                             hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_RSTU')&(hours.time == years), 'average weekly hours']=RSTU   
-    #                         else :
-    #                             RSTU = (R+T)/2
-    #                             hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_RSTU')&(hours.time == years), 'average weekly hours']=RSTU   
-                                
-    #                     else :
-                            
-    #                         if not (hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_U')&(hours.time == years), 'average weekly hours'].isna().all()):
-    #                             U = float(hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_U')&(hours.time == years), 'average weekly hours'].to_string(header = False,index=False)) 
-    #                             RSTU = (R+U)/2
-    #                             hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_RSTU')&(hours.time == years), 'average weekly hours']=RSTU   
-    #                         else :
-    #                             RSTU = (R)
-    #                             hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_RSTU')&(hours.time == years), 'average weekly hours']=RSTU   
-                        
-                                
-    #             else :
-    #                if not (hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_S')&(hours.time == years), 'average weekly hours'].isna().all()):
-    #                    S = float(hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_S')&(hours.time == years), 'average weekly hours'].to_string(header = False,index=False))
-    #                    if not (hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_T')&(hours.time == years), 'average weekly hours'].isna().all()):
-    #                        T = float(hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_T')&(hours.time == years), 'average weekly hours'].to_string(header = False,index=False))
-    #                        if not (hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_U')&(hours.time == years), 'average weekly hours'].isna().all()):
-    #                            U = float(hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_U')&(hours.time == years), 'average weekly hours'].to_string(header = False,index=False)) 
-    #                            RSTU = (S+T+U)/3
-    #                            hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_RSTU')&(hours.time == years), 'average weekly hours']=RSTU   
-    #                        else :
-    #                            RSTU = (S+T)/2
-    #                            hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_RSTU')&(hours.time == years), 'average weekly hours']=RSTU   
-                               
-    #                    else :
-                           
-    #                        if not (hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_U')&(hours.time == years), 'average weekly hours'].isna().all()):
-    #                            U = float(hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_U')&(hours.time == years), 'average weekly hours'].to_string(header = False,index=False)) 
-    #                            RSTU = (S+U)/2
-    #                            hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_RSTU')&(hours.time == years), 'average weekly hours']=RSTU   
-    #                        else :
-    #                            RSTU = (S)
-    #                            hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_RSTU')&(hours.time == years), 'average weekly hours']=RSTU                               
-                                                           
-    #                else :
-    #                    if not (hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_T')&(hours.time == years), 'average weekly hours'].isna().all()):
-    #                        T = float(hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_T')&(hours.time == years), 'average weekly hours'].to_string(header = False,index=False))
-    #                        if not (hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_U')&(hours.time == years), 'average weekly hours'].isna().all()):
-    #                            U = float(hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_U')&(hours.time == years), 'average weekly hours'].to_string(header = False,index=False)) 
-    #                            RSTU = (T+U)/2
-    #                            hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_RSTU')&(hours.time == years), 'average weekly hours']=RSTU   
-    #                        else :
-    #                            RSTU = (T)
-    #                            hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_RSTU')&(hours.time == years), 'average weekly hours']=RSTU   
-                               
-    #                    else :
-                           
-    #                        if not (hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_U')&(hours.time == years), 'average weekly hours'].isna().all()):
-    #                            U = float(hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_U')&(hours.time == years), 'average weekly hours'].to_string(header = False,index=False)) 
-    #                            RSTU = (U)
-    #                            hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_RSTU')&(hours.time == years), 'average weekly hours']=RSTU   
-    #                        else :
-    #                            RSTU = 0
-    #                            hours.loc[(hours.ref_area == code)&(hours.sex == sex)&(hours.classif1 == 'ECO_ISIC4_RSTU')&(hours.time == years), 'average weekly hours']=RSTU   
-                    
-                            
+                          
                             
 #    hours = hours.loc[hours.classif1 !='ECO_ISIC4_D']
 #    hours = hours.loc[hours.classif1 !='ECO_ISIC4_E']
@@ -612,22 +332,29 @@ def working_hour(workforce,src_csv2,data_path,src_csv3):
     hours_RoW = hours_RoW.loc[hours_RoW.classif1 !='ECO_DETAILS_S']
     hours_RoW = hours_RoW.loc[hours_RoW.classif1 !='ECO_DETAILS_T']
     hours_RoW = hours_RoW.loc[hours_RoW.classif1 !='ECO_DETAILS_U']                   
-                                
+                     
+    '''JE SUIS ICI'''                            
     hours_RoW['population (1000)'] = ''
     workforce_iso3 =   workforce.copy()  
-    for code in workforce_iso3.ref_area.unique() : 
-        if code in workforce_iso3.ref_area.unique() and code in hours_RoW.ref_area.unique():
-            print(code)
-            if code != 'UKR':
-                for sex in ['SEX_F','SEX_M']:
-                    for c in workforce_iso3.classif1.unique():
-                        for t in range(1995,2023):
-                        #aorkforce_iso3.time.unique():
-                            #if not (workforce_iso3.loc[(workforce_iso3['ref_area']==code)&(workforce_iso3['sex']==sex)&(workforce_iso3['classif1']==c)&(workforce_iso3['time']==t),['obs_value']]).isnull :
-                                P = float(workforce_iso3.loc[(workforce_iso3['ref_area']==code)&(workforce_iso3['sex']==sex)&(workforce_iso3['classif1']==c)&(workforce_iso3['time']==t),['obs_value']].to_string(header=False,index=False))
-                            #H = float(hours.loc[(hours['ref_area']==code)&(hours['sex']==sex)&(hours['classif1']==c),str(years)].to_string(header=False, index=False))                        
-                                hours_RoW.loc[(hours_RoW['ref_area']==code)&(hours_RoW['sex']==sex)&(hours_RoW['classif1']==c)&(hours_RoW['time']==t),['population (1000)']] = P 
-    hours.to_csv('hours2203_1.csv',index = False)
+    
+    complete_hour = complete3(hours_RoW,workforce_iso3)
+    
+#    for code in workforce_iso3.ref_area.unique() : 
+#        if code in workforce_iso3.ref_area.unique() and code in hours_RoW.ref_area.unique():
+#            print(code)
+#            if code != 'UKR':
+#                for sex in ['SEX_F','SEX_M']:
+#                    for c in workforce_iso3.classif1.unique():
+#                        for t in range(1995,2023):
+#                        #aorkforce_iso3.time.unique():
+#                            #if not (workforce_iso3.loc[(workforce_iso3['ref_area']==code)&(workforce_iso3['sex']==sex)&(workforce_iso3['classif1']==c)&(workforce_iso3['time']==t),#['obs_value']]).isnull :
+#                                P = float(workforce_iso3.loc[(workforce_iso3['ref_area']==code)&(workforce_iso3['sex']==sex)&(workforce_iso3['classif1']==c)&(workforce_iso3['time']==t),['obs_value']].to_string(header=False,index=False))
+#                            #H = float(hours.loc[(hours['ref_area']==code)&(hours['sex']==sex)&(hours['classif1']==c),str(years)].to_string(header=False, index=False))                        
+#                                hours_RoW.loc[(hours_RoW['ref_area']==code)&(hours_RoW['sex']==sex)&(hours_RoW['classif1']==c)&(hours_RoW['time']==t),['population (1000)']] = P 
+#    hours.to_csv('hours1808_1.csv',index = False)
+
+
+
     for code in workforce_iso3.ref_area.unique() : 
         if code in workforce_iso3.ref_area.unique() and code in hours_RoW.ref_area.unique():
             if code == 'UKR' :

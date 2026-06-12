@@ -140,11 +140,12 @@ def salary_split_year(column_names,final,classif_detail,concordance,aggregation,
             sumTOTAL_wb = df.loc[df[df['Row'] == 'w03.b'].index[0], df.columns.isin(code_ISICTOTAL)].sum()
             sumTOTAL_wc = df.loc[df[df['Row'] == 'w03.c'].index[0], df.columns.isin(code_ISICTOTAL)].sum()
 
+            
             for sector in salary_split['Sector'].unique():
                 value_low_skill = df.loc[df[df.values=='w03.a'].index.values,[sector]].to_string(index=False, header=False)
                 value_middle_skill = df.loc[df[df.values=='w03.b'].index.values,[sector]].to_string(index=False, header=False)
                 value_high_skill = df.loc[df[df.values=='w03.c'].index.values,[sector]].to_string(index=False, header=False)
-
+    
                 salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==sector),['Compensation of employees; wages, salaries, & employers social contributions: Low-skilled']]=float(value_low_skill)/1000000
                 salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==sector),['Compensation of employees; wages, salaries, & employers social contributions: Middle-skilled']]=float(value_middle_skill)/1000000
                 salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==sector),['Compensation of employees; wages, salaries, & employers social contributions: High-skilled']]=float(value_high_skill)/1000000
@@ -169,7 +170,7 @@ def salary_split_year(column_names,final,classif_detail,concordance,aggregation,
                     salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==sector),['Split High qualification employment - total']]=(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==sector),['Split']].to_string(header=False,index=False))*float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==sector),['Compensation of employees; wages, salaries, & employers social contributions: High-skilled']].to_string(header = False, index=False)))/float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==sector),['Compensation of employees; wages, salaries, & employers social contributions: Total']].to_string(header=False,index=False))
                     salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==sector),['Split High qualification employment - male']]=float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==sector),['Split High qualification employment - total']].to_string(header=False,index=False))*(aggregation.loc[(aggregation['EXIO3']==code)&(aggregation['sex']=='SEX_M')&(aggregation['classif1']==salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==sector),['Mapping']].to_string(header=False,index=False))&(aggregation['time']==years)]['obs_value'].values[0])/(aggregation.loc[(aggregation['EXIO3']==code)&(aggregation['sex']=='SEX_T')&(aggregation['classif1']==salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==sector),['Mapping']].to_string(header=False,index=False))&(aggregation['time']==years)]['obs_value'].values[0])
                     salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==sector),['Split High qualification employment - female']]=float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==sector),['Split High qualification employment - total']].to_string(header=False,index=False))*(aggregation.loc[(aggregation['EXIO3']==code)&(aggregation['sex']=='SEX_F')&(aggregation['classif1']==salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==sector),['Mapping']].to_string(header=False,index=False))&(aggregation['time']==years)]['obs_value'].values[0])/(aggregation.loc[(aggregation['EXIO3']==code)&(aggregation['sex']=='SEX_T')&(aggregation['classif1']==salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==sector),['Mapping']].to_string(header=False,index=False))&(aggregation['time']==years)]['obs_value'].values[0])
-
+                
 
 
                 else :
@@ -182,9 +183,9 @@ def salary_split_year(column_names,final,classif_detail,concordance,aggregation,
                     salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==sector),['Split Low qualification employment - female']]=0
                     salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==sector),['Split Middle qualification employment - female']]=0
                     salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==sector),['Split High qualification employment - female']]=0
-
-
-
+                    
+                
+                
             sumLST =  salary_split.loc[(salary_split['Country']==code),'Split Low qualification employment - total'].sum()
             sumMST = salary_split.loc[(salary_split['Country']==code),'Split Middle qualification employment - total'].sum()
             sumHST = salary_split.loc[(salary_split['Country']==code),'Split High qualification employment - total'].sum()
@@ -200,14 +201,14 @@ def salary_split_year(column_names,final,classif_detail,concordance,aggregation,
             'sum all skill total population'
             sumAST = sumLST+sumMST+sumHST
             sumASM =sumLSM+sumMSM+sumHSM
-            sumASW = sumLSW+sumMSW+sumHSW
+            sumASW = sumLSW+sumMSW+sumHSW    
 
 
             for sector in salary_split['Sector'].unique():
                 value_low_skill = df.loc[df[df.values=='w03.a'].index.values,[sector]].to_string(index=False, header=False)
                 value_middle_skill = df.loc[df[df.values=='w03.b'].index.values,[sector]].to_string(index=False, header=False)
                 value_high_skill = df.loc[df[df.values=='w03.c'].index.values,[sector]].to_string(index=False, header=False)
-
+    
                 salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==sector),['Compensation of employees; wages, salaries, & employers social contributions: Low-skilled']]=float(value_low_skill)/1000000
                 salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==sector),['Compensation of employees; wages, salaries, & employers social contributions: Middle-skilled']]=float(value_middle_skill)/1000000
                 salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==sector),['Compensation of employees; wages, salaries, & employers social contributions: High-skilled']]=float(value_high_skill)/1000000
@@ -217,7 +218,7 @@ def salary_split_year(column_names,final,classif_detail,concordance,aggregation,
                 '''need to change the unit'''
                 salary_split.loc[(salary_split['Country']==code)&(salary_split['Mapping']==map_value),['ILO data /country / sector']] =  aggregation.loc[(aggregation['EXIO3']==code)&(aggregation['sex']=='SEX_T')&(aggregation['classif1']==map_value)&(aggregation['time']==years)]['obs_value'].values[0]
             for sector in salary_split['Sector'].unique():
-
+               
                 salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==sector),['Split']]=(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==sector),['Compensation of employees; wages, salaries, & employers social contributions: Total']].to_string(header=False,index=False)))*(aggregation.loc[(aggregation['EXIO3']==code)&(aggregation['sex']=='SEX_T')&(aggregation['classif1']==concordance.loc[concordance['CodeNr']==sector,['ISIC REV 4_ILO_Alteryx']].to_string(header=False,index=False))&(aggregation['time']==years)]['obs_value'].values[0])/(salary_split.loc[(salary_split['Country'] == code)&(salary_split['Mapping'] ==concordance.loc[concordance['CodeNr']==sector,['ISIC REV 4_ILO_Alteryx']].to_string(header=False,index=False)),['Compensation of employees; wages, salaries, & employers social contributions: Total']].sum(axis=0).values[0])
                 if float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==sector),['Compensation of employees; wages, salaries, & employers social contributions: Total']].to_string(header=False,index=False)) != 0:
 
@@ -262,8 +263,10 @@ def salary_split_year(column_names,final,classif_detail,concordance,aggregation,
                     salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==sector),['Split Low qualification employment - female']]=0
                     salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==sector),['Split Middle qualification employment - female']]=0
                     salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==sector),['Split High qualification employment - female']]=0
-
+             
             salary_split=salary_split.fillna(0)
+            
+            
             values_split=[]
             for sub in code_ISICA:
                 values_split.append(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==sub),['Split']].to_string(header=False, index=False)))
@@ -271,7 +274,7 @@ def salary_split_year(column_names,final,classif_detail,concordance,aggregation,
             pourcent = []
             total_value = 0
             item_value = []
-
+            
             if len(set(values_split)) == 1 :
                 for item in set(values_split):
                     if item == 0 or isnan(item):
@@ -279,30 +282,30 @@ def salary_split_year(column_names,final,classif_detail,concordance,aggregation,
                             sum_item = output[sub].sum()
                             total_value = total_value+sum_item
                             item_value.append(sum_item)
-                for item in item_value :
-                        pourcent.append(100*item/total_value)
+		for item in item_value :
+                	pourcent.append(100*item/total_value)
 
-                for idx, x in enumerate(code_ISICA):
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']] = float(aggregation.loc[(aggregation['EXIO3']==code)&(aggregation['sex']=='SEX_T')&(aggregation['classif1']=='ECO_DETAILS_A')&(aggregation['time']==years)]['obs_value'].to_string(header=False,index=False)) * pourcent[idx] / 100
-
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - total']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumLST/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - total']] = (float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumMST/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - total']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumHST/sumAST
-
-
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumLSM/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumMSM/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))*sumHSM/sumAST
+		for idx, x in enumerate(code_ISICA):
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']] = float(aggregation.loc[(aggregation['EXIO3']==code)&(aggregation['sex']=='SEX_T')&(aggregation['classif1']=='ECO_DETAILS_A')&(aggregation['time']==years)]['obs_value'].to_string(header=False,index=False)) * pourcent[idx] / 100
+                
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - total']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumLST/sumAST	
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - total']] = (float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumMST/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - total']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumHST/sumAST
 
 
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))*sumLSW/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))  *sumMSW/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumHSW/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumLSM/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumMSM/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))*sumHSM/sumAST
 
 
-
-
-
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))*sumLSW/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))  *sumMSW/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumHSW/sumAST
+                
+                
+                
+                
+                
             values_split=[]
             for sub in code_ISICRSTU:
                 values_split.append(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==sub),['Split']].to_string(header=False, index=False)))
@@ -310,7 +313,7 @@ def salary_split_year(column_names,final,classif_detail,concordance,aggregation,
             pourcent = []
             total_value = 0
             item_value = []
-
+            
             if len(set(values_split)) == 1 :
                 for item in set(values_split):
                     if item == 0 or isnan(item):
@@ -318,28 +321,28 @@ def salary_split_year(column_names,final,classif_detail,concordance,aggregation,
                             sum_item = output[sub].sum()
                             total_value = total_value+sum_item
                             item_value.append(sum_item)
-                for item in item_value :
-                        pourcent.append(100*item/total_value)
+            	for item in item_value :
+                	pourcent.append(100*item/total_value)
 
-                for idx, x in enumerate(code_ISICRSTU):
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']] = float(aggregation.loc[(aggregation['EXIO3']==code)&(aggregation['sex']=='SEX_T')&(aggregation['classif1']=='ECO_DETAILS_RSTU')&(aggregation['time']==years)]['obs_value'].to_string(header=False,index=False)) * pourcent[idx] / 100
-
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - total']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumLST/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - total']] = (float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumMST/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - total']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumHST/sumAST
-
-
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumLSM/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumMSM/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))*sumHSM/sumAST
+            	for idx, x in enumerate(code_ISICRSTU):
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']] = float(aggregation.loc[(aggregation['EXIO3']==code)&(aggregation['sex']=='SEX_T')&(aggregation['classif1']=='ECO_DETAILS_RSTU')&(aggregation['time']==years)]['obs_value'].to_string(header=False,index=False)) * pourcent[idx] / 100
+                
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - total']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumLST/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - total']] = (float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumMST/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - total']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumHST/sumAST
 
 
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))*sumLSW/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))  *sumMSW/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumHSW/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumLSM/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumMSM/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))*sumHSM/sumAST
 
 
-
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))*sumLSW/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))  *sumMSW/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumHSW/sumAST
+                
+                
+                
             values_split=[]
             for sub in code_ISICB:
                 values_split.append(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==sub),['Split']].to_string(header=False, index=False)))
@@ -354,27 +357,27 @@ def salary_split_year(column_names,final,classif_detail,concordance,aggregation,
                             sum_item = output[sub].sum()
                             total_value = total_value+sum_item
                             item_value.append(sum_item)
-                for item in item_value :
-                        pourcent.append(100*item/total_value)
+            	for item in item_value :
+                	pourcent.append(100*item/total_value)
 
-                for idx, x in enumerate(code_ISICB):
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']] = float(aggregation.loc[(aggregation['EXIO3']==code)&(aggregation['sex']=='SEX_T')&(aggregation['classif1']=='ECO_DETAILS_B')&(aggregation['time']==years)]['obs_value'].to_string(header=False,index=False)) * pourcent[idx] / 100
-
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - total']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumLST/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - total']] = (float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumMST/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - total']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumHST/sumAST
-
-
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumLSM/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumMSM/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))*sumHSM/sumAST
+            	for idx, x in enumerate(code_ISICB):
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']] = float(aggregation.loc[(aggregation['EXIO3']==code)&(aggregation['sex']=='SEX_T')&(aggregation['classif1']=='ECO_DETAILS_B')&(aggregation['time']==years)]['obs_value'].to_string(header=False,index=False)) * pourcent[idx] / 100
+                
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - total']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumLST/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - total']] = (float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumMST/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - total']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumHST/sumAST
 
 
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))*sumLSW/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))  *sumMSW/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumHSW/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumLSM/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumMSM/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))*sumHSM/sumAST
 
 
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))*sumLSW/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))  *sumMSW/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumHSW/sumAST
+                
+                
             values_split=[]
             for sub in code_ISICC:
                 values_split.append(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==sub),['Split']].to_string(header=False, index=False)))
@@ -389,25 +392,27 @@ def salary_split_year(column_names,final,classif_detail,concordance,aggregation,
                             sum_item = output[sub].sum()
                             total_value = total_value+sum_item
                             item_value.append(sum_item)
-                for item in item_value :
-                        pourcent.append(100*item/total_value)
+            	for item in item_value :
+                	pourcent.append(100*item/total_value)
 
-                for idx, x in enumerate(code_ISICC):
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']] = float(aggregation.loc[(aggregation['EXIO3']==code)&(aggregation['sex']=='SEX_T')&(aggregation['classif1']=='ECO_DETAILS_C')&(aggregation['time']==years)]['obs_value'].to_string(header=False,index=False)) * pourcent[idx] / 100
-
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - total']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumLST/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - total']] = (float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumMST/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - total']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumHST/sumAST
-
-
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumLSM/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumMSM/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))*sumHSM/sumAST
+            	for idx, x in enumerate(code_ISICC):
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']] = float(aggregation.loc[(aggregation['EXIO3']==code)&(aggregation['sex']=='SEX_T')&(aggregation['classif1']=='ECO_DETAILS_C')&(aggregation['time']==years)]['obs_value'].to_string(header=False,index=False)) * pourcent[idx] / 100
+                
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - total']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumLST/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - total']] = (float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumMST/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - total']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumHST/sumAST
 
 
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))*sumLSW/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))  *sumMSW/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumHSW/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumLSM/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumMSM/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))*sumHSM/sumAST
+
+
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))*sumLSW/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))  *sumMSW/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumHSW/sumAST
+                               
+                
             values_split=[]
             for sub in code_ISICDE:
                 values_split.append(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==sub),['Split']].to_string(header=False, index=False)))
@@ -422,27 +427,27 @@ def salary_split_year(column_names,final,classif_detail,concordance,aggregation,
                             sum_item = output[sub].sum()
                             total_value = total_value+sum_item
                             item_value.append(sum_item)
-                for item in item_value :
-                        pourcent.append(100*item/total_value)
+            	for item in item_value :
+                	pourcent.append(100*item/total_value)
 
-                for idx, x in enumerate(code_ISICDE):
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']] = float(aggregation.loc[(aggregation['EXIO3']==code)&(aggregation['sex']=='SEX_T')&(aggregation['classif1']=='ECO_DETAILS_DE')&(aggregation['time']==years)]['obs_value'].to_string(header=False,index=False)) * pourcent[idx] / 100
-
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - total']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumLST/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - total']] = (float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumMST/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - total']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumHST/sumAST
-
-
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumLSM/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumMSM/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))*sumHSM/sumAST
+            	for idx, x in enumerate(code_ISICDE):
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']] = float(aggregation.loc[(aggregation['EXIO3']==code)&(aggregation['sex']=='SEX_T')&(aggregation['classif1']=='ECO_DETAILS_DE')&(aggregation['time']==years)]['obs_value'].to_string(header=False,index=False)) * pourcent[idx] / 100
+                	
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - total']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumLST/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - total']] = (float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumMST/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - total']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumHST/sumAST
 
 
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))*sumLSW/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))  *sumMSW/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumHSW/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumLSM/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumMSM/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))*sumHSM/sumAST
 
 
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))*sumLSW/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))  *sumMSW/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumHSW/sumAST
+                               
+                        
             values_split=[]
             for sub in code_ISICF:
                 values_split.append(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==sub),['Split']].to_string(header=False, index=False)))
@@ -457,29 +462,29 @@ def salary_split_year(column_names,final,classif_detail,concordance,aggregation,
                             sum_item = output[sub].sum()
                             total_value = total_value+sum_item
                             item_value.append(sum_item)
-                for item in item_value :
-                        pourcent.append(100*item/total_value)
+            	for item in item_value :
+                	pourcent.append(100*item/total_value)
 
-                for idx, x in enumerate(code_ISICF):
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']] = float(aggregation.loc[(aggregation['EXIO3']==code)&(aggregation['sex']=='SEX_T')&(aggregation['classif1']=='ECO_DETAILS_F')&(aggregation['time']==years)]['obs_value'].to_string(header=False,index=False)) * pourcent[idx] / 100
-
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - total']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumLST/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - total']] = (float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumMST/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - total']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumHST/sumAST
-
-
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumLSM/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumMSM/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))*sumHSM/sumAST
+            	for idx, x in enumerate(code_ISICF):
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']] = float(aggregation.loc[(aggregation['EXIO3']==code)&(aggregation['sex']=='SEX_T')&(aggregation['classif1']=='ECO_DETAILS_F')&(aggregation['time']==years)]['obs_value'].to_string(header=False,index=False)) * pourcent[idx] / 100
+                
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - total']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumLST/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - total']] = (float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumMST/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - total']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumHST/sumAST
 
 
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))*sumLSW/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))  *sumMSW/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumHSW/sumAST
-
-
-
-
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumLSM/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumMSM/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))*sumHSM/sumAST
+	
+	
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))*sumLSW/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))  *sumMSW/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumHSW/sumAST
+                               
+        
+                        
+                
             values_split=[]
             for sub in code_ISICG:
                 values_split.append(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==sub),['Split']].to_string(header=False, index=False)))
@@ -494,25 +499,26 @@ def salary_split_year(column_names,final,classif_detail,concordance,aggregation,
                             sum_item = output[sub].sum()
                             total_value = total_value+sum_item
                             item_value.append(sum_item)
-                for item in item_value :
-                        pourcent.append(100*item/total_value)
+            	for item in item_value :
+                	pourcent.append(100*item/total_value)
 
-                for idx, x in enumerate(code_ISICG):
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']] = float(aggregation.loc[(aggregation['EXIO3']==code)&(aggregation['sex']=='SEX_T')&(aggregation['classif1']=='ECO_DETAILS_G')&(aggregation['time']==years)]['obs_value'].to_string(header=False,index=False)) * pourcent[idx] / 100
-
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - total']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumLST/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - total']] = (float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumMST/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - total']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumHST/sumAST
-
-
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumLSM/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumMSM/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))*sumHSM/sumAST
+            	for idx, x in enumerate(code_ISICG):
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']] = float(aggregation.loc[(aggregation['EXIO3']==code)&(aggregation['sex']=='SEX_T')&(aggregation['classif1']=='ECO_DETAILS_G')&(aggregation['time']==years)]['obs_value'].to_string(header=False,index=False)) * pourcent[idx] / 100
+                
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - total']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumLST/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - total']] = (float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumMST/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - total']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumHST/sumAST
 
 
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))*sumLSW/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))  *sumMSW/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumHSW/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumLSM/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumMSM/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))*sumHSM/sumAST
+
+
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))*sumLSW/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))  *sumMSW/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumHSW/sumAST
+
 
             values_split=[]
             for sub in code_ISICHJ:
@@ -528,27 +534,27 @@ def salary_split_year(column_names,final,classif_detail,concordance,aggregation,
                             sum_item = output[sub].sum()
                             total_value = total_value+sum_item
                             item_value.append(sum_item)
-                for item in item_value :
-                        pourcent.append(100*item/total_value)
+            	for item in item_value :
+                	pourcent.append(100*item/total_value)
 
-                for idx, x in enumerate(code_ISICHJ):
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']] = float(aggregation.loc[(aggregation['EXIO3']==code)&(aggregation['sex']=='SEX_T')&(aggregation['classif1']=='ECO_DETAILS_HJ')&(aggregation['time']==years)]['obs_value'].to_string(header=False,index=False)) * pourcent[idx] / 100
-
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - total']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumLST/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - total']] = (float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumMST/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - total']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumHST/sumAST
-
-
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumLSM/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumMSM/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))*sumHSM/sumAST
+            	for idx, x in enumerate(code_ISICHJ):
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']] = float(aggregation.loc[(aggregation['EXIO3']==code)&(aggregation['sex']=='SEX_T')&(aggregation['classif1']=='ECO_DETAILS_HJ')&(aggregation['time']==years)]['obs_value'].to_string(header=False,index=False)) * pourcent[idx] / 100
+                
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - total']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumLST/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - total']] = (float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumMST/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - total']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumHST/sumAST
 
 
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))*sumLSW/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))  *sumMSW/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumHSW/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumLSM/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumMSM/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))*sumHSM/sumAST
 
 
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))*sumLSW/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))  *sumMSW/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumHSW/sumAST
+                               
+        
             values_split=[]
             for sub in code_ISICK:
                 values_split.append(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==sub),['Split']].to_string(header=False, index=False)))
@@ -563,26 +569,26 @@ def salary_split_year(column_names,final,classif_detail,concordance,aggregation,
                             sum_item = output[sub].sum()
                             total_value = total_value+sum_item
                             item_value.append(sum_item)
-                for item in item_value :
-                        pourcent.append(100*item/total_value)
+            	for item in item_value :
+                	pourcent.append(100*item/total_value)
 
-                for idx, x in enumerate(code_ISICK):
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']] = float(aggregation.loc[(aggregation['EXIO3']==code)&(aggregation['sex']=='SEX_T')&(aggregation['classif1']=='ECO_DETAILS_K')&(aggregation['time']==years)]['obs_value'].to_string(header=False,index=False)) * pourcent[idx] / 100
-
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - total']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumLST/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - total']] = (float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumMST/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - total']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumHST/sumAST
-
-
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumLSM/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumMSM/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))*sumHSM/sumAST
+            	for idx, x in enumerate(code_ISICK):
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']] = float(aggregation.loc[(aggregation['EXIO3']==code)&(aggregation['sex']=='SEX_T')&(aggregation['classif1']=='ECO_DETAILS_K')&(aggregation['time']==years)]['obs_value'].to_string(header=False,index=False)) * pourcent[idx] / 100
+                
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - total']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumLST/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - total']] = (float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumMST/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - total']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumHST/sumAST
 
 
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))*sumLSW/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))  *sumMSW/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumHSW/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumLSM/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumMSM/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))*sumHSM/sumAST
 
+
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))*sumLSW/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))  *sumMSW/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumHSW/sumAST
+                     
             values_split=[]
             for sub in code_ISICLMN:
                 values_split.append(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==sub),['Split']].to_string(header=False, index=False)))
@@ -597,27 +603,27 @@ def salary_split_year(column_names,final,classif_detail,concordance,aggregation,
                             sum_item = output[sub].sum()
                             total_value = total_value+sum_item
                             item_value.append(sum_item)
-                for item in item_value :
-                        pourcent.append(100*item/total_value)
+            	for item in item_value :
+                	pourcent.append(100*item/total_value)
 
-                for idx, x in enumerate(code_ISICLMN):
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']] = float(aggregation.loc[(aggregation['EXIO3']==code)&(aggregation['sex']=='SEX_T')&(aggregation['classif1']=='ECO_DETAILS_LMN')&(aggregation['time']==years)]['obs_value'].to_string(header=False,index=False)) * pourcent[idx] / 100
-
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - total']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumLST/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - total']] = (float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumMST/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - total']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumHST/sumAST
-
-
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumLSM/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumMSM/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))*sumHSM/sumAST
+            	for idx, x in enumerate(code_ISICLMN):
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']] = float(aggregation.loc[(aggregation['EXIO3']==code)&(aggregation['sex']=='SEX_T')&(aggregation['classif1']=='ECO_DETAILS_LMN')&(aggregation['time']==years)]['obs_value'].to_string(header=False,index=False)) * pourcent[idx] / 100
+                
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - total']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumLST/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - total']] = (float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumMST/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - total']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumHST/sumAST
 
 
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))*sumLSW/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))  *sumMSW/sumAST
-                        salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumHSW/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumLSM/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumMSM/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - male']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))*sumHSM/sumAST
 
 
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Low qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))*sumLSW/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split Middle qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False)))  *sumMSW/sumAST
+                	salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split High qualification employment - female']] =(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==x),['Split']].to_string(header=False,index=False))) *sumHSW/sumAST
+                
+                                        
         test = salary_split.copy()
 
         split[years]=salary_split.copy()
@@ -641,5 +647,4 @@ def salary_split_year(column_names,final,classif_detail,concordance,aggregation,
     writer.close()
 
     return split
-
 

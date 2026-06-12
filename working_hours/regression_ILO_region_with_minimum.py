@@ -2,14 +2,28 @@ import statistics
 
 def regression(hour_pivot,year_begin,year_end):
 
-   # print(hour_pivot)
+    # print(hour_pivot)
     relevant_years = list(range(year_begin,year_end+1))
     backward = list(reversed(range(year_begin,year_end+1)))
+    #for code in hour_pivot.index.get_level_values(0).unique():
+    #	print(code)
+    #code_values = hour_pivot.index.get_level_values(0).uniques():
+    
+    #mask = code_values.str.contains(code)
+    #selected = hour_pivot[mask]
+
+    # code_unique = hour_pivot.index.get_level_values(0).unique()
+    #...:     code_values = hour_pivot.index.get_level_values(0)
+    #...:     for code in code_unique:
+    #...:         print(code)
+    #...:         mask = code_values.str.contains(code)
+    #...:         selected = hour_pivot[mask]
+    #...:         print(selected)
 
     #print(relevant_years)
-    
+    #for code in ['ALB','FRA']:
     for code in hour_pivot.index:
-        #print(code)
+        print(code)
         first_consecutive_values={}
         last_consecutive_values={}
         
