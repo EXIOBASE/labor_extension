@@ -65,3 +65,4 @@ YEAR_END = _req_int("years.end")
 def year_range() -> range:
     """Years to build, as a range (YEAR_END is inclusive in config)."""
     return range(YEAR_START, YEAR_END + 1)
+FINAL_LABOR_FILENAME = _req_str("final_labor_filename")

@@ -66,3 +66,10 @@ years:
   # clamps to the last year present in the downloaded ILO series and says so.
   start: 1995
   end: 2025
+
+# Name of the persons+hours handoff workbook written by
+# workforce_salary/hours_split.py (one sheet per year, 12 stressors x
+# (region, sector) columns). desire_upload_prepper reads a copy of this from
+# indecol/Projects/EXIOBASE_dev/FINAL_TABLE_LABOR/ and reformats it into
+# EXIOBASE_<version>/raw/Extensions/labour/.
+final_labor_filename: final_labor_SUTs_3_11_2.xlsx

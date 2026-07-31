@@ -1,4 +1,11 @@
 import pandas as pd
+import sys
+from pathlib import Path
+
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+import config as _cfg
 from regression_ILO_region_with_minimum_ray import regression_r
 from regression_ILO_region_with_minimum import regression
 import country_converter as coco
@@ -38,7 +45,16 @@ from complete_hours import complete
 from complete_hours_2 import complete2
 import concurrent.futures
 
-def working_hour(workforce,src_csv2,data_path,src_csv3):
+def working_hour(workforce,src_csv2,data_path,src_csv3,final_path=None):
+    # final_path was referenced further down but never defined or passed,
+    # so this function could not reach its own combine step: it raised
+    # NameError on `final_path / 'split_workforce_by_skill.xlsx'`.
+    if final_path is None:
+        raise ValueError('working_hour() needs final_path (the labour final_table directory)')
+    final_path = Path(final_path)
+    build_years = list(_cfg.year_range())
+    print(f'[working_hour] years {build_years[0]}-{build_years[-1]} '
+          f'({len(build_years)}) | final_path {final_path}')
         
     def w_avg(df, values, weights):
         d = df[values]
@@ -621,7 +637,7 @@ def working_hour(workforce,src_csv2,data_path,src_csv3):
             if code != 'UKR':
                 for sex in ['SEX_F','SEX_M']:
                     for c in workforce_iso3.classif1.unique():
-                        for t in range(1995,2023):
+                        for t in build_years:
                         #aorkforce_iso3.time.unique():
                             #if not (workforce_iso3.loc[(workforce_iso3['ref_area']==code)&(workforce_iso3['sex']==sex)&(workforce_iso3['classif1']==c)&(workforce_iso3['time']==t),['obs_value']]).isnull :
                                 P = float(workforce_iso3.loc[(workforce_iso3['ref_area']==code)&(workforce_iso3['sex']==sex)&(workforce_iso3['classif1']==c)&(workforce_iso3['time']==t),['obs_value']].to_string(header=False,index=False))
@@ -697,7 +713,7 @@ def working_hour(workforce,src_csv2,data_path,src_csv3):
                     print(a)
                     for  sex in ['SEX_F','SEX_M']:
                         for c in hours_RoW.classif1.unique():
-                            for t in range(1995,2023):
+                            for t in build_years:
                                  P = float(workforce_iso3.loc[(workforce_iso3['ref_area']==a)&(workforce_iso3['sex']==sex)&(workforce_iso3['classif1']==c)&(workforce_iso3['time']==t),['obs_value']].to_string(header=False,index=False))
                                  H =  float(av2.loc[(av2.EXIO3 == cc_all.convert(names = a,src="ISO3", to='EXIO3'))&(av2.sex == sex)&(av2.classif1 == c)&(av2.time == t),['Weighted average working hours']].to_string(header=False,index=False))
                                  new_row = pd.DataFrame({'EXIO3' : [cc_all.convert(names = a,src="ISO3", to='EXIO3')],'ref_area':[a],'sex':[sex],'classif1':[c],'time' :[t],'average weekly hours': [H], 'population (1000)': [P] })
@@ -719,7 +735,7 @@ def working_hour(workforce,src_csv2,data_path,src_csv3):
                 if a == 'TWN':
                     for  sex in ['SEX_F','SEX_M']:
                         for c in hours_RoW.classif1.unique():
-                            for t in range(1995,2023):
+                            for t in build_years:
                                 P = float(workforce_iso3.loc[(workforce_iso3['ref_area']==a)&(workforce_iso3['sex']==sex)&(workforce_iso3['classif1']==c)&(workforce_iso3['time']==t),['obs_value']].to_string(header=False,index=False))
                                 H =  float(av2.loc[(av2.EXIO3 == 'WA' )&(av2.sex == sex)&(av2.classif1 == c)&(av2.time == t),['Weighted average working hours']].to_string(header=False,index=False))
                                 new_row = pd.DataFrame({'EXIO3' : 'TW' ,'ref_area':[a],'sex':[sex],'classif1':[c],'time' :[t],'average weekly hours': [H], 'population (1000)': [P] })
@@ -860,13 +876,13 @@ def working_hour(workforce,src_csv2,data_path,src_csv3):
     hours_split_empty = hours_split.copy()
 
     #xl = pd.ExcelFile('split_updated_1610.xlsx')
-    xl = pd.ExcelFile('../tmp/labor/final_table/split_workforce_by_skill_newSUT.xlsx')
+    xl = pd.ExcelFile(final_path / 'split_workforce_by_skill_newSUT.xlsx')
 
 
     hourSplit = {}
     #writer = pd.ExcelWriter('hours_split.xlsx',engine='xlsxwriter')
 
-    for years in range(1995,2023):
+    for years in build_years:
         hours_split = hours_split_empty.copy()
 
         workforce_year = xl.parse(str(years))
@@ -1008,22 +1024,22 @@ def working_hour(workforce,src_csv2,data_path,src_csv3):
                         hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - total' ] = (pop_low_skill_men * (hours_M) * (52) / 1000000) + (pop_low_skill_women * (hours_F) * (52) / 1000000)
 
             hourSplit[years]=hours_split.copy()
-        writer = pd.ExcelWriter('hours_split_newSUTS.xlsx',engine='xlsxwriter')
+        writer = pd.ExcelWriter(final_path / 'hours_split_newSUTS.xlsx',engine='xlsxwriter')
 
-        for year in range(1995,2023):
+        for year in build_years:
             hourSplit[year].to_excel(writer, sheet_name=str(year))
         writer.close()
 
 
 
-        xls = pd.ExcelFile('hours_split.xlsx')
-        xls2 = pd.ExcelFile(final_path / 'split_workforce_by_skill.xlsx')
+        xls = pd.ExcelFile(final_path / 'hours_split.xlsx')
+        xls2 = pd.ExcelFile(final_path / 'split_workforce_by_skill_newSUT.xlsx')
         exio3_regions = pd.read_csv('aux/region_EXIO3.csv')
 
         final_table= pd.DataFrame(columns = ['region','sector', 'Employment: Low-skilled male', 'Employment: Low-skilled female', 'Employment: Medium-skilled male','Employment: Medium-skilled female', 'Employment: High-skilled male', 'Employment: High-skilled female','Employment hours: Low-skilled male', 'Employment hours: Low-skilled female', 'Employment hours: Medium-skilled male',  'Employment hours: Medium-skilled female','Employment hours: High-skilled male',  'Employment hours: High-skilled female'])
         final_table_empty = final_table.copy()
         final = {}
-        for years in range(1995,2023):
+        for years in build_years:
             print(years)
             final_table=final_table_empty.copy()
             whours = pd.read_excel(xls, str(years))
@@ -1054,9 +1070,9 @@ def working_hour(workforce,src_csv2,data_path,src_csv3):
 
             final[years]=final_table.copy()
 
-        writer = pd.ExcelWriter('final_labor_SUTs_3_10.xlsx',engine='xlsxwriter')
+        writer = pd.ExcelWriter(final_path / _cfg.FINAL_LABOR_FILENAME,engine='xlsxwriter')
 
-        for year in range(1995,2023):
+        for year in build_years:
             table_pivot = final[year].pivot_table(columns=['region','sector'],sort = False)
             table_pivot.to_excel(writer, sheet_name=str(year))
         writer.close()

@@ -30,6 +30,7 @@ os.chdir(REPO)  # aux/ and several bare relative reads/writes assume repo root a
 sys.path.insert(1, str(REPO / "workforce_salary"))
 sys.path.insert(2, str(REPO / "working_hours"))
 
+import config
 import workforce_salary.workforce as workforce
 
 DATAFOLDER = Path("d:/indecol/data/labour")
@@ -77,3 +78,25 @@ wf = workforce.workforce_calculation(data_path, src_csv, src_csv2, final_path)
 print(">>> workforce_calculation done; shape:", wf.shape)
 wf.to_csv(final_path / "workforce.csv", index=False)
 print(">>> Stage 1 complete. final_table outputs at:", final_path)
+
+# Stage 2: working hours. Converts the employment counts into hours worked and
+# combines the two into the 12 published stressors (6 "Employment people: ..."
+# in 1000 p and 6 "Employment hours: ..." in M.hr), writing the per-year
+# handoff workbook `config.FINAL_LABOR_FILENAME` into final_path. That workbook
+# is what desire_upload_prepper reformats into
+# EXIOBASE_<version>/raw/Extensions/labour/.
+#
+# This stage was never wired into a driver: labor.py (the stale original)
+# referenced an undefined `final` and working_hour() itself raised NameError on
+# an undefined final_path before it could reach its own combine step.
+if os.environ.get("SKIP_HOURS") == "1":
+    print(">>> Stage 2: working hours SKIPPED (SKIP_HOURS=1)")
+else:
+    print(">>> Stage 2: working hours + combine ...")
+    src_csv3 = Path("estat_lfsa_ewhuna.tsv")
+    import working_hours.average_working_hours as awh
+
+    hours_table = awh.working_hour(wf, src_csv2, data_path, src_csv3,
+                                   final_path=final_path)
+    print(">>> Stage 2 complete; combined table shape:", hours_table.shape)
+    print(">>> handoff workbook:", final_path / config.FINAL_LABOR_FILENAME)
