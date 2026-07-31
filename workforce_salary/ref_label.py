@@ -9,15 +9,16 @@ def add_ref_label(data,add_ref_area_label):
     
 
     
-    def convert(ref):
-        if ref :
-            if ref in add_ref_label2['ref_area'].unique():
-                label = add_ref_label2[add_ref_label2['ref_area']==ref]['ref_area.label'].values[0]
-                return label
-            
+    # Was: data['ref_area'].apply(convert), where convert() ran
+    #   `ref in add_ref_label2['ref_area'].unique()` and then a boolean-mask
+    #   lookup, ONCE PER ROW. On the 781k-row ILO export that is 781k
+    #   `.unique()` calls plus 781k full-frame scans, and it dominated the
+    #   runtime of the whole workforce build. A dict built once from the same
+    #   de-duplicated frame gives identical labels.
+    _label_by_ref = dict(zip(add_ref_label2['ref_area'],
+                             add_ref_label2['ref_area.label']))
+    data['ref_area.label'] = data['ref_area'].map(_label_by_ref)
 
-    data['ref_area.label'] = data['ref_area'].apply(convert)
-    
     
     # for index, row in data.iterrows():
     #     print(index)
@@ -41,20 +42,27 @@ def add_ref_label(data,add_ref_area_label):
     '''
 
     
-    data["ref_area"].replace({"CHA": "CHI"}, inplace=True)
-   
-    '''
-    We add the EXIO3 region for each ISO3 countries 
-    '''
-    
-    country_code = list(data['ref_area'])
-    
-    cc_all = coco.CountryConverter(include_obsolete=True)
-    data_ISO3 = data[data['ref_area'].isin(cc_all.ISO3['ISO3'])]
-    data_autre = data[~data['ref_area'].isin(cc_all.ISO3['ISO3'])]
-    country_code = list(data_ISO3['ref_area'])
+    # Chained-assignment `inplace=True` on a slice is a no-op under pandas 3.
+    data["ref_area"] = data["ref_area"].replace({"CHA": "CHI"})
 
-    data_ISO3.insert(2, 'EXIO3', cc_all.convert(names = country_code,src="ISO3", to='EXIO3') )
+    '''
+    We add the EXIO3 region for each ISO3 countries
+    '''
+
+    cc_all = coco.CountryConverter(include_obsolete=True)
+    is_iso3 = data['ref_area'].isin(cc_all.ISO3['ISO3'])
+    data_ISO3 = data[is_iso3].copy()
+    data_autre = data[~is_iso3].copy()
+
+    # Was: cc_all.convert(names=list(data_ISO3['ref_area']), ...) - one entry
+    # per ROW, so country_converter was asked to resolve ~700k names when there
+    # are only ~230 distinct ones. Convert the distinct codes and map back.
+    unique_codes = list(pd.unique(data_ISO3['ref_area']))
+    exio3_by_code = dict(zip(
+        unique_codes,
+        cc_all.convert(names=unique_codes, src="ISO3", to='EXIO3'),
+    ))
+    data_ISO3.insert(2, 'EXIO3', data_ISO3['ref_area'].map(exio3_by_code))
     data_autre.insert(2, 'EXIO3', '' )
     data = pd.concat([data_ISO3,data_autre])
 
