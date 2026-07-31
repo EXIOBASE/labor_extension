@@ -50,22 +50,30 @@ def _resolve_years():
 
 
 def salary_split_year(column_names,final,classif_detail,concordance,aggregation,final_path):
-    salary_split2= pd.DataFrame(columns = column_names)
-    #print('start')
+    # Build the (country x sector) skeleton in ONE DataFrame construction.
+    # Was: a pd.concat per row inside a triple loop - 8,210 concat calls on a
+    # growing frame, and the result came out all-object dtype, which then made
+    # every `salary_split['Country'] == code` comparison in calcul_year take the
+    # element-wise object path (90.8 s of a 171.6 s profiled single-region run).
+    _rows = []
     for code in final['EXIO3'].unique():
         for a in classif_detail:
-
-            'This was the correspondance to the full name of exiobase sector'
-            #list_name = concordance.loc[concordance['ISIC REV 4_ILO_Alteryx']==a,['Name']]
-            'we changed it to the exiobase sector code -> CodeNr'
+            'we use the exiobase sector code -> CodeNr'
             list_name = concordance.loc[concordance['ISIC REV 4_ILO_Alteryx']==a,['CodeNr']]
-            # for b in list_name['Name']:
-
             for b in list_name['CodeNr']:
-                new_row = pd.DataFrame({'Country':[code],   'Sector':[b],   'Mapping': [a],'Compensation of employees; wages, salaries, & employers social contributions: Low-skilled':[0],'Compensation of employees; wages, salaries, & employers social contributions: Middle-skilled':[0],'Compensation of employees; wages, salaries, & employers social contributions: High-skilled':[0],'Compensation of employees; wages, salaries, & employers social contributions: Total':[0],'ILO data /country / sector':[0],'Split':[0],'Split Low qualification employment - total':[0],'Split Middle qualification employment - total':[0],'Split High qualification employment - total':[0],'Split Low qualification employment - male':[0],'Split Middle qualification employment - male':[0],'Split High qualification employment - male':[0],'Split Low qualification employment - female':[0],'Split Middle qualification employment - female':[0],'Split High qualification employment - female':[0]})
-                salary_split2=pd.concat([salary_split2,new_row])
-                #salary_split2=salary_split2.append(pd.Series([code,b,a,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], index=[i for i in column_names]),ignore_index=True)
-
+                _rows.append((code, b, a))
+    _numeric_cols = [c for c in column_names if c not in ('Country', 'Sector', 'Mapping')]
+    salary_split2 = pd.DataFrame(_rows, columns=['Country', 'Sector', 'Mapping'])
+    for _c in _numeric_cols:
+        salary_split2[_c] = 0.0
+    salary_split2 = salary_split2[list(column_names)]
+    # Categorical keys make the per-sector equality tests in calcul_year use the
+    # fast codes path instead of comp_method_OBJECT_ARRAY.
+    salary_split2['Country'] = salary_split2['Country'].astype('category')
+    salary_split2['Sector'] = salary_split2['Sector'].astype('category')
+    print(f"[salary_split] skeleton {salary_split2.shape[0]:,} rows "
+          f"({salary_split2['Country'].nunique()} regions x "
+          f"{salary_split2['Sector'].nunique()} sectors)")
 
 
     #final = final[~final['EXIO3'].str.contains("")]
@@ -83,6 +91,12 @@ def salary_split_year(column_names,final,classif_detail,concordance,aggregation,
     # capture the full 'final' DataFrame (~226 MB), which exceeds Ray's 95 MiB
     # remote-function size limit.
     exio3_codes = list(final['EXIO3'].unique())
+    # LABOR_REGIONS=WA,AT limits the region set (profiling / smoke tests only).
+    _only = os.environ.get("LABOR_REGIONS")
+    if _only:
+        wanted = [r.strip() for r in _only.split(",") if r.strip()]
+        exio3_codes = [c for c in exio3_codes if c in wanted]
+        print(f"[salary_split] LABOR_REGIONS set -> {exio3_codes}")
 
     def calcul_year(years,salary_split2):
         salary_split = salary_split2.copy()
@@ -297,7 +311,7 @@ def salary_split_year(column_names,final,classif_detail,concordance,aggregation,
                     salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==sector),['Split Middle qualification employment - female']]=0
                     salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==sector),['Split High qualification employment - female']]=0
 
-            salary_split=salary_split.fillna(0)
+            salary_split[_numeric_cols] = salary_split[_numeric_cols].fillna(0)  # numeric cols only: Country/Sector are categorical and never NaN
             values_split=[]
             for sub in code_ISICA:
                 values_split.append(float(salary_split.loc[(salary_split['Country']==code)&(salary_split['Sector']==sub),['Split']].to_string(header=False, index=False)))
