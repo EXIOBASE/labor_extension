@@ -1,7 +1,26 @@
 import pandas as pd
 import os
-import ray
+import sys
 import time
+from pathlib import Path
+
+# Repo root, so `import config` works no matter which subdirectory is on
+# sys.path when this module is imported.
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+import config as _cfg
+
+# SUT source root and year range come from config.yaml, not from literals in
+# this file. Both were hardcoded here (EXIOBASE_3_10_1 and range(1995, 2023))
+# even though config.py already existed.
+SUT_CSV_ROOT = _cfg.SUT_CSV_ROOT
+
+# ray is imported lazily: set LABOR_NO_RAY=1 to run the years sequentially in
+# a plain environment (slower, but no ray install needed, and it makes a
+# single-year test possible).
+USE_RAY = os.environ.get("LABOR_NO_RAY") != "1"
 
 runtime_env = {
     'env_vars': {
@@ -11,6 +30,23 @@ runtime_env = {
 
      }
 }
+
+
+def sut_paths(code, years):
+    """Per-region, per-year SUT use (wages) and supply (output) CSV paths."""
+    stem = f"{SUT_CSV_ROOT}{code}_{years}"
+    return f"{stem}_usebpdom.csv", f"{stem}_sup.csv"
+
+
+def _resolve_years():
+    """Years to build: config.yaml, or LABOR_YEARS=2020 / LABOR_YEARS=1995-2010."""
+    override = os.environ.get("LABOR_YEARS")
+    if not override:
+        return list(_cfg.year_range())
+    if "-" in override:
+        lo, hi = (int(p) for p in override.split("-", 1))
+        return list(range(lo, hi + 1))
+    return [int(override)]
 
 
 def salary_split_year(column_names,final,classif_detail,concordance,aggregation,final_path):
@@ -43,21 +79,19 @@ def salary_split_year(column_names,final,classif_detail,concordance,aggregation,
 
     # writer = pd.ExcelWriter('split.xlsx',engine='xlsxwriter')
 
-    ray.init(runtime_env=runtime_env,num_cpus = os.cpu_count()-4)
+    # Precompute the small EXIO3 code list so the @ray.remote closure below does NOT
+    # capture the full 'final' DataFrame (~226 MB), which exceeds Ray's 95 MiB
+    # remote-function size limit.
+    exio3_codes = list(final['EXIO3'].unique())
 
-    @ray.remote
-    def calcul_ray(years,salary_split2):
+    def calcul_year(years,salary_split2):
         salary_split = salary_split2.copy()
-        for code in   final['EXIO3'].unique():
+        for code in exio3_codes:
             #for code in  ['WA','WE','FR']:
 
             print(years,code)
-            data = '../Xdrive/indecol/USERS/Kajwan/Box/EXIOBASE/EXIOBASE_3_10_1/upload_prep/raw/SUT/current/' + str(code) +'_' + str(years) + '_usebpdom.csv'
-            data2 = '../Xdrive/indecol/USERS/Kajwan/Box/EXIOBASE/EXIOBASE_3_10_1/upload_prep/raw/SUT/current/' + str(code) +'_' + str(years) + '_sup.csv'
-
-
-            #data = '/media/ntnu/Xdrive/indecol/Projects/MRIOs/EXIOBASE3/EXIOBASE_3_8_2/upload_to_Box/public/SUT/' + str(code) +'_' + str(years) + '.xls'               
-            #data = '../Xdrive/indecol/Projects/MRIOs/EXIOBASE3/EXIOBASE_3_8_2/upload_to_Box/public/SUT/' + str(code) +'_' + str(years) + '.xls'
+            # SUT source root comes from config.yaml (paths.sut_csv_root).
+            data, data2 = sut_paths(code, years)
 
             df = pd.read_csv(data)
             output = pd.read_csv(data2)
@@ -623,20 +657,33 @@ def salary_split_year(column_names,final,classif_detail,concordance,aggregation,
         split[years]=salary_split.copy()
         return test
 
-    results = [ray.get([calcul_ray.remote(years, salary_split2) for years in range(1995,2023)])]
-    '''1995 2023'''
-    '''ICI il faut faire un pause pb avec ray'''
+    # Year range from config.yaml (years.start / years.end, both inclusive).
+    # Override for a quick smoke test with LABOR_YEARS=2020 or LABOR_YEARS=2019-2021.
+    build_years = _resolve_years()
+    print(f"[salary_split] years {build_years[0]}-{build_years[-1]} "
+          f"({len(build_years)}) | SUT root {SUT_CSV_ROOT} | ray={USE_RAY}")
 
-    for a,b in zip(results[0],range(1995,2023)) :
+    if USE_RAY:
+        import ray
+        ray.init(runtime_env=runtime_env,num_cpus = os.cpu_count()-4)
+        calcul_ray = ray.remote(calcul_year)
+        year_results = ray.get([calcul_ray.remote(years, salary_split2)
+                                for years in build_years])
+        '''ICI il faut faire un pause pb avec ray'''
+        time.sleep(30)
+        ray.shutdown()
+    else:
+        # Sequential fallback: same function, no ray dependency.
+        year_results = [calcul_year(years, salary_split2) for years in build_years]
+
+    for a,b in zip(year_results, build_years) :
         print(b,a)
         split[b] = a
 
-    time.sleep(30)
-    ray.shutdown()
     print('done')
     writer = pd.ExcelWriter(final_path / 'split_workforce_by_skill_newSUT.xlsx',engine='xlsxwriter')
 
-    for year in range(1995,2023):
+    for year in build_years:
         split[year].to_excel(writer, sheet_name=str(year))
     writer.close()
 

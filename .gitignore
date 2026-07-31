@@ -1,0 +1,31 @@
+# Per-machine path overrides (preferred by the config loader when present).
+config.local.yaml
+
+# Python caches
+__pycache__/
+*.py[cod]
+
+# Generated outputs and raw downloads (data lives on the indecol tree).
+data/
+reports/*
+!reports/README.md
+
+# Pipeline intermediate CSVs written to the repo root (scripts to_csv into cwd; see run_windows.py)
+/data_list_old.csv
+/frist_part.csv
+/workforce_total_iso3.csv
+/table_workforce_by_ISO3.csv
+/isic3.csv
+/isic4.csv
+/hour_eurostat.csv
+/isic4_from_isic3_data*.csv
+/new_table_150222*.csv
+/hours_ini*.csv
+/hours*.csv
+/hoursRoW*.csv
+/average_working_hour*.csv
+/final_table.csv
+
+# Bare-named intermediates the scripts drop into the repo root (cwd) by design
+data_list_old.csv
+frist_part.csv

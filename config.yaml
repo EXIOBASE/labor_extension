@@ -1,0 +1,68 @@
+# labor_extension path configuration.
+#
+# All absolute filesystem paths the scripts read or write live here,
+# not in .py source. Override per machine by either editing this file
+# or copying it to config.local.yaml (which the loader prefers if
+# present). String values may reference other keys via ${...}
+# interpolation. See AGENTS.md "Data formats (on-disk)".
+#
+# The legacy source paths in this repo are Linux-style absolute paths
+# rooted at the NTNU X-drive mount (/media/ntnu/Xdrive). The "drive
+# root" concept differs from the Windows-style drive used elsewhere,
+# so the X-drive mount is stored as its own key and the SUT root is
+# the literal path the scripts originally hardcoded.
+
+# X-drive mount root (NTNU indecol storage), Linux-style.
+xdrive_root: /media/ntnu/Xdrive
+
+# EXIOBASE version whose SUTs supply the wage vectors used to split ISIC
+# employment into EXIOBASE sectors. Bump this when the labour extension is
+# rebuilt against a new release.
+sut_version_folder: EXIOBASE_3_11_2
+
+paths:
+  # ACTIVE source: per-country SUT CSVs read by
+  # workforce_salary/salary_split_ray.py, as
+  #   {sut_csv_root}{REG}_{year}_usebpdom.csv   (wage rows w03.a/b/c)
+  #   {sut_csv_root}{REG}_{year}_sup.csv        (output, for zero-wage fallback)
+  # Trailing slash is required: the script concatenates region and year
+  # directly onto this string.
+  # Was hardcoded to EXIOBASE_3_10_1 in the script; repointed at 3.11.2 for
+  # the 3.11.2 respin r2 rebuild (same file naming and schema, verified).
+  sut_csv_root: D:/indecol/Projects/MRIOs/EXIOBASE3/${sut_version_folder}/raw/SUT/current/
+
+  # LEGACY source, kept for the pre-Ray workforce_salary/salary_split.py:
+  # EXIOBASE 3.8.2 public upload-to-Box SUTs as .xls, sheet 'bpdom_fin',
+  # read as {salary_sut_root}{REG}_{year}.xls off the Linux X-drive mount.
+  salary_sut_root: ${xdrive_root}/indecol/Projects/MRIOs/EXIOBASE3/EXIOBASE_3_8_2/upload_to_Box/public/SUT/
+
+years:
+  # Year range for the salary split, inclusive of both ends. The scripts
+  # previously hardcoded range(1995, 2023), i.e. ending 2022; 2022 is kept as
+  # the default because it is the year the *whole* country set reaches, not
+  # because of the code.
+  #
+  # What each input supports:
+  #   ILO modelled estimates (rplumber API):  1991-2025, including the 45
+  #     "<ILO subregion>: <World Bank income group>" aggregate reference areas
+  #     with full ISIC4 detail (verified 2026-07-31)
+  #   3.11.2 SUT wage vectors:                1995-2028
+  #   CIA World Factbook snapshot (aux/CIA.json): a single reference year per
+  #     country, used only to fix that country's share of its ILO aggregate
+  #   Hand-compiled supplementary totals
+  #     (aux/Exiobase_Population_Data_not_found.xlsx): 1990-2022 for 21
+  #     entities; 2023+ is nowcast (see below)
+  #
+  # 2025 is the ILO end year, so it is the end of the series. The ~63
+  # supplementary countries that are not in the ILO estimates are carried to
+  # 2025 by the same constant-share method the pipeline already used for every
+  # other year: the country's share of its ILO subregion x income-group
+  # aggregate is held at the last year it was observed, and the aggregate's own
+  # series (which runs to 2025) supplies the year profile and the sector/sex
+  # composition. Those nowcast rows are tagged
+  # `obs_status = ILO_Subregion_Broad_nowcast`.
+  #
+  # Raising `end` above the ILO end year is a no-op: from_cia_to_ilo.build_years
+  # clamps to the last year present in the downloaded ILO series and says so.
+  start: 1995
+  end: 2025
