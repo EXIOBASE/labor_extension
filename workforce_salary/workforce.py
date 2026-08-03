@@ -10,10 +10,13 @@ from pathlib import Path
 # made here is dead code. Confirmed by the root copy's uncommented
 # `data_list_old.to_csv('data_list_old.csv')` firing on every run.
 from workforce_salary.from_cia_to_ilo import cia_to_ilo
-from ref_label import add_ref_label
+from workforce_salary.ref_label import add_ref_label
 import country_converter as coco
 
-from salary_split_ray import salary_split_year
+# Package-qualified so ray workers can import it: their sys.path carries the
+# repo root but NOT workforce_salary/, so a bare `salary_split_ray` module
+# name fails with ModuleNotFoundError inside the remote function.
+from workforce_salary.salary_split_ray import salary_split_year
 
 # The ISIC-Rev.4 detail codes this pipeline is built around. The concordance
 # (aux/Exiobase_ISIC_Rev-4.xlsx, sheet ILO_mapping_sector, column
