@@ -99,8 +99,14 @@ All notable changes to this project are documented here. Format follows
 - **Kosovo contributed no converted hours at all.** The code rewrote `KOS` to
   `XKX` *before* looking up its ISIC3 rows, which are filed under `KOS`, so
   nothing matched. The relabel belongs after the lookup, and only `XKX` maps to
-  an EXIOBASE region (WE). **Corrected**; 35 rows, all in 2000. Kosovo's
-  post-2009 hours were never affected, coming from native ISIC4.
+  an EXIOBASE region (WE). **Corrected in the converter**, which now yields 10
+  rows for the year 2000. **They do not reach the accounts**: `combine`
+  restricts to keys present in `hour_list`, and the hours export labels Kosovo
+  `KOS`, so the newly-emitted `XKX` rows are dropped immediately after. The net
+  effect on published numbers is nil. Finishing it means relabelling Kosovo at
+  ingestion so every stage agrees; left undone deliberately, being 10 rows in
+  one year for a region that aggregates into RoW Europe. Kosovo's post-2009
+  hours were never affected, coming from native ISIC4.
   `REPRODUCE_ORIGINAL_DEFECTS` in `isic3_to_isic4_vectorised` restores both,
   and the equivalence test sets it so it still compares like for like.
 
