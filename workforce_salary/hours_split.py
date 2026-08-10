@@ -137,7 +137,7 @@ def hours_split_year(all_countries,concordance,av2):
 
         xls = pd.ExcelFile('hours_split_0312.xlsx')
         xls2 = pd.ExcelFile('split_updated_1610.xlsx')
-        exio3_regions = pd.read_csv('aux/region_EXIO3.csv')
+        exio3_regions = pd.read_csv('auxdata/region_EXIO3.csv')
 
         final_table= pd.DataFrame(columns = ['region','sector', 'Employment: Low-skilled male', 'Employment: Low-skilled female', 'Employment: Medium-skilled male','Employment: Medium-skilled female', 'Employment: High-skilled male', 'Employment: High-skilled female','Employment hours: Low-skilled male', 'Employment hours: Low-skilled female', 'Employment hours: Medium-skilled male',  'Employment hours: Medium-skilled female','Employment hours: High-skilled male',  'Employment hours: High-skilled female'])
         final_table_empty = final_table.copy()

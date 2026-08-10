@@ -19,7 +19,7 @@ import country_converter as coco
 from workforce_salary.salary_split_ray import salary_split_year
 
 # The ISIC-Rev.4 detail codes this pipeline is built around. The concordance
-# (aux/Exiobase_ISIC_Rev-4.xlsx, sheet ILO_mapping_sector, column
+# (auxdata/Exiobase_ISIC_Rev-4.xlsx, sheet ILO_mapping_sector, column
 # 'ISIC REV 4_ILO_Alteryx'), salary_split_ray.py and the working_hours stage
 # all key on the ECO_DETAILS_* spelling.
 ISIC4_DETAIL_SUFFIXES = [
@@ -63,7 +63,7 @@ def normalise_classif1(data_list):
             f"classifications after normalisation: {missing}. "
             "The source classification scheme has changed again - check the "
             "classif1 values in the downloaded CSV against "
-            "ISIC4_DETAIL_SUFFIXES and the aux/ concordance."
+            "ISIC4_DETAIL_SUFFIXES and the auxdata/ concordance."
         )
     return data_list
 
@@ -79,9 +79,9 @@ def workforce_calculation(data_path,src_csv,src_csv2,final_path):
 
     data_list = normalise_classif1(data_list)
 
-    #add_ref_area_label = pd.read_csv('aux/EMP_2EMP_SEX_ECO_NB_A-full-2021-11-30.csv', encoding="utf-8-sig",low_memory=False) 
+    #add_ref_area_label = pd.read_csv('auxdata/EMP_2EMP_SEX_ECO_NB_A-full-2021-11-30.csv', encoding="utf-8-sig",low_memory=False) 
     # The rplumber ILO export already includes 'ref_area.label', so build the label
-    # map from the data itself rather than the stale aux/ 2021 file (which is an
+    # map from the data itself rather than the stale auxdata/ 2021 file (which is an
     # unresolved Git LFS pointer on this checkout). add_ref_label also adds EXIO3.
     data_list = add_ref_label(data_list, data_list)
     # data_list = add_ref_label(data_list)
@@ -96,12 +96,12 @@ def workforce_calculation(data_path,src_csv,src_csv2,final_path):
     '''
     
     
-    with open("aux/CIA.json", "r", encoding="utf-8") as read_file:
+    with open("auxdata/CIA.json", "r", encoding="utf-8") as read_file:
         data_cia = json.load(read_file)
     
-    filename = Path('aux/countries_en.csv')
+    filename = Path('auxdata/countries_en.csv')
     correspondance_ilo = pd.read_csv(filename)
-    xls = pd.ExcelFile('aux/Exiobase_Population_Data_not_found.xlsx')
+    xls = pd.ExcelFile('auxdata/Exiobase_Population_Data_not_found.xlsx')
     missing_data = pd.read_excel(xls, 'Exiobase data not automatised')
         
     missing_data.columns = missing_data.iloc[missing_data[missing_data.values=='ISO3'].index.values[0]]
@@ -167,7 +167,7 @@ def workforce_calculation(data_path,src_csv,src_csv2,final_path):
     
     column_names = ['Country','Sector','Mapping','Compensation of employees; wages, salaries, & employers social contributions: Low-skilled','Compensation of employees; wages, salaries, & employers social contributions: Middle-skilled','Compensation of employees; wages, salaries, & employers social contributions: High-skilled','Compensation of employees; wages, salaries, & employers social contributions: Total','ILO data /country / sector','Split','Split Low qualification employment - total','Split Middle qualification employment - total','Split High qualification employment - total','Split Low qualification employment - male','Split Middle qualification employment - male','Split High qualification employment - male','Split Low qualification employment - female','Split Middle qualification employment - female','Split High qualification employment - female']
     classif_detail = [s for s in final['classif1'].unique() if ("DETAILS" in s and "TOTAL" not in s)]
-    concordance = pd.read_excel('aux/Exiobase_ISIC_Rev-4.xlsx', 'ILO_mapping_sector')
+    concordance = pd.read_excel('auxdata/Exiobase_ISIC_Rev-4.xlsx', 'ILO_mapping_sector')
     
     '''
     Creation of dataframe for salary split. One per year will be created

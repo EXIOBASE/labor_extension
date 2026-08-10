@@ -73,10 +73,10 @@ ILO Data are disaggregated by economic activity, which refers to the main activi
 The series is part of the [ILO modelled](https://www.ilo.org/ilostat-files/Documents/TEM.pdf). As such, missing data have been estimated and harmonized directly from the ILO model to account for differences in national data and scope of coverage, collection and tabulation methodologies as well as for other country-specific factors (for detailed information about ILO projections see: [ILO modelled estimates and projections](https://ilostat.ilo.org/resources/concepts-and-definitions/ilo-modelled-estimates/).
 
 However, despite the estimated missing data, ILO data do not contain information for all the different Exiobase countries listed in [Exiobase](https://www.exiobase.eu/). 
-Part of the missing information can be calcullated by combining data from the CIA World Factbook (these data are available in the **aux** folder : CIA.json) and ILO data. 
+Part of the missing information can be calcullated by combining data from the CIA World Factbook (these data are available in the **auxdata** folder : CIA.json) and ILO data. 
 
 ```python
-with open("aux/CIA.json", "r") as read_file:
+with open("auxdata/CIA.json", "r") as read_file:
     data_cia = json.load(read_file)
 ```
 
@@ -85,9 +85,9 @@ For each missing country available in the World Fact Book but not in the ILO dat
 1. The corresponding ILO region or ILO subregion to the missing country belongs;
 2. The corresponding World Bank income level to the missing country belongs. 
 
-These information are found in a dataframe called **correspondance**, which we import from a csv file found in the **aux** folder.
+These information are found in a dataframe called **correspondance**, which we import from a csv file found in the **auxdata** folder.
 ```python 
-    filename = Path('aux/countries_en.csv')
+    filename = Path('auxdata/countries_en.csv')
     correspondance_ilo = pd.read_csv(filename)
 ```
 | ISO3 Code | Country             | ILO Region              | ILO Subregion - Broad                 | ILO Subregion - Detailed | World Bank Income Group |
@@ -175,10 +175,10 @@ if str(ILO_region)+': '+str(World_Bank_Income_Group) in data_list_old['ref_area.
 ```
 
 
-The remaining countries have to be filled by hand in a file. This file is also available in the **aux** folder:
+The remaining countries have to be filled by hand in a file. This file is also available in the **auxdata** folder:
 
 ```python
-xls = pd.ExcelFile('aux/Exiobase_Population_Data_not_found.xlsx')
+xls = pd.ExcelFile('auxdata/Exiobase_Population_Data_not_found.xlsx')
     missing_data = pd.read_excel(xls, 'Exiobase data not automatised')
 ```
 
@@ -429,7 +429,7 @@ pass
 isic4_from_isic3_data = correspondance_isic(isic3)
 ```
 The ISIC classification changed in 2008 and took effect in 2009.
-In order to have a continuity of values from 1995 to 2020, we need to translate the ISIC3 values to ISIC4 values for the period 1995-2008, following the [correspondance](aux/correspondance_ISIC3_ISIC4.xls).
+In order to have a continuity of values from 1995 to 2020, we need to translate the ISIC3 values to ISIC4 values for the period 1995-2008, following the [correspondance](auxdata/correspondance_ISIC3_ISIC4.xls).
 
 
 **substitute.py**

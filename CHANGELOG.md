@@ -137,6 +137,27 @@ All notable changes to this project are documented here. Format follows
 
 ### Changed
 
+- **`aux/` renamed to `auxdata/`: Git on Windows could not see it.** `AUX` is a
+  reserved DOS device name, so Git for Windows rejects any path under a
+  directory called `aux` in `verify_path()` (gated on `core.protectNTFS`).
+  Every `git status` on Windows reported the nine tracked files there as
+  deleted while they sat intact on disk, and GitHub Desktop showed the same,
+  one stray `commit -a` away from deleting them for real on the remote. Python
+  was never affected (a reserved name is only rejected as the final path
+  component), so the pipeline always read them fine and no output is affected.
+  Reproduced in a clean repo: `git hash-object aux/f.txt` fails, `auxx/f.txt`
+  with identical content succeeds. All eleven files moved as pure renames,
+  blobs byte-identical, and the 34 path references across the scripts, config
+  and docs were repointed.
+- **Two workarounds that had accumulated around this are gone.** A
+  sparse-checkout rule (`/*`, `!/aux/`) had been added to hide the phantom
+  deletions; it only ever applied to two of the eleven files, because Git
+  could not stat the other nine to set their skip-worktree bits, so it
+  silenced nothing and blocked `git add` on those paths. Sparse checkout is
+  now disabled (it was excluding nothing else). `aux/region_EXIO3.ods` was one
+  of the two files it did flag, and it had gone missing from disk entirely at
+  some point, invisible because Git could not look; it has been restored from
+  the object database into `auxdata/`.
 - **ISIC3 -> ISIC4 conversion rewritten from 3,476 lines to a lookup table.**
   `working_hours/isic3_to_isic4.py` gave each of the 22 ISIC4 targets its own
   function, and within each, every combination of "which ISIC3 sources are
@@ -209,7 +230,7 @@ All notable changes to this project are documented here. Format follows
   `range(1995, 2023)` literals. Default stays 1995-2022: the ILO estimates
   now reach 2025 and the 3.11.2 SUTs reach 2028, but the CIA / hand-compiled
   supplementary countries stop at 2022 (`from_cia_to_ilo.py` loops
-  `range(1991, 2023)`, and `aux/Exiobase_Population_Data_not_found.xlsx` has
+  `range(1991, 2023)`, and `auxdata/Exiobase_Population_Data_not_found.xlsx` has
   year columns 1990-2022 for its 21 entities). Extending past 2022 needs
   those inputs extended first. `LABOR_YEARS=2020` or `LABOR_YEARS=1995-2010`
   overrides the range for a smoke test.

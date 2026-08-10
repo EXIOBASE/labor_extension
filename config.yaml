@@ -47,10 +47,10 @@ years:
   #     "<ILO subregion>: <World Bank income group>" aggregate reference areas
   #     with full ISIC4 detail (verified 2026-07-31)
   #   3.11.2 SUT wage vectors:                1995-2028
-  #   CIA World Factbook snapshot (aux/CIA.json): a single reference year per
+  #   CIA World Factbook snapshot (auxdata/CIA.json): a single reference year per
   #     country, used only to fix that country's share of its ILO aggregate
   #   Hand-compiled supplementary totals
-  #     (aux/Exiobase_Population_Data_not_found.xlsx): 1990-2022 for 21
+  #     (auxdata/Exiobase_Population_Data_not_found.xlsx): 1990-2022 for 21
   #     entities; 2023+ is nowcast (see below)
   #
   # 2025 is the ILO end year, so it is the end of the series. The ~63

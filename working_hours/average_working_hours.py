@@ -179,7 +179,7 @@ def add_isic4_from_aggregates(hours, verbose=True):
 def concordance_category(concordance, sector):
     """ILO employment category for an EXIOBASE sector.
 
-    `aux/Exiobase_ISIC_Rev-4.xlsx` carries the mapping in
+    `auxdata/Exiobase_ISIC_Rev-4.xlsx` carries the mapping in
     `ISIC REV 4_ILO_Alteryx`, already collapsed onto the categories the ILO
     actually publishes: D and E both give ECO_DETAILS_DE, H and J give
     ECO_DETAILS_HJ, L/M/N give ECO_DETAILS_LMN, R/S/T/U give ECO_DETAILS_RSTU.
@@ -193,7 +193,7 @@ def concordance_category(concordance, sector):
                             'ISIC REV 4_ILO_Alteryx'].dropna()
     if match.empty:
         raise KeyError(f'sector {sector!r} has no ISIC REV 4_ILO_Alteryx entry '
-                       'in aux/Exiobase_ISIC_Rev-4.xlsx')
+                       'in auxdata/Exiobase_ISIC_Rev-4.xlsx')
     return str(match.iloc[0]).strip()
 
 
@@ -1042,7 +1042,7 @@ def working_hour(workforce,src_csv2,data_path,src_csv3,final_path=None):
     #                     hours=pd.concat([hours,new_row])  
                         
                         
-    vacation = pd.read_csv('aux/whole_vacation.csv')
+    vacation = pd.read_csv('auxdata/whole_vacation.csv')
     #vacation = vacation.drop(['Paid Leave Days'],axis=1)
     #vacation = vacation.drop(['Paid Public Holidays'],axis=1)
     vacation = vacation.drop(['Country','ISO3'],axis =1)
@@ -1060,7 +1060,7 @@ def working_hour(workforce,src_csv2,data_path,src_csv3,final_path=None):
 
         
     #hours_split_final = hours_split_year(all_countries)
-    concordance = pd.read_excel('aux/Exiobase_ISIC_Rev-4.xlsx')    
+    concordance = pd.read_excel('auxdata/Exiobase_ISIC_Rev-4.xlsx')    
     hours_split= pd.DataFrame(columns = ['EXIO3','Sector','Mapping', 'Hours High qualification employement - total', 'Hours Middle qualification employement - total', 'Hours Low qualification employement - total','Hours High qualification employement - male', 'Hours Middle qualification employement - male', 'Hours Low qualification employement - male','Hours High qualification employement - female', 'Hours Middle qualification employement - female', 'Hours Low qualification employement - female'])
 
     for code in all_countries:
@@ -1255,7 +1255,7 @@ def working_hour(workforce,src_csv2,data_path,src_csv3,final_path=None):
 
     xls = pd.ExcelFile(final_path / HOURS_SPLIT_FILENAME)
     xls2 = pd.ExcelFile(final_path / 'split_workforce_by_skill_newSUT.xlsx')
-    exio3_regions = pd.read_csv('aux/region_EXIO3.csv')
+    exio3_regions = pd.read_csv('auxdata/region_EXIO3.csv')
 
     final_table= pd.DataFrame(columns = ['region','sector', 'Employment: Low-skilled male', 'Employment: Low-skilled female', 'Employment: Medium-skilled male','Employment: Medium-skilled female', 'Employment: High-skilled male', 'Employment: High-skilled female','Employment hours: Low-skilled male', 'Employment hours: Low-skilled female', 'Employment hours: Medium-skilled male',  'Employment hours: Medium-skilled female','Employment hours: High-skilled male',  'Employment hours: High-skilled female'])
     final_table_empty = final_table.copy()
@@ -1275,7 +1275,7 @@ def working_hour(workforce,src_csv2,data_path,src_csv3,final_path=None):
         # hours from the split written above. Both sides were twelve
         # `float(...to_string(...))` lookups inside a single expression, with a
         # guard on the employment side only - a region present in
-        # aux/region_EXIO3.csv but absent from the hours split (they are built
+        # auxdata/region_EXIO3.csv but absent from the hours split (they are built
         # from different country lists) blew up on the hours half. Missing on
         # either side now means zero, which is what the guarded branch already
         # did for missing employment.

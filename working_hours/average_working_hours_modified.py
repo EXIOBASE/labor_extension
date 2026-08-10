@@ -548,7 +548,7 @@ def working_hour(workforce,src_csv2,data_path,src_csv3):
     #                     hours=pd.concat([hours,new_row])  
                         
                         
-    vacation = pd.read_csv('aux/whole_vacation.csv')
+    vacation = pd.read_csv('auxdata/whole_vacation.csv')
     #vacation = vacation.drop(['Paid Leave Days'],axis=1)
     #vacation = vacation.drop(['Paid Public Holidays'],axis=1)
     vacation = vacation.drop(['Country','ISO3'],axis =1)
@@ -566,7 +566,7 @@ def working_hour(workforce,src_csv2,data_path,src_csv3):
 
         
     #hours_split_final = hours_split_year(all_countries)
-    concordance = pd.read_excel('aux/Exiobase_ISIC_Rev-4.xlsx')    
+    concordance = pd.read_excel('auxdata/Exiobase_ISIC_Rev-4.xlsx')    
     hours_split= pd.DataFrame(columns = ['EXIO3','Sector','Mapping', 'Hours High qualification employement - total', 'Hours Middle qualification employement - total', 'Hours Low qualification employement - total','Hours High qualification employement - male', 'Hours Middle qualification employement - male', 'Hours Low qualification employement - male','Hours High qualification employement - female', 'Hours Middle qualification employement - female', 'Hours Low qualification employement - female'])
 
     for code in all_countries:
@@ -745,7 +745,7 @@ def working_hour(workforce,src_csv2,data_path,src_csv3):
 
         xls = pd.ExcelFile('hours_split.xlsx')
         xls2 = pd.ExcelFile(final_path / 'split_workforce_by_skill.xlsx')
-        exio3_regions = pd.read_csv('aux/region_EXIO3.csv')
+        exio3_regions = pd.read_csv('auxdata/region_EXIO3.csv')
 
         final_table= pd.DataFrame(columns = ['region','sector', 'Employment: Low-skilled male', 'Employment: Low-skilled female', 'Employment: Medium-skilled male','Employment: Medium-skilled female', 'Employment: High-skilled male', 'Employment: High-skilled female','Employment hours: Low-skilled male', 'Employment hours: Low-skilled female', 'Employment hours: Medium-skilled male',  'Employment hours: Medium-skilled female','Employment hours: High-skilled male',  'Employment hours: High-skilled female'])
         final_table_empty = final_table.copy()

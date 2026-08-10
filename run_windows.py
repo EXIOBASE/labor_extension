@@ -29,7 +29,7 @@ from pathlib import Path
 import requests
 
 REPO = Path(__file__).resolve().parent
-os.chdir(REPO)  # aux/ and several bare relative reads/writes assume repo root as cwd
+os.chdir(REPO)  # auxdata/ and several bare relative reads/writes assume repo root as cwd
 sys.path.insert(1, str(REPO / "workforce_salary"))
 sys.path.insert(2, str(REPO / "working_hours"))
 

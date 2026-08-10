@@ -48,7 +48,7 @@ def build_years(data_list):
 def _year_column_map(missing_data):
     """Map int year -> the actual column label in the supplementary xlsx.
 
-    aux/Exiobase_Population_Data_not_found.xlsx carries its year columns as
+    auxdata/Exiobase_Population_Data_not_found.xlsx carries its year columns as
     floats (1990.0 ... 2022.0), so an int lookup is not guaranteed to hit.
     """
     out = {}
@@ -186,7 +186,7 @@ def _build_cia_countries(missing_countries, fetched_data, df, agg, agg_labels,
 def _build_xlsx_entities(missing_data, agg, agg_labels, cc_all, already_covered,
                          year_cols, last_xlsx_year, classifications, list_sex,
                          years, columns):
-    """Entities with hand-compiled totals in aux/Exiobase_Population_Data_not_found.xlsx.
+    """Entities with hand-compiled totals in auxdata/Exiobase_Population_Data_not_found.xlsx.
 
     Same constant-share method, but the country total is observed per year, so
     the ratio is recomputed each year. Past `last_xlsx_year` the ratio is held
