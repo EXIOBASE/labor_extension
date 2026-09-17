@@ -5,7 +5,57 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Changed
+
+- **Repointed at EXIOBASE 3.12 and rebuilt (2026-09-17/18).**
+  `sut_version_folder` is now `EXIOBASE_3_12`, `sut_csv_root` follows it
+  (note the folder case: 3.11.2 spells it `raw/SUT/current`, 3.12 spells it
+  `raw/sut/current`), and the handoff workbook is
+  `final_labor_SUTs_3_12.xlsx`.
+
+  **The block was never in this repo.** The 3.12 SUT export had dropped the
+  12 value-added rows (`w01`..`w04.d`) that `usebpdom.csv` has always
+  carried below its 200 product rows, so the `w03.a/b/c` wage vectors the
+  salary split reads did not exist on the 3.12 tree at all. Fixed in
+  `06-SUT_balance` (`scripts/export_sut_legacy_csv.py`, commits `1c54301`
+  and `d2705e8`) and retrofitted onto all 1,666 files.
+
+  Build result, 2019 against the 3.11.2 run: world employment **3.333 bn
+  people** and **2,210 hours per person**, both identical, which is the
+  expected shape since ILO sets the control totals and the SUTs only decide
+  how they are spread over EXIOBASE industries and skill levels. The skill
+  mix moves a little, -1.1% to -1.4% for low and medium and +1.1% to +6.5%
+  for high, and that traces to the input: the 3.12 wage bill is 42.23% high
+  skilled against 3.11.2's 41.29%, and 50.11% medium against 51.08%.
+  31 sheets (1995-2025), 12 stressors x 7,987 columns, no NaN and no
+  negative cells.
+
+  Checked before trusting the split: **no (region, ILO mapping group) cell
+  has a zero wage bill** in 1995, 2005, 2019, 2025 or 2028, across all 49
+  regions and all 14 groups, so the split's division by the group wage bill
+  is not degenerate on this vintage. 3.12 is cleaner here than 3.11.2, where
+  CN, RU and JP each had one zero group in 2019.
+
+  Two caveats worth carrying forward. The series still ends at **2025**, the
+  ILO end year, so 2026-2028 have no labour against a monetary spine that
+  reaches 2028. And this build reads the **2026-09-15** SUT vintage: a full
+  04 to 06 to 08 chain rerun was started on 2026-09-17, so it will need a
+  rerun on the reconciled chain, the same as the energy account. The wage
+  vectors actually consumed are fingerprinted in
+  `indecol/data/labour/final_table/sut_wage_provenance_3_12.json` (world
+  wage bill by skill and year, plus a hash), recorded because that rerun
+  will overwrite the files. The SUT tree did not change during the run.
+
 ### Fixed
+
+- **`read_sut_csv` accepts both spellings of the SUT row axis.** The salary
+  split selects rows with `df['Row']`, which assumes the SUT CSV names its
+  row axis `Row`, as 3.11.2 does in all three files. The 3.12 export left it
+  unnamed, so pandas called that column `Unnamed: 0` and every wage lookup
+  raised `KeyError`. Reads now normalise the first column to `Row` and raise
+  if it is neither, which is what the exporter's own fix (`d2705e8`) will
+  make unnecessary at source on the next full export. Verified reading both
+  trees.
 
 - **The hours stage recursively forked itself and exhausted memory.**
   `run_windows.py` ran the pipeline at module level with no

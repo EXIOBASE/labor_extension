@@ -38,6 +38,33 @@ def sut_paths(code, years):
     return f"{stem}_usebpdom.csv", f"{stem}_sup.csv"
 
 
+# Row-axis header in the legacy SUT CSV layout. 3.11.2 writes it; the 3.12
+# export (06-SUT_balance) left it unnamed until commit d2705e8, and the
+# already-exported 3.12 tree still has it blank, so pandas calls that column
+# `Unnamed: 0`. This code selects rows with `df['Row']`, so normalise it.
+ROW_AXIS = "Row"
+
+
+def read_sut_csv(path):
+    """Read a legacy SUT CSV with the row axis as a column named `Row`.
+
+    The row labels have to stay a column, not the index: the wage lookups
+    below use `df['Row'] == 'w03.a'` and `df[df.values == 'w03.a']`, and the
+    industry sums use `df.columns.isin(...)` against the `i*` codes, which a
+    named index does not disturb.
+    """
+    df = pd.read_csv(path)
+    first = df.columns[0]
+    if first != ROW_AXIS:
+        if not str(first).startswith("Unnamed:"):
+            raise ValueError(
+                f"{path}: first column is {first!r}, expected {ROW_AXIS!r} or an "
+                "unnamed index column. The SUT CSV layout changed."
+            )
+        df = df.rename(columns={first: ROW_AXIS})
+    return df
+
+
 def _resolve_years():
     """Years to build: config.yaml, or LABOR_YEARS=2020 / LABOR_YEARS=1995-2010."""
     override = os.environ.get("LABOR_YEARS")
@@ -107,8 +134,8 @@ def salary_split_year(column_names,final,classif_detail,concordance,aggregation,
             # SUT source root comes from config.yaml (paths.sut_csv_root).
             data, data2 = sut_paths(code, years)
 
-            df = pd.read_csv(data)
-            output = pd.read_csv(data2)
+            df = read_sut_csv(data)
+            output = read_sut_csv(data2)
 
 
             #df = pd.read_excel(data,'bpdom_fin')      

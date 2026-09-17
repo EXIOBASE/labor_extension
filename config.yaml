@@ -18,7 +18,7 @@ xdrive_root: /media/ntnu/Xdrive
 # EXIOBASE version whose SUTs supply the wage vectors used to split ISIC
 # employment into EXIOBASE sectors. Bump this when the labour extension is
 # rebuilt against a new release.
-sut_version_folder: EXIOBASE_3_11_2
+sut_version_folder: EXIOBASE_3_12
 
 paths:
   # ACTIVE source: per-country SUT CSVs read by
@@ -28,8 +28,19 @@ paths:
   # Trailing slash is required: the script concatenates region and year
   # directly onto this string.
   # Was hardcoded to EXIOBASE_3_10_1 in the script; repointed at 3.11.2 for
-  # the 3.11.2 respin r2 rebuild (same file naming and schema, verified).
-  sut_csv_root: D:/indecol/Projects/MRIOs/EXIOBASE3/${sut_version_folder}/raw/SUT/current/
+  # the 3.11.2 respin r2 rebuild (same file naming and schema, verified), and
+  # at 3.12 on 2026-09-17 for the 3.12 build.
+  #
+  # Note the folder case: 3.11.2 spells it `raw/SUT/current`, 3.12 spells it
+  # `raw/sut/current` (written by 06-SUT_balance's exporter). Windows does not
+  # care; a Linux run against 3.11.2 would need the upper-case spelling back.
+  #
+  # The 3.12 tree did not carry the w01..w04.d value-added rows until
+  # 2026-09-17: the 06 exporter dropped them, so the wage vectors this stage
+  # reads were absent and the 3.12 labour build was blocked. Fixed in
+  # 06-SUT_balance (`scripts/export_sut_legacy_csv.py`, commit 1c54301) and
+  # retrofitted onto all 1,666 files of the 3.12 tree.
+  sut_csv_root: D:/indecol/Projects/MRIOs/EXIOBASE3/${sut_version_folder}/raw/sut/current/
 
   # LEGACY source, kept for the pre-Ray workforce_salary/salary_split.py:
   # EXIOBASE 3.8.2 public upload-to-Box SUTs as .xls, sheet 'bpdom_fin',
@@ -46,7 +57,7 @@ years:
   #   ILO modelled estimates (rplumber API):  1991-2025, including the 45
   #     "<ILO subregion>: <World Bank income group>" aggregate reference areas
   #     with full ISIC4 detail (verified 2026-07-31)
-  #   3.11.2 SUT wage vectors:                1995-2028
+  #   3.12 SUT wage vectors:                  1995-2028
   #   CIA World Factbook snapshot (auxdata/CIA.json): a single reference year per
   #     country, used only to fix that country's share of its ILO aggregate
   #   Hand-compiled supplementary totals
@@ -72,4 +83,4 @@ years:
 # (region, sector) columns). desire_upload_prepper reads a copy of this from
 # indecol/Projects/EXIOBASE_dev/FINAL_TABLE_LABOR/ and reformats it into
 # EXIOBASE_<version>/raw/Extensions/labour/.
-final_labor_filename: final_labor_SUTs_3_11_2.xlsx
+final_labor_filename: final_labor_SUTs_3_12.xlsx
