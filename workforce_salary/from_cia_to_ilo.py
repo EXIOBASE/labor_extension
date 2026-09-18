@@ -227,6 +227,119 @@ def _build_xlsx_entities(missing_data, agg, agg_labels, cc_all, already_covered,
     return pd.concat(frames, ignore_index=True)
 
 
+def _build_country_lookup(data_list_old):
+    """(ref_area, classif1, sex) x time -> obs_value, for real countries only.
+
+    The aggregate lookup is keyed on `ref_area.label` because the aggregates
+    have no ISO3 code; countries are keyed on `ref_area` so a dropout can be
+    found by its ISO3.
+    """
+    d = data_list_old.loc[
+        data_list_old["ref_area"].astype(str).str.fullmatch(r"[A-Za-z]{3}"),
+        ["ref_area", "ref_area.label", "classif1", "sex", "time", "obs_value"],
+    ]
+    key = ["ref_area", "classif1", "sex", "time"]
+    dups = int(d.duplicated(subset=key).sum())
+    if dups:
+        raise ValueError(
+            f"{dups} duplicate (ref_area, classif1, sex, time) rows in the ILO "
+            "export; refusing to pick one silently."
+        )
+    labels = d.drop_duplicates("ref_area").set_index("ref_area")["ref_area.label"]
+    pivot = d.set_index(key)["obs_value"].unstack("time").sort_index()
+    return pivot, labels
+
+
+def _build_dropouts(data_list_old, cc_all, classifications, list_sex, years,
+                    columns, already_covered):
+    """Countries ILO reported and then stopped reporting.
+
+    `missing_countries` asks whether a country appears in the ILO export at
+    all, so a country that drops out part way through is not "missing" and
+    gets no supplementary treatment: its later years are simply absent, and
+    downstream they become zero. Ukraine is the live case. ILO reported it
+    through 2021 and stopped (no rows at all from 2022, war), and the labour
+    account lost 18.5 million workers, taking EXIOBASE's RoW Europe down 54%
+    from 2022. That was in the published 3.11.2 account too.
+
+    The carry is HOLD FLAT on the country's own last observed year: each
+    (classif1, sex) cell keeps its last reported value for every later year.
+    Deliberately not the constant-share-of-an-aggregate method the other two
+    builders use. That method needs the country to be a stable share of an
+    aggregate that contains it, and for Ukraine it is not: its 2021
+    employment is 106% of the whole `Europe and Central Asia: Lower-middle
+    income` aggregate, so that aggregate plainly excludes it and its growth
+    path is set by unrelated countries.
+
+    Hold flat is the no-information projection, which is what this is. It
+    does NOT represent the war's effect on Ukrainian employment; no source
+    available to this pipeline quantifies that. If a Ukraine series is
+    obtained, add it as a source rather than tuning this carry.
+
+    Rows are tagged `obs_status = ILO_dropout_carried` so they can be found.
+    """
+    pivot, labels = _build_country_lookup(data_list_old)
+    last_year = max(years)
+    frames, carried = [], []
+
+    for area in pivot.index.get_level_values("ref_area").unique():
+        if area in already_covered:
+            continue
+        block = pivot.loc[area]
+        observed = [y for y in block.columns if block[y].notna().any()]
+        if not observed:
+            continue
+        last_obs = max(observed)
+        if last_obs >= last_year:
+            continue
+        targets = [y for y in years if y > last_obs]
+        if not targets:
+            continue
+
+        idx = pd.MultiIndex.from_product([classifications, list_sex],
+                                         names=["classif1", "sex"])
+        carry = block.reindex(index=idx)[last_obs]
+        if carry.isna().all():
+            continue
+        carry = carry.fillna(0.0)
+
+        long = (pd.DataFrame({y: carry for y in targets})
+                  .stack().rename("obs_value").reset_index())
+        long = long.rename(columns={"level_2": "time"})
+        long["sex"] = pd.Categorical(long["sex"], categories=list_sex, ordered=True)
+        long["classif1"] = pd.Categorical(long["classif1"],
+                                          categories=classifications, ordered=True)
+        long = (long.sort_values(["sex", "classif1", "time"], kind="mergesort")
+                    .reset_index(drop=True))
+
+        out = pd.DataFrame(index=range(len(long)), columns=columns, dtype=object)
+        out["ref_area"] = area
+        out["ref_area.label"] = labels.get(area, area)
+        if "EXIO3" in out.columns:
+            out["EXIO3"] = cc_all.convert(names=area, src="ISO3", to="EXIO3")
+        out["sex"] = long["sex"].astype(str).to_numpy()
+        out["classif1"] = long["classif1"].astype(str).to_numpy()
+        out["time"] = long["time"].to_numpy()
+        out["obs_value"] = long["obs_value"].to_numpy()
+        out["obs_status"] = "ILO_dropout_carried"
+        frames.append(out)
+        total = float(carry.get((AGG_TOTAL_CLASSIF, AGG_TOTAL_SEX), float("nan")))
+        carried.append((area, last_obs, targets[-1], total))
+
+    if carried:
+        print(f"[cia_to_ilo] carrying {len(carried)} dropped-out country(ies) "
+              f"forward at their last observed year:")
+        for area, lo, hi, total in sorted(carried, key=lambda r: -(r[3] or 0)):
+            print(f"    {area}: last ILO year {lo}, carried {lo + 1}-{hi}, "
+                  f"{total:,.1f} thousand at {lo}")
+    else:
+        print("[cia_to_ilo] no dropped-out countries to carry")
+
+    if not frames:
+        return pd.DataFrame(data=None, columns=columns)
+    return pd.concat(frames, ignore_index=True)
+
+
 def cia_to_ilo(data_list,data_cia,df,missing_data):
 
     cc_all = coco.CountryConverter(include_obsolete=True)
@@ -392,10 +505,25 @@ def cia_to_ilo(data_list,data_cia,df,missing_data):
         columns=column_data_list,
     )
 
-    print(f"[cia_to_ilo] built {len(from_cia_to_ilo):,} rows from CIA-anchored "
-          f"countries and {len(from_cia_to_ilo2):,} rows from the hand-compiled "
-          f"entities")
+    # Countries ILO reported and then stopped. Not covered by either builder
+    # above, because both key off "absent from the export altogether".
+    from_cia_to_ilo3 = _build_dropouts(
+        data_list_old=data_list_old,
+        cc_all=cc_all,
+        classifications=classifications,
+        list_sex=list_sex,
+        years=years_list,
+        columns=column_data_list,
+        already_covered=(set(from_cia_to_ilo["ref_area"].unique())
+                         | set(from_cia_to_ilo2["ref_area"].unique())),
+    )
 
-    from_cia_to_ilo = pd.concat([from_cia_to_ilo, from_cia_to_ilo2])
+    print(f"[cia_to_ilo] built {len(from_cia_to_ilo):,} rows from CIA-anchored "
+          f"countries, {len(from_cia_to_ilo2):,} rows from the hand-compiled "
+          f"entities and {len(from_cia_to_ilo3):,} rows from dropped-out "
+          f"countries")
+
+    from_cia_to_ilo = pd.concat([from_cia_to_ilo, from_cia_to_ilo2,
+                                 from_cia_to_ilo3])
 
     return from_cia_to_ilo,missing_countries
