@@ -144,8 +144,18 @@ The skill mix differs from 3.11.2 (high +1.1% to +6.5%, low and medium
 the 3.12 wage bill is 42.23% high skilled against 3.11.2's 41.29%, and
 50.11% medium against 51.08%.
 
-**Vintage.** The 3.12 account was built on the 2026-09-15 SUT export. A
-full 04 to 06 to 08 chain rerun was started on 2026-09-17, so this
-account will need a rerun on the reconciled chain, the same as energy.
+**Vintage.** The 3.12 account was first built on the 2026-09-15 SUT
+export and **rebuilt on 2026-10-16** (01:40, `run_windows.py` with
+`SKIP_DOWNLOAD=1`, the 09-17 ILO and Eurostat downloads) on the SUT
+export of 2026-10-14 23:07 from the overnight 10-14/15 chain, re-staged
+by `desire_upload_prepper` (01:43) and nowcast to 2028 by
+`scripts/nowcast_tail.py` (01:43). Checked on the tree the same morning:
+2019 3.333 bn people at 2,210 hours per person (unchanged, as expected),
+2025 3.605 bn, 2026 3.642 bn, 2028 3.717 bn at 2,182-2,184 hours per
+person; no NaN, no negatives; ixi and pxp totals equal to 2e-9 in every
+year checked. On this vintage the product mix drops nothing: the
+industries with labour but no output that the 09-23 staging carried are
+gone, because the salary split now reads the same SUTs the MRSUT is
+built from.
 The wage vectors actually consumed are fingerprinted in
 `indecol/data/labour/final_table/sut_wage_provenance_3_12.json`.
