@@ -5,6 +5,28 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Added
+
+- **`scripts/nowcast_tail.py`: the 2026-2028 projection as a committed
+  command (2026-10-15).** Until now the tail nowcast that COVERAGE.md
+  describes had no script: it was run by hand on 2026-09-18 and 09-23.
+  The script projects ixi from the observed 1995-2025 years with
+  `io_utils` `level_trend` (median-robust slope from 2009, capped 5%/yr,
+  every target year from the observed history alone), derives pxp from
+  the projected ixi through the MRSUT product mix of the target year (the
+  route the observed years take in `desire_upload_prepper`), carries F_Y
+  flat and copies `unit.txt`. `--check` compares with the files on the
+  tree without writing: run on 2026-10-15 against the 09-23 staging it
+  reproduced all three ixi years to 1.3e-7 (max abs cell difference).
+  pxp could not be compared, because the MRSUT the product mix comes from
+  was rewritten by the 08 core build the same morning. It also reports
+  the labour that the product mix drops for industries with no output in
+  the target year's MRSUT (44 industries, 4e-6 of the total on the 10-15
+  MRSUT, led by PL water transport); the reformat script loses the same
+  mass silently for the observed years, since its check is one-sided.
+  Run it with a venv that imports `io_utils` and `exiobase_meta`
+  (06-SUT_balance's does).
+
 ### Changed
 
 - **Repointed at EXIOBASE 3.12 and rebuilt (2026-09-17/18).**
