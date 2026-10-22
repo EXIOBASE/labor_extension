@@ -27,6 +27,38 @@ All notable changes to this project are documented here. Format follows
   Run it with a venv that imports `io_utils` and `exiobase_meta`
   (06-SUT_balance's does).
 
+  **Stressor-label guard (2026-10-22).** The tail carries the last
+  observed year's labels into 2026-2028 (F through the projection, F_Y
+  flat, `unit.txt` verbatim), so a 2025 whose `F.txt` still has the
+  workbook's `Employment: ...` rows while its `unit.txt` has the release
+  `Employment people: ...` rows (the 2026-10-22 staging, where the
+  incubator's fix step did not run) was projected as it was. The script
+  now refuses a source year whose F, F_Y and unit.txt indices differ,
+  whose F carries `Employment: ...` labels, or whose index is not named
+  `stressor`, and prints the stressors it carries. `--check` on the
+  current tree stops with that error until
+  `desire_upload_prepper/exiobase_labour_extensions_reformat.py` (which
+  now writes the release names itself) has been rerun.
+
+  **Zero-output product mask (2026-10-22).** The pxp side was derived
+  through the raw MRSUT product mix, which can hand a product the core
+  snapped to x = 0 (output under 1 EUR) a sliver of its industry's labour,
+  the defect 00-qa found in the energy and nutrient converters. The mix
+  now goes through io_utils' `extension_convert.mask_zero_output_columns`
+  with the release `raw/IOT_txt/IOT_<year>_pxp/x.txt` of the target year
+  (`release_gross_output`), the one implementation the other converters
+  call: products with x = 0 get no share and each touched industry's row
+  is renormalised, so the pxp total still equals the ixi total. A missing
+  `x.txt` raises; there is no unmasked fallback. The labour moved is
+  printed per year. On the current tree for 2026 it finds nothing to do:
+  the MRSUT_2026 supplies none of the 2,035 products with x = 0, so
+  before and after have 0 cells on zero-output products and the same
+  total, 11,594,332.268615 (checked by driving `project_year` directly,
+  since the CLI stops at the label guard above until the reformat has
+  been rerun). `--out-root` writes the projected years under another
+  root with the same `raw/Extensions/labour` layout, for a run that must
+  not touch the tree.
+
 ### Changed
 
 - **Repointed at EXIOBASE 3.12 and rebuilt (2026-09-17/18).**

@@ -36,6 +36,9 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from io_utils.extension_convert import (
+    mask_zero_output_columns, release_gross_output,
+)
 from io_utils.extension_io import (
     ExtensionYear, available_years, extension_year_dir, read_extension_year,
     write_extension_year,
@@ -45,6 +48,34 @@ from io_utils.extension_nowcast import (
 )
 
 EXTENSION = "labour"
+
+
+def check_stressor_labels(F: pd.DataFrame, F_Y: pd.DataFrame, unit_path: Path) -> None:
+    """Refuse a source year whose three files do not share one stressor index.
+
+    The tail carries the last observed year's labels forward (F through the
+    projection, F_Y flat, unit.txt verbatim), so whatever that year has is
+    what 2026-2028 get. The reformat script writes the release labels
+    ('Employment people: ...', 'Employment hours: ...') to all three files;
+    a year where F still carries the workbook's 'Employment: ...' rows while
+    unit.txt has the release ones (the 2026-10-22 staging) would be
+    projected as it is, and the mismatch would reach three more years.
+    """
+    unit = pd.read_csv(unit_path, sep="\t", index_col=0)
+    for name, index in (("F_Y", F_Y.index), ("unit.txt", unit.index)):
+        if not index.equals(F.index):
+            raise RuntimeError(
+                f"{unit_path.parent}: {name} stressors differ from F "
+                f"(only in F {sorted(set(F.index) - set(index))[:3]}, "
+                f"only in {name} {sorted(set(index) - set(F.index))[:3]}); "
+                "rerun desire_upload_prepper/exiobase_labour_extensions_reformat.py first")
+    legacy = [s for s in F.index if str(s).startswith("Employment: ")]
+    if legacy:
+        raise RuntimeError(
+            f"{unit_path.parent}: F carries the workbook labels {legacy[:2]}..., "
+            "not the release 'Employment people: ...' ones")
+    if F.index.name != "stressor":
+        raise RuntimeError(f"{unit_path.parent}: F index is named {F.index.name!r}, not 'stressor'")
 
 
 def product_mix(release_root: Path, year: int) -> pd.DataFrame:
@@ -62,6 +93,38 @@ def product_mix(release_root: Path, year: int) -> pd.DataFrame:
     return make.div(ind_out, axis=0)
 
 
+def mask_product_mix(T: pd.DataFrame, release_root: Path, year: int
+                     ) -> tuple[pd.DataFrame, pd.Series]:
+    """``T`` with no share on a product whose released gross output is zero.
+
+    The core snaps a product with output under 1 EUR to x = 0 while the
+    MRSUT supply still carries the sub-euro supply, so the mix hands such
+    a product a sliver of its industry's labour and the release has an F on
+    an x of 0. The mask is io_utils' ``mask_zero_output_columns`` on the
+    release ``x.txt`` of the target year (the same call the energy
+    converter and the labour reformat make), which zeroes exactly the
+    products the core zeroed and renormalises each touched industry's row.
+    Fails closed: a missing ``x.txt`` raises, it does not fall back to the
+    unmasked mix. An industry whose every product has x = 0 keeps its row
+    and is printed. Returns the masked mix and the per-industry share
+    moved, for the caller to turn into labour moved.
+    """
+    try:
+        x = release_gross_output(release_root, year, "pxp")
+    except FileNotFoundError as exc:
+        raise FileNotFoundError(
+            f"{exc}: the {year} pxp must be built by the core before the "
+            "labour tail can mask the product mix by it"
+        ) from exc
+    masked, report = mask_zero_output_columns(T, x, label=f"labour tail {year}")
+    print(f"  {year}: {report.n_zero_columns} products with x = 0; "
+          f"{len(report.rows_touched)} industries supplied one"
+          + (f"; {len(report.rows_fallback)} kept their row because every "
+             f"product they supply has x = 0: {report.rows_fallback[:5]}"
+             if report.rows_fallback else ""))
+    return masked, report.share_moved
+
+
 def project_year(ixi_panel: list[pd.DataFrame], years: list[int], target: int,
                  release_root: Path, *, max_change_perc: float,
                  end_years_start: int) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -70,7 +133,11 @@ def project_year(ixi_panel: list[pd.DataFrame], years: list[int], target: int,
         end_years_start=end_years_start, overflow="clip",
         steps=target - years[-1],
     )
-    T = product_mix(release_root, target)
+    T, share_moved = mask_product_mix(product_mix(release_root, target), release_root, target)
+    moved = float((F_ixi.sum(axis=0).reindex(share_moved.index, fill_value=0.0)
+                   * share_moved).sum())
+    print(f"  {target}: {moved:,.6f} of {float(F_ixi.to_numpy(float).sum()):,.3f} "
+          f"moved off zero-output products")
     F_pxp = F_ixi @ T
     F_pxp.columns.names = ["region", "sector"]
     F_pxp.index.name = F_ixi.index.name
@@ -108,8 +175,13 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--check", action="store_true",
                     help="write nothing; compare with the files already on the tree")
     ap.add_argument("--overwrite", action="store_true")
+    ap.add_argument("--out-root", type=Path, default=None,
+                    help="write under this root instead of the release root "
+                         "(same raw/Extensions/labour layout), for a run that "
+                         "must not touch the tree")
     args = ap.parse_args(argv)
     root = args.release_root
+    out_root = args.out_root if args.out_root is not None else root
 
     years = [y for y in available_years(root, EXTENSION, "ixi") if y <= args.source_end]
     if not years:
@@ -118,8 +190,10 @@ def main(argv: list[str] | None = None) -> int:
     ixi_panel = [p.F for p in panel]
     FY = panel[-1].F_Y
     unit_path = panel[-1].unit_path
+    check_stressor_labels(ixi_panel[-1], FY, unit_path)
     print(f"source years {years[0]}-{years[-1]} ({len(years)}); "
-          f"{years[-1]} ixi total {ixi_panel[-1].to_numpy(float).sum():,.3f}")
+          f"{years[-1]} ixi total {ixi_panel[-1].to_numpy(float).sum():,.3f}; "
+          f"stressors carried: {list(ixi_panel[-1].index)}")
 
     for target in sorted(args.years):
         F_ixi, F_pxp = project_year(
@@ -146,7 +220,7 @@ def main(argv: list[str] | None = None) -> int:
             for system, F in (("ixi", F_ixi), ("pxp", F_pxp)):
                 folder = write_extension_year(
                     ExtensionYear(F=F, F_Y=FY, unit_path=unit_path),
-                    root, EXTENSION, system, target, overwrite=args.overwrite,
+                    out_root, EXTENSION, system, target, overwrite=args.overwrite,
                 )
                 print(f"  wrote {folder}")
         if args.history == "sequential":
