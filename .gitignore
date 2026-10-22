@@ -29,3 +29,6 @@ reports/*
 # Bare-named intermediates the scripts drop into the repo root (cwd) by design
 data_list_old.csv
 frist_part.csv
+
+# Local virtual environment
+.venv/
