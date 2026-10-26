@@ -84,3 +84,22 @@ years:
 # indecol/Projects/EXIOBASE_dev/FINAL_TABLE_LABOR/ and reformats it into
 # EXIOBASE_<version>/raw/Extensions/labour/.
 final_labor_filename: final_labor_SUTs_3_12.xlsx
+
+# Skill-split splice (to-do C7-3, 2026-10-27). The SUT skill split of
+# compensation of employees (w03.a/b/c, from 06-SUT_balance's coe-shares.mat)
+# changes structure in one year for a few regions: CN, IN, ID and WA (WA
+# carries ID's shares) between 2006 and 2007, WF between 2007 and 2008. That
+# made world low-skilled people and hours jump +42% to +50% at 2006-2007 and
+# about +11% at 2007-2008, while total employment (set by ILO) moved normally.
+# For each listed region and every year before its break year,
+# workforce_salary/skill_splice.py keeps each industry's wage bill of the year
+# and takes its low/medium/high shares from the break year's SUT, i.e. the
+# structure the SUT carries for every later year. Industry totals and ILO
+# control totals are unchanged; only the skill split moves. Map region to
+# break year; `{}` switches it off.
+skill_split_splice:
+  CN: 2007
+  IN: 2007
+  ID: 2007
+  WA: 2007
+  WF: 2008

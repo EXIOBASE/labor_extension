@@ -102,6 +102,58 @@ All notable changes to this project are documented here. Format follows
 
 ### Fixed
 
+- **The 2006-2007 skill seam (to-do C7-3, 2026-10-27).** World low-skilled
+  people and hours jumped +42% to +50% between 2006 and 2007 (4 of the 12
+  stressors) while total employment moved +1.6%, and 00-qa
+  `cells.breaks.extension_jump` counted 408 pxp cells over 10x at
+  2006-2007. The source is not ILO, which only sets the totals: it is the
+  SUT skill split of compensation of employees (`w03.a/b/c`) that the
+  salary split uses to divide each industry's employment over skill levels.
+  06-SUT_balance fills those rows from the legacy `coe-shares.mat`, and that
+  file changes structure in one year for CN, IN, ID and WA (WA carries ID's
+  shares) between 2006 and 2007: CN agriculture goes from 0.4% low skilled
+  and 99.4% medium to 12.1% and 84.9%, public administration from 93% high
+  skilled to 44%. WF (which carries ZA's shares) has the same kind of break
+  between 2007 and 2008 (agriculture 31% to 47% low skilled), which made
+  world low-skilled people rise a further 11% at 2007-2008. The same seam is
+  in 3.11.3 (+41% and +46% for low-skilled male and female people).
+
+  New `workforce_salary/skill_splice.py`, called by the salary split right
+  after it reads a SUT: for each region in `config.yaml`
+  `skill_split_splice` (CN, IN, ID, WA at 2007; WF at 2008) and each year
+  before its break year, every industry keeps its own wage bill of the year
+  and takes its low/medium/high shares from the break year's SUT, the
+  structure the SUT carries for every later year. Industry totals and every
+  ILO control total are unchanged; only the skill split before the break
+  moves. Industries with no wage in the break year keep their own split.
+
+  Verified without the full build: the salary split rerun for CN, IN, ID
+  and WA in scratch with the splice off reproduces the production 2006
+  split to 1.4e-12; with it on, it gives the regional skill totals that the
+  splice predicts when applied to the staged 3.12 ixi account (people and
+  hours are split over skills within region x industry x sex by the same
+  shares, and hours per person do not depend on skill). World low-skilled
+  people, before and after, 2005 / 2006 / 2007 / 2008, in 1000 p:
+  224,281 / 232,126 / 333,678 / 370,804 before, 349,500 / 358,350 /
+  366,643 / 370,804 after. Low-skilled hours 501,498 to 727,542 M.hr at
+  2006-2007 before, 764,171 to 784,007 after. Cells over 10x at 2006-2007
+  on ixi: 402 before, 0 after. World totals by year unchanged. WF was
+  checked by the analytic route only.
+
+  This is a fix in the labour account only. The SUT `w03.a/b/c` rows
+  themselves still carry the break; the root fix belongs in
+  06-SUT_balance's `coe-shares.mat` input. Smaller one-year moves in the
+  same file (US 2000-2001, IT 1999-2000) are left as they are.
+
+- **The workbook writes the release stressor names.** The handoff workbook
+  labelled the people rows `Employment: <skill> <sex>` while every release
+  `unit.txt`, `exio_hatcher` and the shipped `employment` account use
+  `Employment people: <skill> <sex>`; `desire_upload_prepper` renamed them
+  on the way in (since 2026-10-22). `working_hours/average_working_hours.py`
+  (and the legacy `hours_split.py` and `average_working_hours_modified.py`)
+  now write `Employment people: ...` directly. The reformat's rename map
+  passes these through unchanged.
+
 - **`read_sut_csv` accepts both spellings of the SUT row axis.** The salary
   split selects rows with `df['Row']`, which assumes the SUT CSV names its
   row axis `Row`, as 3.11.2 does in all three files. The 3.12 export left it

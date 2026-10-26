@@ -17,6 +17,11 @@ import config as _cfg
 # even though config.py already existed.
 SUT_CSV_ROOT = _cfg.SUT_CSV_ROOT
 
+# Skill-split splice across the coe-shares structural breaks (C7-3); see
+# workforce_salary/skill_splice.py and config.yaml `skill_split_splice`.
+from workforce_salary.skill_splice import splice_skill_split, splice_year_for
+SKILL_SPLICE = _cfg.SKILL_SPLICE
+
 # ray is imported lazily: set LABOR_NO_RAY=1 to run the years sequentially in
 # a plain environment (slower, but no ray install needed, and it makes a
 # single-year test possible).
@@ -136,6 +141,12 @@ def salary_split_year(column_names,final,classif_detail,concordance,aggregation,
 
             df = read_sut_csv(data)
             output = read_sut_csv(data2)
+            ref_year = splice_year_for(code, years, SKILL_SPLICE)
+            if ref_year is not None:
+                ref_data, _ = sut_paths(code, ref_year)
+                df, n_spliced = splice_skill_split(df, read_sut_csv(ref_data))
+                print(f"[salary_split] {code} {years}: skill split of "
+                      f"{n_spliced} industries taken from {ref_year}")
 
 
             #df = pd.read_excel(data,'bpdom_fin')      

@@ -66,3 +66,18 @@ def year_range() -> range:
     """Years to build, as a range (YEAR_END is inclusive in config)."""
     return range(YEAR_START, YEAR_END + 1)
 FINAL_LABOR_FILENAME = _req_str("final_labor_filename")
+
+
+def _opt(key: str):
+    cur: object = _CFG
+    for part in key.split("."):
+        if isinstance(cur, dict) and part in cur:
+            cur = cur[part]
+        else:
+            return None
+    return cur
+
+
+# Skill-split splice across the coe-shares structural breaks (C7-3): region
+# code -> first year of the later structure. Optional: absent means no splice.
+SKILL_SPLICE = {str(k): int(v) for k, v in (_opt("skill_split_splice") or {}).items()}
