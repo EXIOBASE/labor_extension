@@ -1257,7 +1257,7 @@ def working_hour(workforce,src_csv2,data_path,src_csv3,final_path=None):
     xls2 = pd.ExcelFile(final_path / 'split_workforce_by_skill_newSUT.xlsx')
     exio3_regions = pd.read_csv('auxdata/region_EXIO3.csv')
 
-    final_table= pd.DataFrame(columns = ['region','sector', 'Employment: Low-skilled male', 'Employment: Low-skilled female', 'Employment: Medium-skilled male','Employment: Medium-skilled female', 'Employment: High-skilled male', 'Employment: High-skilled female','Employment hours: Low-skilled male', 'Employment hours: Low-skilled female', 'Employment hours: Medium-skilled male',  'Employment hours: Medium-skilled female','Employment hours: High-skilled male',  'Employment hours: High-skilled female'])
+    final_table= pd.DataFrame(columns = ['region','sector', 'Employment people: Low-skilled male', 'Employment people: Low-skilled female', 'Employment people: Medium-skilled male','Employment people: Medium-skilled female', 'Employment people: High-skilled male', 'Employment people: High-skilled female','Employment hours: Low-skilled male', 'Employment hours: Low-skilled female', 'Employment hours: Medium-skilled male',  'Employment hours: Medium-skilled female','Employment hours: High-skilled male',  'Employment hours: High-skilled female'])
     final_table_empty = final_table.copy()
     final = {}
     for years in build_years:
@@ -1280,12 +1280,12 @@ def working_hour(workforce,src_csv2,data_path,src_csv3,final_path=None):
         # either side now means zero, which is what the guarded branch already
         # did for missing employment.
         EMPLOYMENT = [
-            ('Employment: Low-skilled male', 'Split Low qualification employment - male'),
-            ('Employment: Low-skilled female', 'Split Low qualification employment - female'),
-            ('Employment: Medium-skilled male', 'Split Middle qualification employment - male'),
-            ('Employment: Medium-skilled female', 'Split Middle qualification employment - female'),
-            ('Employment: High-skilled male', 'Split High qualification employment - male'),
-            ('Employment: High-skilled female', 'Split High qualification employment - female'),
+            ('Employment people: Low-skilled male', 'Split Low qualification employment - male'),
+            ('Employment people: Low-skilled female', 'Split Low qualification employment - female'),
+            ('Employment people: Medium-skilled male', 'Split Middle qualification employment - male'),
+            ('Employment people: Medium-skilled female', 'Split Middle qualification employment - female'),
+            ('Employment people: High-skilled male', 'Split High qualification employment - male'),
+            ('Employment people: High-skilled female', 'Split High qualification employment - female'),
         ]
         HOURS = [
             ('Employment hours: Low-skilled male', 'Hours Low qualification employement - male'),

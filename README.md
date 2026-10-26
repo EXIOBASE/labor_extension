@@ -115,10 +115,10 @@ Finaly, we combine all results in one table, employment hours being in M.hr and 
 | Employment hours: Low-skilled male      | 0                         | 0.686457             | 1.33639                          |
 | Employment hours: Medium-skilled female | 0                         | 13.379848            | 26.047733                        |
 | Employment hours: Medium-skilled male   | 0                         | 16.14166             | 31.424389                        |
-| Employment: High-skilled female         | 0                         | 0.690906             | 1.345047                         |
-| Employment: High-skilled male           | 0                         | 0.737586             | 1.435924                         |
-| Employment: Low-skilled female          | 0                         | 0.18551              | 0.361148                         |
-| Employment: Low-skilled male            | 0                         | 0.198043             | 0.385549                         |
-| Employment: Medium-skilled female       | 0                         | 4.36215              | 8.492183                         |
-| Employment: Medium-skilled male         | 0                         | 4.656875             | 9.065948                         |
+| Employment people: High-skilled female       | 0                         | 0.690906             | 1.345047                         |
+| Employment people: High-skilled male         | 0                         | 0.737586             | 1.435924                         |
+| Employment people: Low-skilled female        | 0                         | 0.18551              | 0.361148                         |
+| Employment people: Low-skilled male          | 0                         | 0.198043             | 0.385549                         |
+| Employment people: Medium-skilled female     | 0                         | 4.36215              | 8.492183                         |
+| Employment people: Medium-skilled male       | 0                         | 4.656875             | 9.065948                         |
 
