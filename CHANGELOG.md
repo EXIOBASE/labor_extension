@@ -142,8 +142,36 @@ All notable changes to this project are documented here. Format follows
 
   This is a fix in the labour account only. The SUT `w03.a/b/c` rows
   themselves still carry the break; the root fix belongs in
-  06-SUT_balance's `coe-shares.mat` input. Smaller one-year moves in the
-  same file (US 2000-2001, IT 1999-2000) are left as they are.
+  06-SUT_balance's `coe-shares.mat` input. The US 2000-2001 and IT
+  1999-2000 breaks in the same file are spliced too (next entry).
+
+- **US and IT skill breaks spliced (to-do C7-3 follow-up, 2026-10-27).**
+  Measured on the 3.12 SUT for all 49 regions, 1995-2025: for each
+  region-year, the largest one-year move in the economy-wide low, medium or
+  high share, with industry skill shares weighted by the staged ixi people
+  (which do not depend on the split). Over the 1,470 region-years the
+  median move is 0.28 points, the 95th percentile 1.68, the 99th 4.83 and
+  the maximum 12.84. Fifteen region-years move more than 5 points. Seven are
+  isolated steps (the region's next largest move is under 2 points): WF
+  2008 (12.8), US 2001 (12.6), IT 2000 (12.0), CN 2007 (6.9), ID 2007
+  (5.6), IN 2007 (5.4), WA 2007 (5.0), plus WM 1996 (5.3, next 1.6), which
+  is the 1995-1996 step and is left for review. The other seven (LU 2004,
+  RO 2004 and 2008, AT 2004, BE 2001 and 2004, ZA 2004, 5.5-6.5 points)
+  sit in series that move in several steps and are not spliced.
+
+  `config.yaml` `skill_split_splice` gains `US: 2001` and `IT: 2000`. US
+  economy-wide people-weighted medium / high shares go from 38.3 / 58.0% in
+  2000 to 50.9 / 45.4% in 2001 (US fishing medium-skilled people 36.3 to
+  16.3 thousand, high 7.3 to 25.2); IT from 57.9 / 34.6% in 1999 to 47.2 /
+  46.6% in 2000. Checked by the analytic route on the staged 3.12 ixi
+  account (no build): US people medium / high, 1000 p, 1998 / 1999 / 2000 /
+  2001: 52,403 / 53,336 / 54,014 / 71,751 and 78,957 / 80,458 / 81,787 /
+  64,010 before; 69,702 / 70,743 / 71,843 / 71,751 and 62,117 / 63,067 /
+  63,975 / 64,010 after. IT medium / high, 1998 / 1999 / 2000: 12,005 /
+  11,986 / 9,880 and 6,903 / 7,158 / 9,747 before; 9,622 / 9,730 / 9,880
+  and 9,441 / 9,541 / 9,747 after. US fishing 2000 after: 17.1 medium,
+  26.4 high. Every industry's people and hours totals are unchanged (largest
+  column difference 6e-11). Needs the labour rebuild with the CN-WF splice.
 
 - **The workbook writes the release stressor names.** The handoff workbook
   labelled the people rows `Employment: <skill> <sex>` while every release

@@ -69,8 +69,40 @@ def test_splice_year_for():
     assert splice_year_for("CN", 2006, {}) is None
 
 
+def test_config_splice_covers_known_breaks():
+    """config.yaml lists every break found on the 3.12 SUT (C7-3)."""
+    import config
+    s = config.SKILL_SPLICE
+    assert s == {"CN": 2007, "IN": 2007, "ID": 2007, "WA": 2007,
+                 "WF": 2008, "US": 2001, "IT": 2000}
+    # US: 1995-2000 take 2001 shares, 2001 on keep their own.
+    assert splice_year_for("US", 1995, s) == 2001
+    assert splice_year_for("US", 2000, s) == 2001
+    assert splice_year_for("US", 2001, s) is None
+    # IT: 1995-1999 take 2000 shares.
+    assert splice_year_for("IT", 1999, s) == 2000
+    assert splice_year_for("IT", 2000, s) is None
+    assert splice_year_for("DE", 2000, s) is None
+
+
+def test_us_style_step_spliced_to_break_year_shares():
+    # US-like fishing column: 2000 mostly medium, 2001 mostly high.
+    y2000 = _sut({"w03.a": [1.0, 2.0, 3.0], "w03.b": [36.3, 50.0, 40.0],
+                  "w03.c": [7.3, 48.0, 57.0]})
+    y2001 = _sut({"w03.a": [1.1, 2.0, 3.0], "w03.b": [16.3, 50.0, 40.0],
+                  "w03.c": [25.2, 48.0, 57.0]})
+    out, n = splice_skill_split(y2000, y2001)
+    a = out.set_index("Row").loc[["w03.a", "w03.b", "w03.c"]]
+    r = y2001.set_index("Row").loc[["w03.a", "w03.b", "w03.c"]]
+    np.testing.assert_allclose(a.sum().to_numpy(), [44.6, 100.0, 100.0])
+    np.testing.assert_allclose((a / a.sum()).to_numpy(), (r / r.sum()).to_numpy())
+    assert n == 3
+
+
 if __name__ == "__main__":
     test_splice_keeps_industry_totals_and_takes_reference_shares()
     test_zero_wage_industry_stays_zero()
     test_splice_year_for()
+    test_config_splice_covers_known_breaks()
+    test_us_style_step_spliced_to_break_year_shares()
     print("ok")

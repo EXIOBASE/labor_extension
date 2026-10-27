@@ -24,6 +24,9 @@ year after it, for the regions listed in ``config.yaml``
 same carry the SUT uses forward of 2012. WF has the same kind of break one
 year later (2007-2008: agriculture 31% to 47% low skilled), which made world
 low-skilled people rise about 11% at 2007-2008; it is spliced at 2008.
+US (2000-2001, medium/high split about 38/58% to 51/45%) and IT
+(1999-2000, about 58/35% to 47/47%) have the same kind of one-year step and
+are spliced at 2001 and 2000.
 """
 from __future__ import annotations
 

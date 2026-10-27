@@ -88,9 +88,16 @@ final_labor_filename: final_labor_SUTs_3_12.xlsx
 # Skill-split splice (to-do C7-3, 2026-10-27). The SUT skill split of
 # compensation of employees (w03.a/b/c, from 06-SUT_balance's coe-shares.mat)
 # changes structure in one year for a few regions: CN, IN, ID and WA (WA
-# carries ID's shares) between 2006 and 2007, WF between 2007 and 2008. That
-# made world low-skilled people and hours jump +42% to +50% at 2006-2007 and
-# about +11% at 2007-2008, while total employment (set by ILO) moved normally.
+# carries ID's shares) between 2006 and 2007, WF between 2007 and 2008, US
+# between 2000 and 2001 and IT between 1999 and 2000. That made world
+# low-skilled people and hours jump +42% to +50% at 2006-2007 and about +11%
+# at 2007-2008, while total employment (set by ILO) moved normally; in the US
+# the economy-wide people-weighted medium/high split moved 12.6 points in one
+# year (38/58% to 51/45%), in IT 12.0 points (58/35% to 47/47%). The list is
+# every region-year whose economy-wide low, medium or high share moves more
+# than 5 points in a year as an isolated step (the region's next largest
+# yearly move under 2 points), measured on the 3.12 SUT 1995-2025, except
+# WM 1996 (5.3 points, left for review).
 # For each listed region and every year before its break year,
 # workforce_salary/skill_splice.py keeps each industry's wage bill of the year
 # and takes its low/medium/high shares from the break year's SUT, i.e. the
@@ -103,3 +110,5 @@ skill_split_splice:
   ID: 2007
   WA: 2007
   WF: 2008
+  US: 2001
+  IT: 2000
