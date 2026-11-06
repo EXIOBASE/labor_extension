@@ -53,15 +53,17 @@ than the projected tail does:
    so for these entities **every year after 2022 is a constant-share
    projection**, however far ILO runs. Extending them needs new source
    data, not a code change.
-2. **Ukraine is zero from 2022.** ILO stopped reporting Ukraine after
+2. **Ukraine is held flat from 2022.** ILO stopped reporting Ukraine after
    2021 (`EMP_2EMP_SEX_ECO_NB_A` has 81 rows a year to 2021 and none
-   after), and the pipeline books missing as zero rather than carrying
-   the country forward. RoW Europe's workforce therefore falls from
-   33.6 to 15.3 million between 2021 and 2022 and stays there, a 54%
-   drop in the region. **This is in the shipped 3.11.2 account too**,
-   byte-identical, so it is not a 3.12 regression. It is a defect, not
-   a nowcast boundary, and fixing it is an owner decision: hold Ukraine
-   at its 2021 level, or bring in another source.
+   after). Until 2026-09-18 the pipeline booked the missing years as zero,
+   which took RoW Europe from 33.6 to 15.3 million between 2021 and 2022
+   (the shipped 3.11.2 account has that cliff). Commit 4305038 carries
+   every country ILO stops reporting (UKR, SDN, SSD, LBN, PSE) flat at its
+   last observed year, tagged `obs_status = ILO_dropout_carried`; the 3.12
+   build has UKR at 18,518.87 thousand in 2021 and in every year
+   2022-2025 (`table_workforce_by_ISO3.csv`, checked 2026-11-06). Hold flat
+   is the no-information projection: it does not represent the war's
+   effect on Ukrainian employment.
 
 ## The 2026-2028 nowcast (added 2026-09-18)
 

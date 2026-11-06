@@ -77,8 +77,8 @@ dependent from it; `config.yaml` gets an `axes.rx2` block:
   bucket as fallback. The final region order is `region_codes("rx2")`.
 - Ukraine: on rx2 UKR is its own region, so the e3 code that carries UKR's
   2021 population into 2022 inside the WE average is guarded to run only when
-  UKR is in a bucket. UKR is zero from 2022 on both axes (ILO stops; the
-  known e3 defect in COVERAGE.md).
+  UKR is in a bucket. UKR's employment from 2022 is its 2021 level on both
+  axes (the ILO dropout carry, commit 4305038, COVERAGE.md).
 - Performance: the salary split and the hours split looked every value up
   in the full all-region table, so a region-year cost about a minute and grew
   with the region count (rx2 estimate: 20-35 h on 4 workers). Both loops now
