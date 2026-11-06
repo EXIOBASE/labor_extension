@@ -1213,6 +1213,11 @@ def working_hour(workforce,src_csv2,data_path,src_csv3,final_path=None):
             _fb_region = fallback_regions.get(code)
             _fb_code = (av2_fallback_year[av2_fallback_year['EXIO3'] == _fb_region]
                         if _fb_region is not None else av2_fallback_year.iloc[0:0])
+            # Bucket fallback for a missing (category, year) of a country
+            # region; e3 keeps None (unchanged behaviour).
+            _bucket_region = None if _cfg.IS_E3 or len(code) != 3 else e3_bucket_of(code)
+            _bucket_code = (av2_fallback_year[av2_fallback_year['EXIO3'] == _bucket_region]
+                            if _bucket_region is not None else None)
             if code in all_countries:
                 if code in list_RoW :
                     for sector in hours_split['Sector'].unique():
@@ -1328,6 +1333,15 @@ def working_hour(workforce,src_csv2,data_path,src_csv3,final_path=None):
                         hours_M, hours_F = sector_hours_pair(
                             _main_code, 'EXIO3', code, classif1, years,
                             'average weekly hours')
+                        if hours_M is None and _bucket_code is not None:
+                            # Not on e3. A country region that reports hours
+                            # but not for this category and year (rx2: SGP,
+                            # HKG, BEN, 7,409 cells) takes its e3 bucket's
+                            # average, as it did on e3 as a bucket member,
+                            # rather than publishing employment at zero hours.
+                            hours_M, hours_F = sector_hours_pair(
+                                _bucket_code, 'EXIO3', _bucket_region, classif1, years,
+                                'Weighted average working hours')
                         if hours_M is None:
                             continue
                         #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - male' ] = pop_high_skill_men * (hours_M/5) * (365-vacation) / 1000000
@@ -1450,7 +1464,14 @@ def working_hour(workforce,src_csv2,data_path,src_csv3,final_path=None):
 
     for year in build_years:
         table_pivot = final[year].pivot_table(columns=['region','sector'],sort = False)
-        table_pivot.to_excel(writer, sheet_name=str(year))
+        if _cfg.IS_E3:
+            table_pivot.to_excel(writer, sheet_name=str(year))
+        else:
+            # 159 x 163 = 25,917 columns is over Excel's 16,384-column sheet
+            # limit, so another axis writes each sheet long: (region, sector)
+            # rows, the 12 stressors as columns. desire_upload_prepper's
+            # `--axis rx2` reads it back transposed.
+            table_pivot.T.to_excel(writer, sheet_name=str(year))
     writer.close()
 
 
