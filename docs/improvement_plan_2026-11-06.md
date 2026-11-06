@@ -7,78 +7,88 @@ here and merges after that run.
 
 Richard's questions: is the code working and done the right way, do we
 still build everything we used to (gender, forced labour, and so on), and
-what is the plan to fix and improve it.
+what is the plan to fix and improve it. His decisions of 2026-11-06 are in
+section 4.
 
 ## 1. Is it working?
 
 Yes. The pipeline runs end to end (`run_windows.py`, 3.9 h on e3 on
 2026-10-16), the world totals are set by ILO and matched 3.11.2 on the 3.12
 rebuild (3.333 bn people, 2,210 h per person in 2019), the 2026-2028
-nowcast method was chosen on holdouts, and the rx2 change of 2026-11-06 was
-proved bit-identical on e3. All ten tests pass (2026-11-06, repo venv):
-`test_axis` (2), `test_skill_splice` (5) and the three equivalence tests
-that run the vectorised hours modules against transcribed originals.
+nowcast method was chosen on holdouts, countries ILO stops reporting
+(UKR, SDN, SSD, LBN, PSE) are carried flat since 4305038, and the rx2
+change of 2026-11-06 was proved bit-identical on e3. All ten tests pass
+(2026-11-06, repo venv): `test_axis` (2), `test_skill_splice` (5) and the
+three equivalence tests that run the vectorised hours modules against
+transcribed originals.
 
 ## 2. Is it done the right way?
 
 ### Method
 
-M1. **The skill split comes from the SUT wage bill, not from labour data.**
-`salary_split_ray.py` divides each ILO ISIC-section employment total over
-EXIOBASE industries and skill levels in proportion to `w03.a/b/c`
-(compensation of employees by skill) read from the per-country SUT. Two
-consequences. First, the account inherits a monetary artefact: 06 fills
-those rows from the legacy `coe-shares.mat`, whose structural breaks have
-already needed seven splices (CN, IN, ID, WA, WF, US, IT) with WM 1996
-pending. Second, splitting *headcount* by *wage bill* overstates the
-high-skilled share wherever high-skilled wages per head are higher, which
-is everywhere; the 3.12 CHANGELOG records the skill mix moving with the
-wage-bill vintage (+1.1% to +6.5% high skilled between SUT vintages) for
-exactly this reason. Simas, Wood and Hertwich (2015, appendix Table A.1)
-defined the EXIOBASE skill types by ISCO-08 occupation from ILO data and
-used compensation of employees only to spread a broad sector over the
-industries inside it.
+M1. **People by skill are taken from the wage bill, not from labour data.**
+`salary_split_ray.py` gives each skill level a share of an industry's
+*headcount* equal to its share of the industry's *wage bill* (`w03.a/b/c`
+in the per-country SUT). A high-skilled worker earns more than a
+low-skilled one, so this counts too many high-skilled people and too few
+low-skilled ones. It also makes the account inherit every break in 06's
+`coe-shares.mat`, which has needed seven splices so far (CN, IN, ID, WA,
+WF, US, IT; WM 1996 pending). Both reference methods do it the other
+way round:
+
+- Simas, Wood, Hertwich (2015, appendix): skill types by ISCO-08
+  occupation from ILO data; compensation of employees is used only to
+  spread a broad sector's workers over the industries inside it.
+- Wood et al. (2019, JRC report for the OECD ICIO, section 2.2): workers
+  are allocated to skill levels from labour force survey counts by
+  occupation (ISCO major groups 9 low; 4-8 medium; 1-3 high, Table 6),
+  education as the fallback, and the *wage bill* by skill is then derived
+  from those counts times relative wages. Compensation of employees is
+  used only to spread a broad sector over its industries (the equation in
+  2.2.2), as this repo already does.
 
 M2. **The sex split is applied uniformly across skill levels.** For each
 industry, `Split <skill> employment - male` is the skill total times the
-ISIC section's male share of employment (line 230 of
-`salary_split_ray.py`). So the "by gender" dimension carries the ILO sex
-share by activity but no information on how skill differs by sex.
+ISIC section's male share of employment (`salary_split_ray.py` line 230).
+The "by gender" dimension therefore carries ILO's sex share by activity
+but no difference in skill mix between men and women.
 
-M3. **Hours per year: code and documentation disagree.** The README
-documents `(weekly hours / 5) * (365 - paid vacation days)` and the repo
-carries `auxdata/whole_vacation.csv`; the code computes `weekly hours *
-52` (`average_working_hours.py` line 1240) and reads the vacation table
-without using it. The ILO series is mean weekly hours *actually worked*
-per employed person, which already averages leave weeks in, so `* 52` is
-the defensible convention and the vacation adjustment would double count.
-Decision for Richard: keep `* 52` and delete the table and the README
-formula (recommended), or switch to the documented formula.
+M3. **Hours per year: code and documentation disagree, and the documented
+formula is wrong as written.** The README documents
+`(weekly hours / 5) * (365 - paid vacation days)`; the code has used
+`weekly hours * 52` since 320334c (2025-06-17) and reads
+`auxdata/whole_vacation.csv` without using it. The README formula counts
+weekends as working days: for Germany (29 vacation and holiday days) it
+gives `weekly hours * 67.2`, 29% above 52 weeks; for the US (10 days)
+`* 71`, 37% above. That is the size of the v3.9.5 hours inflation
+diagnosed in exio_results KNOWN_ISSUES item 4 (Germany 2,347 h a year),
+which was built while that formula was live.
 
-M4. **Known gaps carried in COVERAGE.md:** Ukraine is zero from 2022 (ILO
-stopped reporting; the pipeline books missing as zero), and the 63
-supplementary countries are constant-share projections after 2022.
+M4. Supplementary countries (about 63) are constant-share projections
+after 2022, documented in COVERAGE.md.
 
 ### Code
 
 C1. The two hot stages are legacy cell-by-cell loops: 159 and 66
 `float(df.loc[...].to_string())` lookups in `salary_split_ray.py` and
 `average_working_hours.py`, each a string round trip that discards digits
-(the equivalence tests note "the precision the original discarded"). The
-2026-11-06 per-region slicing made them fast enough but kept every
+(the equivalence tests record "the precision the original discarded").
+The 2026-11-06 per-region slicing made them fast enough but kept every
 statement, including that rounding.
 
 C2. Dead or duplicate modules sit next to the live ones:
 `workforce_salary/hours_split.py` (uses `DataFrame.append`, references an
 undefined `hours_RoW`), `salary_split.py` (3.8.2 xls route),
-`fix_hours.py`, `labor.py`, `working_hours/average_working_hours_modified.py`,
+`fix_hours.py`, `labor.py`, `from_cia_to_ilo.py` at the repo root,
+`working_hours/average_working_hours_modified.py`,
 `isic3_to_isic4_old.py`, `isic3_to_isic4.py` (3,476 lines, superseded by
-the vectorised module), `complete_hours_3.py`, the non-vectorised
+the vectorised module), `complete_hours_3.py`, and the non-vectorised
 `aggregate_isic.py` and `combine_isic_3_4.py`. The live import graph is
 `run_windows -> workforce -> {ref_label, from_cia_to_ilo, salary_split_ray,
-skill_splice}` and `average_working_hours -> {clean_*, aggregate_isic_vectorised,
-combine_isic_3_4_vectorised, isic3_to_isic4_vectorised, complete_hours,
-complete_hours_2, regression_*, average_hour, substitute}`.
+skill_splice}` and `average_working_hours -> {clean_*,
+aggregate_isic_vectorised, combine_isic_3_4_vectorised,
+isic3_to_isic4_vectorised, complete_hours, complete_hours_2, regression_*,
+average_hour, substitute}`.
 
 C3. The e3 run writes about 15 debug CSVs into the repo root (cwd),
 including a 214 MB `data_list_old.csv`; rx2 already sends them to a work
@@ -101,32 +111,29 @@ What the releases shipped, from the files on disk:
 | 3.9.5 (exio_results KNOWN_ISSUES item 4) | no Vulnerable employment row |
 | 3.11.2, 3.11.3, 3.12.0 (`raw/Extensions/labour/ixi/2019/unit.txt`) | 12 |
 
-So **vulnerable employment is the one shipped account we no longer
-build.** This repo has never built it: no code, no commit in its history
-(51 commits from 2024-12-17) touches it. exio_hatcher and exio_results
-still list the two rows (as a cross-cutting attribute, not a seventh
-skill-sex class).
+**Vulnerable employment is the one shipped account we no longer build.**
+This repo has never built it: no code and no commit in its history (51
+commits from 2024-12-17) touches it. exio_hatcher and exio_results still
+list the two rows, as a cross-cutting attribute, not a seventh skill-sex
+class. Gender is still built (male and female on every row).
 
-The three references:
+Simas, Golsteijn, Huijbregts, Wood, Hertwich (2014), the "bad labour"
+footprint (full text read from vectorsustainability.com), built six
+indicators for 2007 as a research layer on EXIOBASE, not as release
+stressors:
 
-- Simas, Golsteijn, Huijbregts, Wood, Hertwich (2014), the "bad labour"
-  footprint. Only the abstract could be read (MDPI returns 403 to
-  machine fetches; the Semantic Scholar record gives the abstract). It
-  lists occupational health damage, vulnerable employment, gender
-  inequality, share of unskilled workers, child labour and forced labour.
-  These were a research layer on EXIOBASE; none of them except
-  vulnerable employment appears in the 3.8.2 release stressor list.
-- Simas, Wood, Hertwich (2015), labour embodied in trade. Read in full
-  (PDF fetched). Labour input: persons engaged per skill type, skill by
-  ISCO-08, from ILO LABORSTA and OECD STAN, disaggregated to the MRIO
-  industries by compensation of employees "considering that, inside a
-  broad economic sector industry, average wages would be similar, as well
-  as hours worked per person" (appendix). Hours are used in the results.
-- Amores, Corsatea, Kuenen, Schmidt, Simas, Wiebe, Wood (2019), the JRC
-  environmental and labour accounts for the OECD ICIO. Only the catalogue
-  abstract could be read (CORE, the JRC repository and the Publications
-  Office all refuse machine fetches). To be read by hand before Phase 3
-  if its labour chapter is to be the template.
+| Indicator | Definition | 2014 source | 2014 allocation |
+| --- | --- | --- | --- |
+| Occupational health damage | DALY from occupational cancers, COPD, asthma, noise-induced hearing loss, low back pain, injuries | Concha-Barrientos et al., Nelson et al., European Commission | employment share within broad sector |
+| Vulnerable employment | own-account plus contributing family workers | ILO LABORSTA | employment share within broad sector |
+| Gender inequality | share of women in employment | ILO LABORSTA | as built |
+| Low-skilled workers | elementary occupations, or education up to lower secondary | ILO LABORSTA | as built |
+| Child labour (and hazardous child labour) | ILO definition | ILO global report, 3 sectors x 4 regions | share of low-skilled labour |
+| Forced labour | ILO definition | ILO global estimate, 3 sectors x 6 regions | share of low-skilled labour |
+
+The paper re-aggregated child and forced labour results to seven regions
+and eight consumption categories "to avoid a false representation of the
+resolution of the analysis".
 
 What ILOSTAT serves today, checked by API probe on 2026-11-06
 (`rplumber.ilo.org/data/indicator/?id=...`):
@@ -141,81 +148,120 @@ What ILOSTAT serves today, checked by API probe on 2026-11-06
 | `CLD_XCHL_SEX_AGE_ECO_NB_A` | child labour by sex, age and economic activity | coverage not yet counted |
 
 No activity-by-occupation cross exists in the API (the `ECO_OCU` ids are
-invalid), the earnings ids tried were invalid (the catalogue needs a
-lookup), and forced labour has no country indicator (ILO publishes global
-and regional estimates only).
+invalid), the earnings ids tried were invalid, and forced labour has no
+country indicator (ILO publishes global and regional estimates only).
 
-## 4. Plan
+## 4. Decisions (Richard, 2026-11-06)
 
-Phases in order of value per effort. Each phase ends with a CHANGELOG
-entry, a COVERAGE.md update where coverage moves, and the world skill and
-sex totals compared against the 3.12 account.
+1. **Hours: use the vacation formula.** Implemented in its corrected
+   form, `annual hours = weekly hours * (260 - paid vacation and public
+   holiday days) / 5`: 260 weekdays, not 365 days. For Germany that is
+   46.2 working weeks, against 52 now and 67.2 under the README formula.
+   One caveat to settle by data, not by argument: ILO's series is hours
+   *actually* worked, and where the survey runs all year that mean already
+   includes leave weeks, so deducting leave again would undercount. The
+   JRC report used actual hours times 52 for this reason. Gate in
+   Phase 2: compare hours per worker with the national-accounts annual
+   hours per worker for the OECD and EU countries; if the deduction
+   undercounts systematically there, apply it to the Eurostat usual-hours
+   rows only and say so in the CHANGELOG.
+2. **Reinstate vulnerable employment** as the two 3.8.2 stressors (14
+   rows).
+3. **Skill split: take people by skill from ILO occupation counts.**
+   (Richard asked what this means. In short: today the number of
+   low-, medium- and high-skilled *people* is assumed proportional to what
+   each group is *paid*; the fix counts the people directly from ILO's
+   occupation data, as both reference methods do, and keeps the wage bill
+   only for spreading a sector over its industries.) Adopted as the plan,
+   Phase 3.
+4. **Injuries, child labour and forced labour as an additional account**
+   (`labour_risk`), separate from the 14-row labour account, with its own
+   COVERAGE row.
+5. **Ukraine: already dealt with** (4305038, carried flat from 2022). The
+   stale "zero from 2022" text in COVERAGE.md and the rx2 plan was
+   corrected on main in c9b63ec.
+
+## 5. Plan
+
+Each phase ends with a CHANGELOG entry, a COVERAGE.md update where
+coverage moves, and world skill and sex totals compared against the 3.12
+account. Every phase builds both axes through the axis setting.
 
 ### Phase 0, done 2026-11-06
-Commit the rx2 work on main (4439478), push, branch here.
+rx2 work committed and pushed on main (4439478), Ukraine documentation
+corrected (c9b63ec), branch created, this plan.
 
-### Phase 1: decisions (Richard)
-1. Hours convention (M3): keep `* 52` or switch to the vacation formula.
-2. Reinstate vulnerable employment as two release stressors (14 rows as
-   in 3.8.2)? That touches desire_upload_prepper, exio_incubator's
-   naming fix, exio_hatcher's lists and the 00-qa label guards.
-3. Skill split source (M1): ILO occupation as the control, SUT wage
-   shares as the industry prior; or keep the wage-bill split.
-4. Whether injuries, child labour and forced labour belong in the
-   release or in a separate labour-risk account (own COVERAGE row,
-   source coverage audit first).
-5. Ukraine from 2022: hold at 2021, or leave the documented zero.
+### Phase 1: hours formula (small, isolated)
+- In `average_working_hours.py`, replace `* 52` by
+  `* (260 - vacation) / 5`, with `vacation` the region's `Total Paid
+  Vacation Days` (already looked up per region, unused today). On rx2 the
+  table is already grouped by axis region with the e3 bucket fallback.
+- Check `whole_vacation.csv` covers every ISO3 in the workforce table;
+  missing countries take their e3 bucket mean, as rx2 already does.
+- Gate (decision 1): hours per worker against national-accounts annual
+  hours for the OECD and EU countries, 2019.
+- README formula corrected to the one in the code.
 
-### Phase 2: vulnerable employment (smallest, additive)
-- Download `EMP_TEMP_SEX_STE_ECO_NB_A` and `EMP_2EMP_SEX_STE_NB_A`
-  through the existing `download_all` list.
-- Vulnerable share = (own-account + contributing family) / total, by
-  country, sex and ISIC section where the national table has it;
-  elsewhere the modelled national share by sex, scaled by the section
-  profile of the country's ILO subregion x income group (the same
-  fallback structure `from_cia_to_ilo` uses).
-- Apply the share to the people rows summed over skill, and to the hours
-  rows with the same hours per person. Two new rows in the workbook,
-  reformat and tail carry them, `unit.txt` gains them.
-- Test: world vulnerable share by year against the ILO modelled world
-  share; the rows stay below the six-class totals in every cell.
+### Phase 2: vulnerable employment
+- Add `EMP_TEMP_SEX_STE_ECO_NB_A` and `EMP_2EMP_SEX_STE_NB_A` to
+  `download_all`.
+- Vulnerable share = (ICSE-93 3 + 5) / total, by country, sex and ISIC
+  section where the national table has it; elsewhere the modelled
+  national share by sex, spread over sections by the section profile of
+  the country's ILO subregion x income group (the fallback structure
+  `from_cia_to_ilo` already uses); interpolated and carried like the
+  hours series.
+- Apply it to the people rows summed over skill, and to the hours rows
+  with the same hours per person, as two new workbook rows. The reformat
+  in desire_upload_prepper, `nowcast_tail.py`, `unit.txt`, exio_incubator's
+  naming fix and the 00-qa label guards learn the two rows; exio_hatcher
+  and exio_results already list them.
+- Tests: world vulnerable share by year against ILO's modelled world
+  share; the rows stay at or below the six-class totals in every cell.
 
-### Phase 3: skill split rebased on ILO occupation (M1)
-- National skill totals by sex from `EMP_TEMP_SEX_OCU_NB_A` (L1 low, L2
-  medium, L3-4 high) with `EMP_2EMP_SEX_OCU_NB_A` mapped through the
-  ISCO-08 major groups as the modelled fallback, interpolated and
-  carried like the hours series.
-- Within a country-year, the SUT wage-bill shares give the industry
-  prior; a two-margin balance (industries from the ILO ISIC sections, skill
-  from the occupation totals) replaces the proportional split.
-- Keep the splice machinery but expect it to be redundant: measure the
-  seven break region-years again after the change.
-- This also fixes M2, since the occupation totals are by sex.
-- Validation: 2019 world skill shares against 3.12 (42.2% high-skilled
-  wage bill is not a headcount share; the new headcount shares will be
-  lower for high skill), per-region largest one-year move as in the
-  2026-10-27 break scan.
+### Phase 3: skill split from ILO occupation
+- National people by skill and sex from `EMP_TEMP_SEX_OCU_NB_A`
+  (`OCU_SKILL_L1` low, `L2` medium, `L3-4` high), with
+  `EMP_2EMP_SEX_OCU_NB_A` mapped through the ISCO-08 major groups (JRC
+  Table 6) as the fallback, interpolated and carried like hours.
+- Per country-year and sex, a two-margin balance: industry totals from
+  the ILO ISIC sections (spread by compensation of employees, as now),
+  skill totals from the occupation counts, with the SUT wage-bill skill
+  shares as the starting structure inside each industry, divided by
+  relative wages so the prior is in people, not money.
+- This also fixes M2, because the occupation totals are by sex.
+- Measure the seven spliced break region-years again: the national skill
+  margins come from labour data, so the coe-shares breaks should no
+  longer reach the totals, and the splice may be retired.
+- Validation: 2019 world and regional skill shares before and after
+  (headcount high-skilled share expected to fall), largest one-year move
+  per region as in the 2026-10-27 break scan.
 
-### Phase 4: code cleanup (after Phase 3 fixes the arithmetic, so the
+### Phase 4: labour-risk account
+- Coverage audit of the injury and child labour indicators (countries,
+  years, activity detail) before any build.
+- Stressors, people-based, allocated to industries by the labour account:
+  fatal occupational injuries (cases), non-fatal occupational injuries
+  (cases), child labour (1000 p), forced labour (1000 p). Injuries and
+  child labour by ISIC section where the source has it; forced labour
+  from ILO's regional estimates allocated by low-skilled people, as in the
+  2014 paper, and labelled as a modelled regional estimate in `unit.txt`
+  and COVERAGE.
+- The 2014 DALY measure needs disease-burden sources outside ILOSTAT;
+  left out unless a current source is identified.
+- Own folder `raw/Extensions/labour_risk/`, own COVERAGE row.
+
+### Phase 5: code cleanup (after Phase 3 changes the arithmetic, so the
 equivalence tests are rewritten once)
-- Vectorise the salary split and the hours split per region-year
-  (groupby and merge), dropping the `to_string` round trip; record the
-  1e-6 relative change it causes.
+- Vectorise the salary split and the hours split per region-year (groupby
+  and merge), dropping the `to_string` round trip; record the 1e-6
+  relative change it causes.
 - Delete the dead modules in C2; keep one implementation per step.
 - Debug CSVs to the work folder on every axis; nothing written to cwd.
 - Process pool as the default, ray optional.
 - `pytest` in the venv, a two-region two-year fixture run end to end.
-- README and method.md rewritten to the code as it is (hours formula,
-  skill source, vulnerable employment).
+- README and method.md rewritten to the code as it is.
 
-### Phase 5: labour-risk account (only if decided in Phase 1)
-- Coverage audit of the injury and child labour indicators (countries and
-  years), then the same subregion x income-group fallback as the
-  workforce build.
-- Forced labour only as a regional rate applied to hours, labelled as a
-  modelled estimate, if at all.
-
-## 5. What this does not change
-The rx2 run on main proceeds on the committed code. Phases 2 to 4 change
-the e3 and rx2 accounts alike through the axis setting; neither axis gets a
-separate pipeline.
+## 6. What this does not change
+The rx2 run on main proceeds on the committed code. Phases 1 to 5 change
+the e3 and rx2 accounts alike; neither axis gets a separate pipeline.
