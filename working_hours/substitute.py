@@ -1,10 +1,14 @@
-import ray
+import os as _os
+if _os.environ.get("LABOR_NO_RAY") == "1":  # ray would not start on 2026-11-06
+    import serial_ray as ray
+else:
+    import ray
 import pandas as pd
 import os
 
 
 
-ray.init(num_cpus = os.cpu_count()-4)
+ray.init(num_cpus = int(os.environ.get("LABOR_WORKERS", os.cpu_count()-4)))  # LABOR_WORKERS caps it (2026-11-06)
 @ray.remote
 def process_single_entry(code, sex, year, hour_df):
     try:

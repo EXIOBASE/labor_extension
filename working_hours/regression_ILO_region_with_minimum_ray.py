@@ -1,6 +1,10 @@
 import statistics
 import os
-import ray
+import os as _os
+if _os.environ.get("LABOR_NO_RAY") == "1":  # ray would not start on 2026-11-06
+    import serial_ray as ray
+else:
+    import ray
 import pandas as pd
 runtime_env = {
     'env_vars': {
@@ -48,7 +52,7 @@ def regression_r(hour_pivot,year_begin,year_end):
 
     # writer = pd.ExcelWriter('split.xlsx',engine='xlsxwriter')
 
-    ray.init(runtime_env=runtime_env,num_cpus = os.cpu_count()-4)
+    ray.init(runtime_env=runtime_env,num_cpus = int(os.environ.get("LABOR_WORKERS", os.cpu_count()-4)))  # LABOR_WORKERS caps it (2026-11-06)
 
     @ray.remote
     def regression_ray(code_country,hour_pivot2):  

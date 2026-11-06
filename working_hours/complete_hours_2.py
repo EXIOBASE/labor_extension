@@ -1,5 +1,9 @@
 import os
-import ray
+import os as _os
+if _os.environ.get("LABOR_NO_RAY") == "1":  # ray would not start on 2026-11-06
+    import serial_ray as ray
+else:
+    import ray
 import pandas as pd
 
 runtime_env = {
@@ -15,7 +19,7 @@ def complete2(hours):
 
     all_hours = {}
     hours2 = hours.copy()
-    ray.init(runtime_env=runtime_env,num_cpus = os.cpu_count()-4)
+    ray.init(runtime_env=runtime_env,num_cpus = int(os.environ.get("LABOR_WORKERS", os.cpu_count()-4)))  # LABOR_WORKERS caps it (2026-11-06)
 
     @ray.remote
     def completeDE_ray(hours2,code):  
@@ -62,7 +66,7 @@ def complete2(hours):
       
     all_hours = {}
     hours2 = hour.copy()
-    ray.init(runtime_env=runtime_env,num_cpus = os.cpu_count()-4)
+    ray.init(runtime_env=runtime_env,num_cpus = int(os.environ.get("LABOR_WORKERS", os.cpu_count()-4)))  # LABOR_WORKERS caps it (2026-11-06)
 
     @ray.remote
     def completeHJ_ray(hours2,code):  
@@ -110,7 +114,7 @@ def complete2(hours):
 
     all_hours = {}
     hours2 = hour.copy()
-    ray.init(runtime_env=runtime_env,num_cpus = os.cpu_count()-4)
+    ray.init(runtime_env=runtime_env,num_cpus = int(os.environ.get("LABOR_WORKERS", os.cpu_count()-4)))  # LABOR_WORKERS caps it (2026-11-06)
 
     @ray.remote
     def completeLMN_ray(hours2,code):  
@@ -182,7 +186,7 @@ def complete2(hours):
 
     all_hours = {}
     hours2 = hour.copy()
-    ray.init(runtime_env=runtime_env,num_cpus = os.cpu_count()-4)
+    ray.init(runtime_env=runtime_env,num_cpus = int(os.environ.get("LABOR_WORKERS", os.cpu_count()-4)))  # LABOR_WORKERS caps it (2026-11-06)
 
     @ray.remote
     def completeRSTU_ray(hours2,code):  

@@ -1,5 +1,7 @@
 import country_converter as coco
 import pandas as pd
+
+import config as _cfg
 def add_ref_label(data,add_ref_area_label):
 # def add_ref_label(data):
     
@@ -60,7 +62,9 @@ def add_ref_label(data,add_ref_area_label):
     unique_codes = list(pd.unique(data_ISO3['ref_area']))
     exio3_by_code = dict(zip(
         unique_codes,
-        cc_all.convert(names=unique_codes, src="ISO3", to='EXIO3'),
+        # The axis region (config.convert_to_region): on e3 exactly this
+        # country_converter EXIO3 call, on rx2 the 159-region axis.
+        _cfg.convert_to_region(unique_codes, cc_all),
     ))
     data_ISO3.insert(2, 'EXIO3', data_ISO3['ref_area'].map(exio3_by_code))
     data_autre.insert(2, 'EXIO3', '' )

@@ -18,7 +18,7 @@ xdrive_root: /media/ntnu/Xdrive
 # EXIOBASE version whose SUTs supply the wage vectors used to split ISIC
 # employment into EXIOBASE sectors. Bump this when the labour extension is
 # rebuilt against a new release.
-sut_version_folder: EXIOBASE_3_12
+sut_version_folder: EXIOBASE_3_12_0
 
 paths:
   # ACTIVE source: per-country SUT CSVs read by
@@ -112,3 +112,26 @@ skill_split_splice:
   WF: 2008
   US: 2001
   IT: 2000
+
+# Country axis. `e3` (the 49-region release axis) is the default and uses
+# every setting above unchanged. Another axis is chosen with
+# `run_windows.py --axis <name>` (environment variable LABOR_AXIS), and the
+# block below overrides what differs for it. See
+# docs/rx2_axis_plan_2026-11-06.md.
+axes:
+  rx2:
+    # 00-class class/country_axes/exiobase_rx2.csv, read through io_utils.
+    io_axis: rx2
+    sut_csv_root: D:/indecol/Projects/MRIOs/EXIOBASE3/EXIOBASE_3_12_0_rx2/raw/sut/current/
+    # This repo's data unit, rx2-suffixed. Every output of an rx2 run goes
+    # here: the final_table files and the debug CSVs the e3 run writes into
+    # the repo root. A path without "rx2" in it is refused.
+    final_table_dir: D:/data/labor_extension/EXIOBASE_3_12_0_rx2/final_table
+    work_dir: D:/data/labor_extension/EXIOBASE_3_12_0_rx2/work
+    final_labor_filename: final_labor_SUTs_3_12_0_rx2.xlsx
+    # Each rx2 region takes the splice year of its e3 parent region (the
+    # EXIO3 region of its ISO3; a W bucket is its own parent): 06 fills the
+    # rx2 w03.* rows from the parent's coe-shares, so the break moves with
+    # them (measured 2026-11-06 on the rx2 SUTs: all 69 such regions step at
+    # the parent's break year, by 2.5 to 14.0 points).
+    skill_split_splice: inherit

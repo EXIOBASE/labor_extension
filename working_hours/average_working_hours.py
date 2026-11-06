@@ -302,6 +302,67 @@ def population_weights(hours_RoW, workforce, build_years):
               f'{other:,} country and year present but not that combination')
     return filled['obs_value'].to_numpy()
 
+_E3_BUCKET_CACHE = {}
+
+
+def e3_bucket_of(iso3):
+    """The e3 W bucket a country sat in (country_converter EXIO3); Taiwan,
+    its own e3 region, takes the Asia-Pacific bucket WA as it did on e3."""
+    if iso3 == 'TWN':
+        return 'WA'
+    if iso3 not in _E3_BUCKET_CACHE:
+        if 'converter' not in _E3_BUCKET_CACHE:
+            _E3_BUCKET_CACHE['converter'] = coco.CountryConverter(include_obsolete=True)
+        _E3_BUCKET_CACHE[iso3] = _E3_BUCKET_CACHE['converter'].convert(
+            names=iso3, src='ISO3', to='EXIO3')
+    return _E3_BUCKET_CACHE[iso3]
+
+
+#: Categories the e3 bucket average leaves out, as `hours_RoW` does below.
+_BUCKET_AVERAGE_DROP = {'ECO_DETAILS_TOTAL', 'ECO_ISIC4_TOTAL', 'ECO_DETAILS_X'} | {
+    f'ECO_DETAILS_{c}' for c in 'DEHJLMNRSTU'}
+
+
+def e3_bucket_average(hours, workforce, build_years, w_avg):
+    """Population-weighted average weekly hours of each e3 W bucket.
+
+    For an axis other than e3, where a country that reports no hours is a
+    region of its own (rx2: 22 of them) rather than a member of its e3 bucket.
+    The average is taken over every country the e3 bucket held, whichever
+    region it has on this axis, with the same exclusions as the e3 `hours_RoW`
+    average (the aggregate categories; SYC, REU and IMN; Ukraine's 2022 from
+    its 2021 at UKRAINE_WAR_FACTOR population), so these countries get the
+    hours they got on e3 as bucket members. Not used on e3, which keeps `av2`.
+    """
+    frame = hours.copy()
+    frame['EXIO3'] = frame['ref_area'].map({a: e3_bucket_of(a) for a in frame['ref_area'].unique()})
+    frame = frame[frame['EXIO3'].isin(['WA', 'WL', 'WE', 'WF', 'WM'])]
+    frame = frame[~frame['classif1'].isin(_BUCKET_AVERAGE_DROP)]
+    frame = frame[~frame['ref_area'].isin(['SYC', 'REU', 'IMN'])]
+    if DROP_YEARS:
+        frame = frame[~frame['time'].isin(DROP_YEARS)]
+    frame = frame.copy()
+    frame['population (1000)'] = population_weights(frame, workforce, build_years)
+    frame = frame.dropna(subset=['population (1000)'])
+    frame = frame[~((frame['ref_area'] == 'UKR')
+                    & (frame['time'] == UKRAINE_LAST_YEAR + 1))]
+    ukraine = frame[(frame['ref_area'] == 'UKR')
+                    & (frame['time'] == UKRAINE_LAST_YEAR)].copy()
+    if len(ukraine):
+        ukraine['time'] = UKRAINE_LAST_YEAR + 1
+        ukraine['population (1000)'] = UKRAINE_WAR_FACTOR * pd.to_numeric(
+            ukraine['population (1000)']).to_numpy()
+        frame = pd.concat([frame, ukraine])
+    frame = frame.reset_index(drop=True)
+    out = frame.groupby(['EXIO3', 'sex', 'classif1', 'time']).apply(
+        w_avg, 'average weekly hours', 'population (1000)')
+    out = out.reset_index()
+    out.rename({0: 'Weighted average working hours'}, axis=1, inplace=True)
+    print(f'[hours] e3 bucket averages: {len(out):,} cells over '
+          f'{frame["ref_area"].nunique()} countries')
+    return out
+
+
 def working_hour(workforce,src_csv2,data_path,src_csv3,final_path=None):
     # final_path was referenced further down but never defined or passed,
     # so this function could not reach its own combine step: it raised
@@ -341,17 +402,17 @@ def working_hour(workforce,src_csv2,data_path,src_csv3,final_path=None):
     
     hour_eurostat_reshape_pivot_extrapolate = regression(hour_eurostat_reshape_pivot_interpolate,1992,2008)
     
-    hour_eurostat_reshape_pivot_extrapolate.to_csv('hour_eurostat.csv')
+    hour_eurostat_reshape_pivot_extrapolate.to_csv(_cfg.work_file('hour_eurostat.csv'))
     
     isic3=hour_list_without_zero[hour_list_without_zero['classif1'].str.contains('ISIC3',regex=True)].copy()
-    isic3.to_csv('isic3.csv',index=False)
+    isic3.to_csv(_cfg.work_file('isic3.csv'),index=False)
     isic4=hour_list_without_zero[hour_list_without_zero['classif1'].str.contains('ISIC4',regex=True)].copy()
-    isic4.to_csv('isic4.csv',index=False)
+    isic4.to_csv(_cfg.work_file('isic4.csv'),index=False)
 
     isic4_from_isic3_data = isic3_to_isic4(isic3, workforce,
                                            ISIC3_CONVERSION_YEARS)
 
-    isic4_from_isic3_data.to_csv('isic4_from_isic3_data.csv')
+    isic4_from_isic3_data.to_csv(_cfg.work_file('isic4_from_isic3_data.csv'))
     
     '''
     Substituer ISIC A par la valeur de Eurostat pour 1995 a 2008
@@ -366,7 +427,7 @@ def working_hour(workforce,src_csv2,data_path,src_csv3,final_path=None):
     
     isic4_from_isic3_data_pivot = pd.pivot_table(isic4_from_isic3_data, values="obs_value", index=["ref_area", "sex","classif1"], columns=["time"])
     isic4_from_isic3_data_pivot=isic4_from_isic3_data_pivot.reset_index()
-    isic4_from_isic3_data_pivot.to_csv("isic4_from_isic3_data_pivot_ray.csv")
+    isic4_from_isic3_data_pivot.to_csv(_cfg.work_file("isic4_from_isic3_data_pivot_ray.csv"))
     
     
     new_table_150222=pd.DataFrame(data=None,columns=['ref_area','sex','classif1','time','obs_value','source'])
@@ -398,11 +459,11 @@ def working_hour(workforce,src_csv2,data_path,src_csv3,final_path=None):
     #new_table_150222.to_csv('new_table_150222_aggregate_ISIC.csv') 
     
     new_table_150222_pivot = new_table_150222.pivot(index=['ref_area','sex','classif1'],columns='time')['obs_value']
-    new_table_150222_pivot.to_csv("new_table_150222_pivot_aggregate_ISIC.csv")  
+    new_table_150222_pivot.to_csv(_cfg.work_file("new_table_150222_pivot_aggregate_ISIC.csv"))  
     
     new_table_150222_pivot_interpolate = new_table_150222_pivot.interpolate(method='linear',axis=1,limit_area='inside')
     new_table_150222_pivot_interpolate=new_table_150222_pivot_interpolate.round(2)
-    new_table_150222_pivot_interpolate.to_csv("new_table_150222_aggregate_ISIC_pivot_interpolate.csv")
+    new_table_150222_pivot_interpolate.to_csv(_cfg.work_file("new_table_150222_aggregate_ISIC_pivot_interpolate.csv"))
     new_table_150222_pivot_interpolate_old=new_table_150222_pivot_interpolate.copy()
     
     
@@ -563,7 +624,7 @@ def working_hour(workforce,src_csv2,data_path,src_csv3,final_path=None):
     complete_hour = complete_hour.reset_index()
     complete_hour = complete_hour.drop(columns = 'index',axis = 1)
 
-    complete_hour.to_csv('hours_ini.csv',index=False)               
+    complete_hour.to_csv(_cfg.work_file('hours_ini.csv'),index=False)               
     hours = complete_hour.copy()
     '''Kosovo ISO3 is defined as KOS instead of XKX'''
     hours = hours.replace('KOS','XKX')
@@ -571,14 +632,15 @@ def working_hour(workforce,src_csv2,data_path,src_csv3,final_path=None):
     hours = hours.drop(['index'],axis = 1)
     
     country_code_final = list(hours.ref_area)
-    hours.insert(0, 'EXIO3', cc_all.convert(names = country_code_final,src="ISO3", to='EXIO3'))
+    # Axis region (config.convert_to_region; on e3 the same EXIO3 call).
+    hours.insert(0, 'EXIO3', _cfg.convert_to_region(country_code_final, cc_all))
     workforce_iso3["average weekly hours"] = ''
 
     complete_hour2 = complete2(hours)
     complete_hour2 = complete_hour2.reset_index()
     complete_hour2 = complete_hour2.drop(columns = 'index',axis = 1)
 
-    complete_hour2.to_csv('hours_ini2_ray.csv',index=False)               
+    complete_hour2.to_csv(_cfg.work_file('hours_ini2_ray.csv'),index=False)               
     hours = complete_hour2.copy()    
     #hours.fillna(0)
     
@@ -842,8 +904,8 @@ def working_hour(workforce,src_csv2,data_path,src_csv3,final_path=None):
                                 
     hours_RoW['population (1000)'] = population_weights(hours_RoW, workforce,
                                                         build_years)
-    hours.to_csv('hours2203_1.csv',index = False)
-    hours_RoW.to_csv('hoursRoW2403_2.csv',index = False)
+    hours.to_csv(_cfg.work_file('hours2203_1.csv'),index = False)
+    hours_RoW.to_csv(_cfg.work_file('hoursRoW2403_2.csv'),index = False)
 
     hours_RoW = hours_RoW.loc[hours_RoW.ref_area !='SYC']
     hours_RoW = hours_RoW.loc[hours_RoW.ref_area !='REU']
@@ -874,8 +936,11 @@ def working_hour(workforce,src_csv2,data_path,src_csv3,final_path=None):
     rem = hours_RoW.loc[(hours_RoW.ref_area =='UKR')&(hours_RoW.time == 2022)].index
     hours_RoW = hours_RoW.drop(rem)
     
+    # Only where UKR is a member of a W bucket (e3: WE). On rx2 it is a
+    # region of its own, has no rows here, and this loop would raise.
+    ukraine_in_bucket = bool((hours_RoW['ref_area'] == 'UKR').any())
     for code in workforce_iso3.ref_area.unique() : 
-        if code == 'UKR':
+        if code == 'UKR' and ukraine_in_bucket:
             for sex in ['SEX_F','SEX_M']:
                 for c in hours_RoW.classif1.unique():
                     print(sex, c)
@@ -901,13 +966,13 @@ def working_hour(workforce,src_csv2,data_path,src_csv3,final_path=None):
     #workforce_iso3.drop(workforce_iso3.tail(1276).index,inplace=True)
     #rm = workforce_iso3.loc[819830:821105].index
     #workforce_iso3 = workforce_iso3.drop(rm)
-    hours_RoW.to_csv('hours_RoW_2403_3.csv',index=False)
+    hours_RoW.to_csv(_cfg.work_file('hours_RoW_2403_3.csv'),index=False)
     
     missing_hours = []
     known = set(hours_RoW.ref_area.unique())
     for a in workforce2.ref_area.unique():
         if a not in known and not any(chr.isdigit() for chr in a):
-            region = cc_all.convert(names=a, src="ISO3", to='EXIO3')
+            region = _cfg.convert_to_region(a, cc_all)
             if region in list_RoW:
                 missing_hours.append((a, region, region))
     infilled = regional_infill(missing_hours, workforce_iso3, av2,
@@ -926,12 +991,36 @@ def working_hour(workforce,src_csv2,data_path,src_csv3,final_path=None):
 
     # Taiwan: published under its own EXIO3 region TW, but it reports no hours,
     # so it borrows the Asia-Pacific RoW average (WA).
-    taiwan = [('TWN', 'TW', 'WA')] if (
-        'TWN' in set(workforce2.ref_area.unique())
-        and 'TWN' not in set(hours_main_country.ref_area.unique())) else []
-    infilled_taiwan = regional_infill(taiwan, workforce_iso3, av2,
+    #
+    # Generalised for other axes (docs/rx2_axis_plan_2026-11-06.md): every
+    # single-country region whose country reports no hours takes the
+    # population-weighted average of its e3 parent bucket (TWN: WA). On e3 that
+    # is Taiwan alone, from `av2`, exactly as before. On rx2 it is 22
+    # countries, and the average is over every country of the e3 bucket
+    # (`e3_bucket_average`), which is what they got on e3 as bucket members.
+    if _cfg.IS_E3:
+        taiwan = [('TWN', 'TW', 'WA')] if (
+            'TWN' in set(workforce2.ref_area.unique())
+            and 'TWN' not in set(hours_main_country.ref_area.unique())) else []
+        av2_fallback = av2
+    else:
+        with_hours = set(hours_main_country.ref_area.unique())
+        taiwan = []
+        for a in workforce2.ref_area.unique():
+            if any(ch.isdigit() for ch in a) or a in with_hours:
+                continue
+            region = _cfg.convert_to_region(a, cc_all)
+            if region in _cfg.ROW_BUCKETS or region == 'not found':
+                continue
+            taiwan.append((a, region, e3_bucket_of(a)))
+        print(f'[hours] {len(taiwan)} single-country regions report no hours '
+              f'and take their e3 bucket average: {taiwan}')
+        av2_fallback = e3_bucket_average(hours, workforce, build_years, w_avg)
+    #: region -> the region whose average hours it takes (e3: {'TW': 'WA'}).
+    fallback_regions = {'TW': 'WA'} if _cfg.IS_E3 else {t[1]: t[2] for t in taiwan}
+    infilled_taiwan = regional_infill(taiwan, workforce_iso3, av2_fallback,
                                       hours_RoW.classif1.unique(), build_years,
-                                      'TWN')
+                                      'TWN' if _cfg.IS_E3 else 'no-hours countries')
     if len(infilled_taiwan):
         hours_main_country = pd.concat([hours_main_country, infilled_taiwan])
 
@@ -1045,8 +1134,21 @@ def working_hour(workforce,src_csv2,data_path,src_csv3,final_path=None):
     vacation = pd.read_csv('auxdata/whole_vacation.csv')
     #vacation = vacation.drop(['Paid Leave Days'],axis=1)
     #vacation = vacation.drop(['Paid Public Holidays'],axis=1)
+    if not _cfg.IS_E3:
+        # Group by the axis region of each ISO3; a region with no row takes
+        # its e3 bucket's mean (the lookup below raises on a missing region).
+        # Read but not used in the hours formula (52 weeks), see below.
+        e3_means = round(vacation.drop(['Country', 'ISO3'], axis=1)
+                         .groupby(['EXIO3']).mean())
+        vacation['EXIO3'] = _cfg.convert_to_region(list(vacation['ISO3']), cc_all)
     vacation = vacation.drop(['Country','ISO3'],axis =1)
     vacation_average = round(vacation.groupby(['EXIO3']).mean())
+    if not _cfg.IS_E3:
+        missing = [r for r in _cfg.region_order() if r not in vacation_average.index]
+        extra = e3_means.reindex([e3_bucket_of(r) if len(r) == 3 else r for r in missing])
+        extra.index = missing
+        vacation_average = pd.concat([vacation_average, extra.dropna()])
+        vacation_average.index.name = 'EXIO3'
     vacation_average = vacation_average.reset_index()
     '''il faut ouvrir split et proceder au calsul pour avoir les heures totales'''
     # hours_main_country = hours.copy()
@@ -1088,14 +1190,29 @@ def working_hour(workforce,src_csv2,data_path,src_csv3,final_path=None):
     #writer = pd.ExcelWriter('hours_split.xlsx',engine='xlsxwriter')
 
     for years in build_years:
-        hours_split = hours_split_empty.copy()
+        hours_split_year_full = hours_split_empty.copy()
+        hours_split_parts = []
 
-        workforce_year = xl.parse(str(years))
-        workforce_year.dropna(subset=['Country'],inplace=True)
-        workforce_year=workforce_year.drop(columns='Unnamed: 0', axis =1)
+        workforce_year_full = xl.parse(str(years))
+        workforce_year_full.dropna(subset=['Country'],inplace=True)
+        workforce_year_full=workforce_year_full.drop(columns='Unnamed: 0', axis =1)
+        # Per-year slices of the hours tables, then per region below: every
+        # lookup in this loop selects one region and year, so it reads the
+        # same rows in the same order from the slice as from the full table
+        # (docs/rx2_axis_plan_2026-11-06.md, performance).
+        av2_year = av2[av2['time'] == years]
+        av2_fallback_year = av2_fallback[av2_fallback['time'] == years]
+        main_year = hours_main_country[hours_main_country['time'] == years]
 
         for code in  all_countries:
             print(years,code)
+            hours_split = hours_split_year_full[hours_split_year_full.EXIO3 == code].copy()
+            workforce_year = workforce_year_full[workforce_year_full.Country == code]
+            _av2_code = av2_year[av2_year['EXIO3'] == code]
+            _main_code = main_year[main_year['EXIO3'] == code]
+            _fb_region = fallback_regions.get(code)
+            _fb_code = (av2_fallback_year[av2_fallback_year['EXIO3'] == _fb_region]
+                        if _fb_region is not None else av2_fallback_year.iloc[0:0])
             if code in all_countries:
                 if code in list_RoW :
                     for sector in hours_split['Sector'].unique():
@@ -1113,7 +1230,7 @@ def working_hour(workforce,src_csv2,data_path,src_csv3,final_path=None):
                         classif1 = concordance_category(concordance, sector)
 
                         hours_M, hours_F = sector_hours_pair(
-                            av2, 'EXIO3', code, classif1, years,
+                            _av2_code, 'EXIO3', code, classif1, years,
                             'Weighted average working hours')
                         if hours_M is None:
                             continue
@@ -1139,7 +1256,7 @@ def working_hour(workforce,src_csv2,data_path,src_csv3,final_path=None):
                         hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - total' ] = (pop_middle_skill_men * (hours_M) * (52) / 1000000) + (pop_middle_skill_women * (hours_F) * (52) / 1000000)
                         hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - total' ] = (pop_low_skill_women * (hours_F) * (52) / 1000000) + (pop_low_skill_men * (hours_M) * (52) / 1000000)
 
-                elif code =='TW':
+                elif code in fallback_regions:  # e3: TW, from WA
                     for sector in hours_split['Sector'].unique():
                         pop_high_skill_men = 1000* float(workforce_year.loc[(workforce_year.Country == code) & (workforce_year.Sector == concordance.loc[concordance.Name == sector,'CodeNr'].to_string(index=False)),'Split High qualification employment - male'].to_string(index=False, header=False))
                         pop_middle_skill_men = 1000* float(workforce_year.loc[(workforce_year.Country == code) & (workforce_year.Sector == concordance.loc[concordance.Name == sector,'CodeNr'].to_string(index=False)),'Split Middle qualification employment - male'].to_string(index=False, header=False))
@@ -1150,12 +1267,12 @@ def working_hour(workforce,src_csv2,data_path,src_csv3,final_path=None):
                         pop_low_skill_women = 1000* float(workforce_year.loc[(workforce_year.Country == code) & (workforce_year.Sector == concordance.loc[concordance.Name == sector,'CodeNr'].to_string(index=False)),'Split Low qualification employment - female'].to_string(index=False, header=False))
 
 
-                        vacation = float(vacation_average.loc[vacation_average.EXIO3 == 'WA','Total Paid Vacation Days'].to_string(index=False,header=False))
+                        vacation = float(vacation_average.loc[vacation_average.EXIO3 == _fb_region,'Total Paid Vacation Days'].to_string(index=False,header=False))
 
                         classif1 = concordance_category(concordance, sector)
 
                         hours_M, hours_F = sector_hours_pair(
-                            av2, 'EXIO3', 'WA', classif1, years,
+                            _fb_code, 'EXIO3', _fb_region, classif1, years,
                             'Weighted average working hours')
                         if hours_M is None:
                             continue
@@ -1209,7 +1326,7 @@ def working_hour(workforce,src_csv2,data_path,src_csv3,final_path=None):
                         vacation = float(vacation_average.loc[vacation_average.EXIO3 == code,'Total Paid Vacation Days'].to_string(index=False,header=False))
                         classif1 = concordance_category(concordance, sector)
                         hours_M, hours_F = sector_hours_pair(
-                            hours_main_country, 'EXIO3', code, classif1, years,
+                            _main_code, 'EXIO3', code, classif1, years,
                             'average weekly hours')
                         if hours_M is None:
                             continue
@@ -1235,6 +1352,9 @@ def working_hour(workforce,src_csv2,data_path,src_csv3,final_path=None):
                         hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - total' ] = (pop_middle_skill_men * (hours_M) * (52) / 1000000) + (pop_middle_skill_women * (hours_F) * (52) / 1000000)
                         hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - total' ] = (pop_low_skill_men * (hours_M) * (52) / 1000000) + (pop_low_skill_women * (hours_F) * (52) / 1000000)
 
+            hours_split_parts.append(hours_split)
+        # The regions' rows back in construction order (all_countries).
+        hours_split = pd.concat(hours_split_parts)
         hourSplit[years]=hours_split.copy()
     print(f'[hours split] {HOURS_FALLBACKS["substituted_other_sex"]:,} '
           'sector-cells took one sex\'s hours for the other (the ILO '
@@ -1255,7 +1375,8 @@ def working_hour(workforce,src_csv2,data_path,src_csv3,final_path=None):
 
     xls = pd.ExcelFile(final_path / HOURS_SPLIT_FILENAME)
     xls2 = pd.ExcelFile(final_path / 'split_workforce_by_skill_newSUT.xlsx')
-    exio3_regions = pd.read_csv('auxdata/region_EXIO3.csv')
+    # Regions of the axis in release order (e3: auxdata/region_EXIO3.csv).
+    exio3_regions = pd.DataFrame({'EXIO3': _cfg.region_order()})
 
     final_table= pd.DataFrame(columns = ['region','sector', 'Employment people: Low-skilled male', 'Employment people: Low-skilled female', 'Employment people: Medium-skilled male','Employment people: Medium-skilled female', 'Employment people: High-skilled male', 'Employment people: High-skilled female','Employment hours: Low-skilled male', 'Employment hours: Low-skilled female', 'Employment hours: Medium-skilled male',  'Employment hours: Medium-skilled female','Employment hours: High-skilled male',  'Employment hours: High-skilled female'])
     final_table_empty = final_table.copy()
@@ -1306,12 +1427,15 @@ def working_hour(workforce,src_csv2,data_path,src_csv3,final_path=None):
                                                 'CodeNr'].to_string(index=False)
                         for sector in whours['Sector'].unique()}
         rows = []
+        sectors_all = whours['Sector'].unique()
         for code in exio3_regions['EXIO3']:
-            for sector in whours['Sector'].unique():
-                employment = pop.loc[(pop.Country == code)
-                                     & (pop.Sector == sector_codes[sector])]
-                worked = whours.loc[(whours.EXIO3 == code)
-                                    & (whours.Sector == sector)]
+            pop_code = pop[pop.Country == code]
+            whours_code = whours[whours.EXIO3 == code]
+            for sector in sectors_all:
+                employment = pop_code.loc[(pop_code.Country == code)
+                                     & (pop_code.Sector == sector_codes[sector])]
+                worked = whours_code.loc[(whours_code.EXIO3 == code)
+                                    & (whours_code.Sector == sector)]
                 row = {'region': [code], 'sector': [sector]}
                 row.update({name: [first_value(employment, column)]
                             for name, column in EMPLOYMENT})

@@ -7,6 +7,36 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- **Country axis: the same code builds the rx2 (159-region) account
+  (2026-11-06).** `run_windows.py --axis rx2` (environment `LABOR_AXIS`);
+  `--axis e3` is the default and resolves to exactly the previous settings.
+  `config.yaml` `axes.rx2` sets the rx2 SUT root, the output folders
+  (`D:/data/labor_extension/EXIOBASE_3_12_0_rx2/{final_table,work}`, refused
+  unless they name the axis), the workbook name
+  (`final_labor_SUTs_3_12_0_rx2.xlsx`) and `skill_split_splice: inherit`
+  (each rx2 region takes its e3 parent's splice year; 69 regions). ISO3 to
+  region goes through `config.convert_to_region` (e3: the same
+  country_converter EXIO3 call; rx2: io_utils `iso3_to_region("rx2")`).
+  Hours stage: the Taiwan rule is generalised (a single-country region whose
+  country reports no hours takes its e3 bucket's average; on rx2 22
+  countries), the Ukraine 2022 carry runs only where UKR is in a bucket, the
+  vacation table and the final region list follow the axis. The debug CSVs
+  the e3 run writes into the repo root go to the axis work folder on rx2.
+  `scripts/nowcast_tail.py --axis rx2` builds the pxp product mix from the
+  per-country supply tables (io_utils `per_country_supply.product_mix`).
+  `tests/test_axis.py` pins the e3 settings. Plan and results:
+  `docs/rx2_axis_plan_2026-11-06.md`.
+
+- **The salary split and the hours split work one region at a time
+  (2026-11-06).** Both looked every value up in the all-region table, so a
+  region-year cost about a minute and grew with the region count. They now
+  slice the region's rows, compute, and put them back; the statements are
+  unchanged (bit-identical on e3, see the plan). The salary-split year
+  function moved to module level (`calcul_year_impl`) so
+  `LABOR_NO_RAY=1 LABOR_PARALLEL=process LABOR_WORKERS=4` can run it on a
+  process pool, since ray's raylet would not start on 2026-11-06.
+  `LABOR_FINAL_TABLE_DIR` / `LABOR_WORK_DIR` redirect a check run.
+
 - **`scripts/nowcast_tail.py`: the 2026-2028 projection as a committed
   command (2026-10-15).** Until now the tail nowcast that COVERAGE.md
   describes had no script: it was run by hand on 2026-09-18 and 09-23.

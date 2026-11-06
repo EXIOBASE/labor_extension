@@ -21,6 +21,12 @@ rplumber API instead. Eurostat SDMX URLs are unchanged.
 
 Outputs go to d:/indecol/data/labour/{data,final_table}. The submodule scripts also
 write a few bare-named CSVs into the repo root (cwd) by design.
+
+Country axis: `--axis e3` (default, the 49-region release, unchanged) or
+`--axis rx2` (159 regions). An rx2 run needs SKIP_DOWNLOAD=1, reads the e3
+downloads, and writes its final_table and its debug CSVs under
+D:/data/labor_extension/EXIOBASE_3_12_0_rx2/ (config.yaml axes.rx2). Set
+LABOR_WORKERS to cap the ray workers. See docs/rx2_axis_plan_2026-11-06.md.
 """
 import os
 import sys
@@ -29,6 +35,22 @@ from pathlib import Path
 import requests
 
 REPO = Path(__file__).resolve().parent
+
+
+def _axis_from_argv() -> str:
+    """`--axis e3|rx2` (default e3, or LABOR_AXIS). Read before `import config`,
+    which resolves every axis-dependent path and setting from LABOR_AXIS; the
+    ray workers get it through their runtime env (salary_split_ray.py)."""
+    import argparse
+    ap = argparse.ArgumentParser(description="labor_extension driver")
+    ap.add_argument("--axis", default=os.environ.get("LABOR_AXIS", "e3"),
+                    help="country axis: e3 (49 regions, default) or rx2 (159); "
+                         "see docs/rx2_axis_plan_2026-11-06.md")
+    args, _ = ap.parse_known_args()
+    return args.axis
+
+
+os.environ["LABOR_AXIS"] = _axis_from_argv()
 os.chdir(REPO)  # auxdata/ and several bare relative reads/writes assume repo root as cwd
 sys.path.insert(1, str(REPO / "workforce_salary"))
 sys.path.insert(2, str(REPO / "working_hours"))
@@ -36,9 +58,11 @@ sys.path.insert(2, str(REPO / "working_hours"))
 import config
 import workforce_salary.workforce as workforce
 
-DATAFOLDER = Path("d:/indecol/data/labour")
-data_path = DATAFOLDER / "data"
-final_path = DATAFOLDER / "final_table"
+# e3: d:/indecol/data/labour/{data,final_table} as before. Another axis reads
+# the same downloads and writes its final_table under its own data folder
+# (config.yaml axes.<axis>.final_table_dir).
+data_path = config.DATA_DIR
+final_path = config.FINAL_TABLE_DIR
 data_path.mkdir(parents=True, exist_ok=True)
 final_path.mkdir(parents=True, exist_ok=True)
 
@@ -70,6 +94,12 @@ def download_all(dest_dir: Path) -> None:
 
 
 def main() -> None:
+    print(f">>> axis {config.AXIS} | SUT root {config.SUT_CSV_ROOT} | "
+          f"final_table {final_path} | workbook {config.FINAL_LABOR_FILENAME}")
+    if not config.IS_E3 and os.environ.get("SKIP_DOWNLOAD") != "1":
+        # The downloads are shared inputs; only the e3 run refreshes them.
+        raise SystemExit(f"axis {config.AXIS}: set SKIP_DOWNLOAD=1; this run reads "
+                         f"the e3 run's downloads in {data_path} and must not rewrite them")
     if os.environ.get("SKIP_DOWNLOAD") == "1":
         print(">>> Stage 1a: download SKIPPED (SKIP_DOWNLOAD=1)")
     else:

@@ -1,7 +1,7 @@
 """Project the staged labour account past the ILO end year, on the release tree.
 
-    python scripts/nowcast_tail.py --release-root D:/indecol/Projects/MRIOs/EXIOBASE3/EXIOBASE_3_12 --check
-    python scripts/nowcast_tail.py --release-root D:/indecol/Projects/MRIOs/EXIOBASE3/EXIOBASE_3_12 --overwrite
+    python scripts/nowcast_tail.py --release-root D:/indecol/Projects/MRIOs/EXIOBASE3/EXIOBASE_3_12_0 --check
+    python scripts/nowcast_tail.py --release-root D:/indecol/Projects/MRIOs/EXIOBASE3/EXIOBASE_3_12_0 --overwrite
 
 This is the committed form of the 2026-2028 nowcast that COVERAGE.md
 describes (method chosen on holdouts there, 2026-09-18):
@@ -26,6 +26,14 @@ the recipe was verified against the 2026-09-23 staging on 2026-10-15.
 
 Run with a venv that imports io_utils and exiobase_meta (06-SUT_balance's
 does; this repo's own venv imports io_utils).
+
+`--axis rx2` (docs/rx2_axis_plan_2026-11-06.md) runs the same projection on
+the 159-region tree. That tree has no MRSUT, so the product mix of the
+target year is built from the per-country supply tables
+`raw/sut/current/<region>_<year>_sup.csv` by io_utils
+`sut.per_country_supply.product_mix` (sparse block diagonal, masked by the
+same release `x.txt`, unsupplied industries on the binary concordance). It
+needs scipy, so run it with 06-SUT_balance's venv.
 """
 from __future__ import annotations
 
@@ -125,14 +133,47 @@ def mask_product_mix(T: pd.DataFrame, release_root: Path, year: int
     return masked, report.share_moved
 
 
+def pxp_from_ixi_per_country(F_ixi: pd.DataFrame, release_root: Path, year: int,
+                              axis: str) -> pd.DataFrame:
+    """F_pxp = F_ixi @ C with C from the per-country supply tables (axes without
+    an MRSUT, i.e. rx2), masked by the release pxp x.txt of `year`."""
+    from io_utils.classification import sector_layout
+    from io_utils.sut.per_country_supply import product_mix as country_product_mix
+
+    ixi_cols = sector_layout(axis, "ixi")
+    F = F_ixi.reindex(columns=ixi_cols)
+    if F.isna().any().any() or len(F_ixi.columns) != len(ixi_cols):
+        raise ValueError(f"{year}: ixi columns are not the {axis} industry layout")
+    x = release_gross_output(release_root, year, "pxp")
+    reports: list = []
+    C = country_product_mix(release_root / "raw" / "sut" / "current", year, axis=axis,
+                            x=x, reports=reports)
+    values = (C.T @ F.to_numpy(float).T).T
+    F_pxp = pd.DataFrame(values, index=F.index, columns=sector_layout(axis, "pxp"))
+    print(f"  {year}: per-country product mix ({axis}), zero-output mask touched "
+          f"{sum(len(r.rows_touched) for r in reports)} industries in "
+          f"{len(reports)} regions")
+    return F_pxp
+
+
 def project_year(ixi_panel: list[pd.DataFrame], years: list[int], target: int,
                  release_root: Path, *, max_change_perc: float,
-                 end_years_start: int) -> tuple[pd.DataFrame, pd.DataFrame]:
+                 end_years_start: int, axis: str = "e3") -> tuple[pd.DataFrame, pd.DataFrame]:
     F_ixi = project_level_trend(
         ixi_panel, years, max_change_perc=max_change_perc,
         end_years_start=end_years_start, overflow="clip",
         steps=target - years[-1],
     )
+    if axis != "e3":
+        F_pxp = pxp_from_ixi_per_country(F_ixi, release_root, target, axis)
+        F_pxp.columns.names = ["region", "sector"]
+        F_pxp.index.name = F_ixi.index.name
+        total = float(F_ixi.to_numpy(float).sum())
+        lost = total - float(F_pxp.to_numpy(float).sum())
+        print(f"  {target}: ixi {total:,.3f}, pxp differs by {lost:.3e}")
+        if abs(lost) > 1e-6 * abs(total):
+            raise RuntimeError(f"{target}: pxp does not conserve the ixi total ({lost / total:.2e})")
+        return F_ixi, F_pxp
     T, share_moved = mask_product_mix(product_mix(release_root, target), release_root, target)
     moved = float((F_ixi.sum(axis=0).reindex(share_moved.index, fill_value=0.0)
                    * share_moved).sum())
@@ -163,6 +204,9 @@ def project_year(ixi_panel: list[pd.DataFrame], years: list[int], target: int,
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--release-root", type=Path, required=True)
+    ap.add_argument("--axis", choices=["e3", "rx2"], default="e3",
+                    help="country axis of the release root (default e3, the MRSUT "
+                         "route; rx2 builds the product mix per country)")
     ap.add_argument("--years", type=int, nargs="+", default=[2026, 2027, 2028])
     ap.add_argument("--source-end", type=int, default=2025,
                     help="last observed year; years above it on the tree are ignored as sources")
@@ -182,6 +226,9 @@ def main(argv: list[str] | None = None) -> int:
     args = ap.parse_args(argv)
     root = args.release_root
     out_root = args.out_root if args.out_root is not None else root
+    if args.axis != "e3" and args.axis not in out_root.as_posix():
+        raise SystemExit(f"--axis {args.axis}: {out_root} does not name the axis; "
+                         "refusing so an rx2 run cannot write into an e3 tree")
 
     years = [y for y in available_years(root, EXTENSION, "ixi") if y <= args.source_end]
     if not years:
@@ -199,7 +246,7 @@ def main(argv: list[str] | None = None) -> int:
         F_ixi, F_pxp = project_year(
             ixi_panel, years, target, root,
             max_change_perc=args.max_change_perc,
-            end_years_start=args.end_years_start,
+            end_years_start=args.end_years_start, axis=args.axis,
         )
         tot = F_ixi.to_numpy(float).sum()
         print(f"{target}: ixi total {tot:,.3f}, pxp total {F_pxp.to_numpy(float).sum():,.3f}, "

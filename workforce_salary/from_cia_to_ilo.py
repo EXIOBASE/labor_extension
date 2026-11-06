@@ -173,7 +173,7 @@ def _build_cia_countries(missing_countries, fetched_data, df, agg, agg_labels,
         frames.append(_rows_for(
             agg, label, {y: factor for y in years}, columns,
             ref_area=a,
-            exio3=cc_all.convert(names=a, src="ISO3", to="EXIO3"),
+            exio3=_cfg.convert_to_region(a, cc_all),
             ref_area_label=cc_all.convert(names=a, src="ISO3", to="name_official"),
             status_by_year={y: status for y in years},
             classifications=classifications, list_sex=list_sex, years=years,
@@ -217,7 +217,7 @@ def _build_xlsx_entities(missing_data, agg, agg_labels, cc_all, already_covered,
         frames.append(_rows_for(
             agg, label, factor_by_year, columns,
             ref_area=code,
-            exio3=cc_all.convert(names=code, src="ISO3", to="EXIO3"),
+            exio3=_cfg.convert_to_region(code, cc_all),
             ref_area_label=cc_all.convert(names=code, src="ISO3", to="name_official"),
             status_by_year=status_by_year,
             classifications=classifications, list_sex=list_sex, years=years,
@@ -316,7 +316,7 @@ def _build_dropouts(data_list_old, cc_all, classifications, list_sex, years,
         out["ref_area"] = area
         out["ref_area.label"] = labels.get(area, area)
         if "EXIO3" in out.columns:
-            out["EXIO3"] = cc_all.convert(names=area, src="ISO3", to="EXIO3")
+            out["EXIO3"] = _cfg.convert_to_region(area, cc_all)
         out["sex"] = long["sex"].astype(str).to_numpy()
         out["classif1"] = long["classif1"].astype(str).to_numpy()
         out["time"] = long["time"].to_numpy()

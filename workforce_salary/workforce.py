@@ -13,6 +13,10 @@ from workforce_salary.from_cia_to_ilo import cia_to_ilo
 from workforce_salary.ref_label import add_ref_label
 import country_converter as coco
 
+# Axis settings; work_file() keeps the e3 debug CSVs in the repo root and
+# sends another axis's to its own work folder.
+import config as _cfg
+
 # Package-qualified so ray workers can import it: their sys.path carries the
 # repo root but NOT workforce_salary/, so a bare `salary_split_ray` module
 # name fails with ModuleNotFoundError inside the remote function.
@@ -134,7 +138,7 @@ def workforce_calculation(data_path,src_csv,src_csv2,final_path):
     workforce_iso3 = workforce_iso3.rename(columns={'obs_value': 'Workforce (1000)'})
     workforce_iso3=workforce_iso3[workforce_iso3.ref_area.isin(ISO3)]
     workforce_iso3 = workforce_iso3.drop(['classif1'],axis=1)
-    workforce_iso3.to_csv('workforce_total_iso3.csv',index=False)
+    workforce_iso3.to_csv(_cfg.work_file('workforce_total_iso3.csv'),index=False)
     country_code = list(workforce_iso3['ref_area'])
     workforce_exio3 = workforce_iso3.copy()
     #workforce_exio3.insert(2, 'EXIO3', cc_all.convert(names = country_code ,src="ISO3", to='EXIO3') )
@@ -149,7 +153,7 @@ def workforce_calculation(data_path,src_csv,src_csv2,final_path):
     
     
     aggregation_ISO3 = final.groupby(['ref_area', 'sex','classif1','time']).sum(numeric_only=True)
-    aggregation_ISO3.to_csv('table_workforce_by_ISO3.csv')
+    aggregation_ISO3.to_csv(_cfg.work_file('table_workforce_by_ISO3.csv'))
     cc_all = coco.CountryConverter(include_obsolete=True)
     country_code = list(final['ref_area'])
 
