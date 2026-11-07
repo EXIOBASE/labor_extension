@@ -179,5 +179,14 @@ Check, world totals from the staged `F.txt`, rx2 against the e3 tree
 | 2028 | 3.7391 | 3.7326 | 2183.2 | 2183.2 |
 
 ixi and pxp totals agree to the shown precision on both axes; no negative or
-NaN cells in those years. Not yet done: the per-region comparison (rx2 summed
-to the 49 e3 regions, step 4 of the run order).
+NaN cells in those years.
+
+Per region (step 4), ixi, rx2 summed to the 49 e3 regions (country_converter
+EXIO3, W regions as themselves; every rx2 region mapped): people agree to
+0.00% everywhere except WL (-0.26% in 2019 and 2025). Hours agree likewise
+except WL (-0.31%, -0.29%), WA (-0.08%, -0.07%) and WE in 2025 (-1.70%).
+The WE gap is expected: on e3 the WE hours average carries UKR's 2021
+population into later years, while on rx2 UKR is its own region and that
+carry is guarded off (see Design). By stressor the world differences are
+within 0.4%, largest on low-skilled female (-0.35% people, -0.36% hours in
+2019). The WL people gap is not explained yet.
