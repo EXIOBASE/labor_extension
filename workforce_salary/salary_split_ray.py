@@ -786,6 +786,15 @@ def salary_split_year(column_names,final,classif_detail,concordance,aggregation,
         split[b] = a
 
     print('done')
+    # People by skill from ILO occupation (workforce_salary/skill_from_occupation.py):
+    # industry totals by sex as above, skill totals from ISCO-08 skill levels,
+    # the wage-bill skill mix as the structure inside each industry.
+    if os.environ.get("LABOR_SKILL_FROM_WAGES") == "1":
+        print("[salary_split] LABOR_SKILL_FROM_WAGES=1: people by skill from the wage bill (pre-2026-11)")
+    else:
+        from workforce_salary.skill_from_occupation import rebalance
+        split = rebalance(split, final, _cfg.DATA_DIR, final_path)
+        print("[salary_split] people by skill rebalanced to ILO occupation skill levels")
     writer = pd.ExcelWriter(final_path / 'split_workforce_by_skill_newSUT.xlsx',engine='xlsxwriter')
 
     for year in build_years:
