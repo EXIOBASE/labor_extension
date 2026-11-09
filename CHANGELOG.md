@@ -5,7 +5,53 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Changed (branch improve-labour-account, docs/improvement_plan_2026-11-06.md)
+
+- **Hours per year: weekly hours * (260 - paid vacation and public holiday
+  days) / 5, not * 52 (2026-11-10).** 52 weeks counts leave and holidays
+  as worked. Against OECD annual hours actually worked per worker
+  (`DSD_HW@DF_AVG_ANN_HRS_WKD`, 38 countries, 2019) the old formula was a
+  median 15% high (0% to 33%), the new one a median 2% high (-13% to +19%),
+  so it applies to the ILO and the Eurostat hours alike. Hours fall by the
+  region's vacation share, 4% (US, 10 days) to 16% (RU, 42 days). The
+  README formula, `(weekly / 5) * (365 - vacation)`, counted weekends and
+  was never the code's; corrected.
+- **People by skill from ILO occupation (2026-11-10).** The number of
+  people at each skill level was the industry's people times each level's
+  share of the wage bill; it is now set by ILO's modelled employment by
+  ISCO-08 major group (1-3 high, 4-8 medium, 9 low, the merged group 96
+  split by survey ratio), by sex, with the wage-bill mix kept as the
+  structure inside industries (RAS). Industry totals by sex are unchanged.
+  2019 world, measured on the production split: low 13.1% -> 18.1%,
+  medium 59.9% -> 61.4%, high 27.0% -> 20.4%; men and women now differ
+  in skill mix (high 18.6% and 23.2%). China's low-skilled share (27.6%)
+  rests on the world ratio of elementary to skilled agricultural workers,
+  because China has no ISCO-08 survey rows. `LABOR_SKILL_FROM_WAGES=1`
+  restores the old split.
+- **Process pool by default, ray only with `LABOR_RAY=1`; e3 debug CSVs go
+  to `d:/indecol/data/labour/work`, not the repo root (2026-11-10).**
+
+### Removed
+
+- Twelve modules nothing imported (2026-11-10): `labor.py`, the root
+  `from_cia_to_ilo.py`, `ilo_download.py`, `workforce_salary/{salary_split,
+  hours_split, fix_hours, download}.py`, `working_hours/{aggregate_isic,
+  average_working_hours_modified, combine_isic_3_4_ray, complete_hours_3,
+  isic3_to_isic4_old}.py`. `combine_isic_3_4.py` and `isic3_to_isic4.py`
+  stay as the originals the equivalence tests compare against.
+
 ### Added
+
+- **Vulnerable employment, two stressors (2026-11-10).** `Employment
+  people: Vulnerable employment` (1000 p) and `Employment hours: Vulnerable
+  employment` (M.hr): own-account plus contributing family workers, a
+  subset of the six skill-sex rows, as 3.8.2 shipped them and 3.9-3.12 did
+  not. National share by sex from ILO's modelled status table, spread over
+  the 14 activity groups by the country's pooled survey profile with a
+  logit shift that keeps ILO's national share. World share against ILO's
+  world aggregate (X01): within 0.002 in 1995, 2010, 2019 and 2025 (2019:
+  42.2% of men, 42.3% of women). `vulnerable_shares.csv` in final_table.
+  00-qa footprints leaves the rows out of its people and hours totals.
 
 - **Country axis: the same code builds the rx2 (159-region) account
   (2026-11-06).** `run_windows.py --axis rx2` (environment `LABOR_AXIS`);
