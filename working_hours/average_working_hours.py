@@ -19,6 +19,12 @@ from combine_isic_3_4_vectorised import combine
 from aggregate_isic_vectorised import (AGGREGATE_CASCADE_SKIP,
                                        AGGREGATE_YEARS, aggregate)
 from average_hour import average_working_hour
+from annual_hours import working_weeks
+from vulnerable_employment import region_shares as vulnerable_region_shares
+
+#: The two stressors added in 2026-11 (3.8.2 shipped them; 3.9-3.12 did not).
+VULNERABLE_PEOPLE = "Employment people: Vulnerable employment"
+VULNERABLE_HOURS = "Employment hours: Vulnerable employment"
 from isic3_to_isic4_vectorised import isic3_to_isic4
 from complete_hours import complete
 from complete_hours_2 import complete2
@@ -381,6 +387,7 @@ def working_hour(workforce,src_csv2,data_path,src_csv3,final_path=None):
     '''
     workforce  = pd.read_csv('table_workforce_by_ISO3.csv')
     '''
+    workforce_by_region = workforce  # with its axis region column, for the vulnerable shares
     workforce,workforce2 = clean (workforce,coco)
    
     cc_all = coco.CountryConverter(include_obsolete=True)
@@ -1394,9 +1401,17 @@ def working_hour(workforce,src_csv2,data_path,src_csv3,final_path=None):
     # Regions of the axis in release order (e3: auxdata/region_EXIO3.csv).
     exio3_regions = pd.DataFrame({'EXIO3': _cfg.region_order()})
 
-    final_table= pd.DataFrame(columns = ['region','sector', 'Employment people: Low-skilled male', 'Employment people: Low-skilled female', 'Employment people: Medium-skilled male','Employment people: Medium-skilled female', 'Employment people: High-skilled male', 'Employment people: High-skilled female','Employment hours: Low-skilled male', 'Employment hours: Low-skilled female', 'Employment hours: Medium-skilled male',  'Employment hours: Medium-skilled female','Employment hours: High-skilled male',  'Employment hours: High-skilled female'])
+    final_table= pd.DataFrame(columns = ['region','sector', 'Employment people: Low-skilled male', 'Employment people: Low-skilled female', 'Employment people: Medium-skilled male','Employment people: Medium-skilled female', 'Employment people: High-skilled male', 'Employment people: High-skilled female','Employment hours: Low-skilled male', 'Employment hours: Low-skilled female', 'Employment hours: Medium-skilled male',  'Employment hours: Medium-skilled female','Employment hours: High-skilled male',  'Employment hours: High-skilled female', VULNERABLE_PEOPLE, VULNERABLE_HOURS])
     final_table_empty = final_table.copy()
     final = {}
+    # Vulnerable employment (own-account plus contributing family workers):
+    # share by region, sex, ILO section group and year, applied to the people
+    # and hours of each industry (working_hours/vulnerable_employment.py).
+    vul = vulnerable_region_shares(workforce_by_region, data_path)
+    vul.to_csv(final_path / 'vulnerable_shares.csv', index=False)
+    vul_share = vul.set_index(['region', 'sex', 'classif1', 'time'])['share'].to_dict()
+    sector_group = {sector: concordance_category(concordance, sector)
+                    for sector in concordance['Name'].dropna().unique()}
     for years in build_years:
         print(years)
         final_table=final_table_empty.copy()
@@ -1457,6 +1472,15 @@ def working_hour(workforce,src_csv2,data_path,src_csv3,final_path=None):
                             for name, column in EMPLOYMENT})
                 row.update({name: [first_value(worked, column)]
                             for name, column in HOURS})
+                group = sector_group[sector]
+                share = {sex: vul_share.get((code, sex_code, group, years), 0.0)
+                         for sex, sex_code in (('male', 'SEX_M'), ('female', 'SEX_F'))}
+                row[VULNERABLE_PEOPLE] = [sum(
+                    row[name][0] * share[sex] for name, _ in EMPLOYMENT
+                    for sex in share if name.endswith(' ' + sex))]
+                row[VULNERABLE_HOURS] = [sum(
+                    row[name][0] * share[sex] for name, _ in HOURS
+                    for sex in share if name.endswith(' ' + sex))]
                 rows.append(pd.DataFrame(row))
         final_table = pd.concat([final_table] + rows, ignore_index=True)
 
