@@ -189,4 +189,14 @@ The WE gap is expected: on e3 the WE hours average carries UKR's 2021
 population into later years, while on rx2 UKR is its own region and that
 carry is guarded off (see Design). By stressor the world differences are
 within 0.4%, largest on low-skilled female (-0.35% people, -0.36% hours in
-2019). The WL people gap is not explained yet.
+2019).
+
+The WL people gap (explained 2026-11-10): the workforce totals by region
+agree exactly between the axes, and the loss is in the salary split.
+Paraguay's rx2 SUT has zero wages and zero output in sections RSTU and K,
+so their 363 thousand ILO workers in 2019 have no industry to go to and
+are dropped. A scan of every region and year (staged ixi F.txt against
+`workforce_total_exio3.csv`) finds the same in three more rx2 countries
+and none on e3: SSD 1995-2007 (its whole SUT is empty, up to 3.04
+million), BEN 1995-2012 (RSTU), TJK 1995-2007 (B, DE). Details in
+COVERAGE.md, "rx2 only". The fix is on the monetary side.
