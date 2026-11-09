@@ -251,6 +251,30 @@ corrected (c9b63ec), branch created, this plan.
   left out unless a current source is identified.
 - Own folder `raw/Extensions/labour_risk/`, own COVERAGE row.
 
+Coverage audit, 2026-11-10 (ILOSTAT API downloads of that day; share of
+world employment from `EMP_2EMP_SEX_ECO_NB_A`, 2019, country rows only):
+
+| Indicator | Countries ever | Countries per year 2015-2022 | 2019 employment covered | Activity detail |
+| --- | --- | --- | --- | --- |
+| `INJ_FATL_ECO_NB_A` fatal injuries | 148 | 55-66 | 27% | ISIC3, ISIC4, aggregate, sector |
+| `INJ_NFTL_ECO_NB_A` non-fatal injuries | 146 | 59-66 | 28% | ISIC3, ISIC4, aggregate |
+| `CLD_XCHL_SEX_AGE_ECO_NB_A` child labour | 107 | 25-62 (5-7 a year before 2008) | 24% | broad sector only (3) |
+
+The large employers have stale or no injury data: last year China 2002,
+India 2008, Indonesia 1999, Pakistan 2002, Brazil 2011, Nigeria 2006,
+Bangladesh, Ethiopia and Viet Nam none. Child labour has no China, Japan or
+Germany row. Forced labour has no country series (as found 2026-11-06).
+
+Gate: not built. Three quarters of world employment would be imputed for
+injuries and child labour, and the imputation would be driven by the
+countries that report, mostly high-income for injuries. A labour-risk
+account on this basis would be a modelled layer, not a country time series,
+which is what the 2014 paper also concluded when it re-aggregated to seven
+regions. Decision needed from Richard: build it as an explicitly modelled
+regional layer (ILO global and regional estimates, allocated within region
+by section and low-skilled people), or wait for a better source (for
+injuries, the ILO/WHO joint estimates of work-related burden of disease).
+
 ### Phase 5: code cleanup (after Phase 3 changes the arithmetic, so the
 equivalence tests are rewritten once)
 - Vectorise the salary split and the hours split per region-year (groupby
