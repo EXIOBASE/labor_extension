@@ -120,9 +120,10 @@ def _axis_dir(key: str) -> Path:
 DATA_DIR = _E3_LABOUR_ROOT / "data"
 #: final_table folder: the intermediates and the handoff workbook.
 FINAL_TABLE_DIR = _E3_LABOUR_ROOT / "final_table" if IS_E3 else _axis_dir("final_table_dir")
-#: Folder for the debug CSVs the pipeline writes as it goes. None on e3,
-#: which keeps writing them into the current directory (the repo root).
-WORK_DIR = None if IS_E3 else _axis_dir("work_dir")
+#: Folder for the debug CSVs the pipeline writes as it goes. On e3 this was
+#: the current directory (the repo root) until 2026-11; it is now the labour
+#: data folder's `work`, so a run writes nothing into the repo.
+WORK_DIR = _E3_LABOUR_ROOT / "work" if IS_E3 else _axis_dir("work_dir")
 
 # A check run (such as the e3 equivalence run of 2026-11-06) can send both
 # elsewhere without touching config.yaml: LABOR_FINAL_TABLE_DIR, LABOR_WORK_DIR.
@@ -133,7 +134,7 @@ if os.environ.get("LABOR_WORK_DIR"):
 
 
 def work_file(name: str):
-    """Where a debug CSV goes: the bare name (cwd) on e3, WORK_DIR otherwise."""
+    """Where a debug CSV goes: WORK_DIR (cwd only if WORK_DIR is None)."""
     if WORK_DIR is None:
         return name
     WORK_DIR.mkdir(parents=True, exist_ok=True)

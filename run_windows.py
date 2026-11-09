@@ -19,14 +19,18 @@ Note: the legacy ILO bulk endpoint (www.ilo.org/ilostat-files/WEB_bulk_download/
 was retired and now 404s. We download per-indicator CSVs from the current ILOSTAT
 rplumber API instead. Eurostat SDMX URLs are unchanged.
 
-Outputs go to d:/indecol/data/labour/{data,final_table}. The submodule scripts also
-write a few bare-named CSVs into the repo root (cwd) by design.
+Outputs go to d:/indecol/data/labour/{data,final_table,work}.
 
 Country axis: `--axis e3` (default, the 49-region release, unchanged) or
 `--axis rx2` (159 regions). An rx2 run needs SKIP_DOWNLOAD=1, reads the e3
 downloads, and writes its final_table and its debug CSVs under
 D:/data/labor_extension/EXIOBASE_3_12_0_rx2/ (config.yaml axes.rx2). Set
-LABOR_WORKERS to cap the ray workers. See docs/rx2_axis_plan_2026-11-06.md.
+LABOR_WORKERS to cap the workers. See docs/rx2_axis_plan_2026-11-06.md.
+
+Parallelism: the salary split runs its years on a process pool and the hours
+stage runs serially; LABOR_RAY=1 restores ray for both, LABOR_PARALLEL=serial
+runs the salary split serially. Debug CSVs go to d:/indecol/data/labour/work
+on e3 (config.WORK_DIR), not the repo root.
 """
 import os
 import sys

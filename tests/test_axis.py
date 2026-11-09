@@ -47,7 +47,7 @@ def test_e3_is_the_legacy_configuration():
     assert e3["splice"] == {"CN": 2007, "IN": 2007, "ID": 2007, "WA": 2007,
                             "WF": 2008, "US": 2001, "IT": 2000}
     assert Path(e3["final_table"]) == Path("d:/indecol/data/labour/final_table")
-    assert e3["work"] is None
+    assert e3["work"].replace("\\", "/").endswith("labour/work")
     assert e3["mapped"] == e3["coco"]          # the same country_converter call
     assert len(e3["regions"]) == 49 and e3["regions"][0] == "AT"
 

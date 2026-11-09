@@ -1,5 +1,5 @@
 import os as _os
-if _os.environ.get("LABOR_NO_RAY") == "1":  # ray would not start on 2026-11-06
+if _os.environ.get("LABOR_RAY") != "1":  # ray only on request (LABOR_RAY=1); it would not start on 2026-11-06
     import serial_ray as ray
 else:
     import ray

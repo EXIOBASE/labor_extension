@@ -23,13 +23,12 @@ SUT_CSV_ROOT = _cfg.SUT_CSV_ROOT
 from workforce_salary.skill_splice import splice_skill_split, splice_year_for
 SKILL_SPLICE = _cfg.SKILL_SPLICE
 
-# ray is imported lazily: set LABOR_NO_RAY=1 to run the years sequentially in
-# a plain environment (slower, but no ray install needed, and it makes a
-# single-year test possible).
-USE_RAY = os.environ.get("LABOR_NO_RAY") != "1"
-# LABOR_NO_RAY=1 LABOR_PARALLEL=process runs the years on a process pool of
-# config.RAY_WORKERS (LABOR_WORKERS) instead of serially.
-PARALLEL = os.environ.get("LABOR_PARALLEL", "")
+# The years run on a process pool of config.RAY_WORKERS (LABOR_WORKERS) by
+# default; LABOR_PARALLEL=serial runs them one after another (single-year
+# tests), and LABOR_RAY=1 uses ray as before 2026-11 (its raylet would not
+# start on the build machine on 2026-11-06).
+USE_RAY = os.environ.get("LABOR_RAY") == "1"
+PARALLEL = os.environ.get("LABOR_PARALLEL", "process")
 
 runtime_env = {
     'env_vars': {

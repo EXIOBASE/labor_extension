@@ -3,7 +3,8 @@
 ray's raylet would not start on the build machine on 2026-11-06 (the object
 store's CreateFileMapping failed with Windows error 1450, then a worker died
 with an access violation once it did start with a smaller store). With
-LABOR_NO_RAY=1 the hours modules import this instead of ray: `init` and
+LABOR_RAY=1 not set (the default since 2026-11) the hours modules import
+this instead of ray: `init` and
 `shutdown` do nothing, `remote(f).remote(*args)` runs `f` at once on deep
 copies of its arguments (a ray task works on its own deserialised copy, so a
 function that modifies its input must not see another call's changes), and

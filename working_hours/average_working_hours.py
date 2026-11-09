@@ -507,7 +507,7 @@ def working_hour(workforce,src_csv2,data_path,src_csv3,final_path=None):
 
     #final_table = average_working_hour(new_table_150222_pivot_extrapolate2,cc_all,workforce2,final_table)
     '''  
-    final_table.to_csv("final_table.csv",index = False)
+    final_table.to_csv(_cfg.work_file("final_table.csv"),index = False)
     final_table = final_table[final_table.time != 2020]
     '''
     
