@@ -150,4 +150,53 @@ modules' ray worker count now honours `LABOR_WORKERS`.
 
 ## Outcome
 
-(filled in after the run)
+Built overnight 2026-11-06/07 by the 00-workflow-94 driver on the rx2 SUTs of
+the 22:08 monetary relaunch. The SUT inputs the salary split reads changed
+from the earlier run (wage rows of 4,728 of 5,406 use files, 4,716 of 5,406
+supply files; fingerprints in `work/sut_snapshot_20261106` against
+`work/sut_fingerprint.sh`), so the full run was repeated: split done 04:53,
+hours 06:28, workbook `final_labor_SUTs_3_12_0_rx2.xlsx` 06:48, reformat and
+tail staged 1995-2028 on `EXIOBASE_3_12_0_rx2/raw/Extensions/labour/{ixi,pxp}`
+by 06:51.
+
+Two fixes were needed on the way (d4ba4d2 here, 43179b3 in
+desire_upload_prepper): the handoff sheets are written long on rx2, because
+159 x 163 = 25,917 columns is over Excel's 16,384-column limit, and a country
+region missing hours for a category and year takes its e3 bucket's average
+instead of being skipped (7,409 cells were skipped in the first run). An
+earlier run (14:34) ended mid-write with a 0-byte `hours_split_newSUTS.xlsx`
+and no traceback; it was superseded.
+
+Check, world totals from the staged `F.txt`, rx2 against the e3 tree
+(people in bn, hours per person):
+
+| year | rx2 people | e3 people | rx2 h/p | e3 h/p |
+| --- | --- | --- | --- | --- |
+| 1995 | 2.3885 | 2.3907 | 2167.1 | 2167.1 |
+| 2019 | 3.3330 | 3.3334 | 2209.6 | 2209.7 |
+| 2025 | 3.6049 | 3.6053 | 2181.5 | 2182.0 |
+| 2026 | 3.6491 | 3.6473 | 2182.1 | 2182.5 |
+| 2028 | 3.7391 | 3.7326 | 2183.2 | 2183.2 |
+
+ixi and pxp totals agree to the shown precision on both axes; no negative or
+NaN cells in those years.
+
+Per region (step 4), ixi, rx2 summed to the 49 e3 regions (country_converter
+EXIO3, W regions as themselves; every rx2 region mapped): people agree to
+0.00% everywhere except WL (-0.26% in 2019 and 2025). Hours agree likewise
+except WL (-0.31%, -0.29%), WA (-0.08%, -0.07%) and WE in 2025 (-1.70%).
+The WE gap is expected: on e3 the WE hours average carries UKR's 2021
+population into later years, while on rx2 UKR is its own region and that
+carry is guarded off (see Design). By stressor the world differences are
+within 0.4%, largest on low-skilled female (-0.35% people, -0.36% hours in
+2019).
+
+The WL people gap (explained 2026-11-10): the workforce totals by region
+agree exactly between the axes, and the loss is in the salary split.
+Paraguay's rx2 SUT has zero wages and zero output in sections RSTU and K,
+so their 363 thousand ILO workers in 2019 have no industry to go to and
+are dropped. A scan of every region and year (staged ixi F.txt against
+`workforce_total_exio3.csv`) finds the same in three more rx2 countries
+and none on e3: SSD 1995-2007 (its whole SUT is empty, up to 3.04
+million), BEN 1995-2012 (RSTU), TJK 1995-2007 (B, DE). Details in
+COVERAGE.md, "rx2 only". The fix is on the monetary side.

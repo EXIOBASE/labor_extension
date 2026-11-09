@@ -64,6 +64,25 @@ than the projected tail does:
    2022-2025 (`table_workforce_by_ISO3.csv`, checked 2026-11-06). Hold flat
    is the no-information projection: it does not represent the war's
    effect on Ukrainian employment.
+3. **rx2 only: workers in sections with no activity in the country SUT
+   are dropped.** The salary split places an ISIC section's ILO workers
+   on the industries of that section by their wage bill. Where every
+   industry of the section has zero wages *and* zero output in the
+   per-country SUT, there is nothing to place them on and they leave the
+   account (sections A and RSTU have a fallback by output, which is also
+   zero there). On e3 this never happens, because these countries sit in
+   W buckets with activity in every section. On rx2 it hits four
+   countries (scan of the staged ixi F.txt against
+   `workforce_total_exio3.csv`, 2026-11-10):
+   South Sudan 1995-2007, every section, because its rx2 SUT is empty
+   in those years (zero output in every industry; activity starts 2008),
+   up to 3.04 million people; Paraguay 1995-2025, sections RSTU and K
+   (2008 on), 185-378 thousand; Benin 1995-2012, RSTU (and K 2003-2004),
+   151-284 thousand; Tajikistan 1995-2007, sections B and DE, 11-22
+   thousand. World loss per year is 2.2-3.5 million to 2007 and 0.25-0.56
+   million after. This is the whole rx2 WL people gap against e3
+   (-0.26%). The fix belongs to the monetary SUTs (no activity where ILO
+   counts workers); the labour code does not invent industries for them.
 
 ## The 2026-2028 nowcast (added 2026-09-18)
 
