@@ -63,7 +63,6 @@ HOURS_FALLBACKS = {'substituted_other_sex': 0, 'skipped': 0}
 #: can be audited instead of taken on trust from a count.
 HOURS_FALLBACK_LOG = []
 
-
 def sector_hours_pair(frame, region_column, region, classif1, year,
                       value_column):
     """Male and female average weekly hours for one (region, category, year).
@@ -1137,7 +1136,7 @@ def working_hour(workforce,src_csv2,data_path,src_csv3,final_path=None):
     if not _cfg.IS_E3:
         # Group by the axis region of each ISO3; a region with no row takes
         # its e3 bucket's mean (the lookup below raises on a missing region).
-        # Read but not used in the hours formula (52 weeks), see below.
+        # Used in the hours formula (working_weeks).
         e3_means = round(vacation.drop(['Country', 'ISO3'], axis=1)
                          .groupby(['EXIO3']).mean())
         vacation['EXIO3'] = _cfg.convert_to_region(list(vacation['ISO3']), cc_all)
@@ -1231,6 +1230,7 @@ def working_hour(workforce,src_csv2,data_path,src_csv3,final_path=None):
 
 
                         vacation = float(vacation_average.loc[vacation_average.EXIO3 == code,'Total Paid Vacation Days'].to_string(index=False,header=False))
+                        weeks = working_weeks(vacation)
 
                         classif1 = concordance_category(concordance, sector)
 
@@ -1242,24 +1242,24 @@ def working_hour(workforce,src_csv2,data_path,src_csv3,final_path=None):
                         #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - male' ] = pop_high_skill_men * (hours_M/5) * (365-vacation) / 1000000
                         #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - male' ] = pop_middle_skill_men * (hours_M/5) * (365-vacation) / 1000000
                         #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - male' ] = pop_low_skill_men * (hours_M/5) * (365-vacation) / 1000000
-                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - male' ] = pop_high_skill_men * (hours_M) * (52) / 1000000
-                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - male' ] = pop_middle_skill_men * (hours_M) * (52) / 1000000
-                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - male' ] = pop_low_skill_men * (hours_M) * (52) / 1000000
+                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - male' ] = pop_high_skill_men * (hours_M) * weeks / 1000000
+                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - male' ] = pop_middle_skill_men * (hours_M) * weeks / 1000000
+                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - male' ] = pop_low_skill_men * (hours_M) * weeks / 1000000
 
                         #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - female' ] = pop_high_skill_women * (hours_F/5) * (365-vacation) / 1000000
                         #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - female' ] = pop_middle_skill_women * (hours_F/5) * (365-vacation) / 1000000
                         #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - female' ] = pop_low_skill_women * (hours_F/5) * (365-vacation) / 1000000
 
-                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - female' ] = pop_high_skill_women * (hours_F) * (52) / 1000000
-                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - female' ] = pop_middle_skill_women * (hours_F) * (52) / 1000000
-                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - female' ] = pop_low_skill_women * (hours_F) * (52) / 1000000
+                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - female' ] = pop_high_skill_women * (hours_F) * weeks / 1000000
+                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - female' ] = pop_middle_skill_women * (hours_F) * weeks / 1000000
+                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - female' ] = pop_low_skill_women * (hours_F) * weeks / 1000000
 
                         #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - total' ] = (pop_high_skill_men * (hours_M/5) * (365-vacation) / 1000000) + (pop_high_skill_women * (hours_F/5) * (365-vacation) / 1000000)
                         #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - total' ] = (pop_middle_skill_men * (hours_M/5) * (365-vacation) / 1000000) + (pop_middle_skill_women * (hours_F/5) * (365-vacation) / 1000000)
                         #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - total' ] = (pop_low_skill_men * (hours_M/5) * (365-vacation) / 1000000) + (pop_low_skill_women * (hours_F/5) * (365-vacation) / 1000000)
-                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - total' ] = (pop_high_skill_men * (hours_M) * (52) / 1000000)+(pop_high_skill_women * (hours_F) * (52) / 1000000)
-                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - total' ] = (pop_middle_skill_men * (hours_M) * (52) / 1000000) + (pop_middle_skill_women * (hours_F) * (52) / 1000000)
-                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - total' ] = (pop_low_skill_women * (hours_F) * (52) / 1000000) + (pop_low_skill_men * (hours_M) * (52) / 1000000)
+                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - total' ] = (pop_high_skill_men * (hours_M) * weeks / 1000000)+(pop_high_skill_women * (hours_F) * weeks / 1000000)
+                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - total' ] = (pop_middle_skill_men * (hours_M) * weeks / 1000000) + (pop_middle_skill_women * (hours_F) * weeks / 1000000)
+                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - total' ] = (pop_low_skill_women * (hours_F) * weeks / 1000000) + (pop_low_skill_men * (hours_M) * weeks / 1000000)
 
                 elif code in fallback_regions:  # e3: TW, from WA
                     for sector in hours_split['Sector'].unique():
@@ -1273,6 +1273,7 @@ def working_hour(workforce,src_csv2,data_path,src_csv3,final_path=None):
 
 
                         vacation = float(vacation_average.loc[vacation_average.EXIO3 == _fb_region,'Total Paid Vacation Days'].to_string(index=False,header=False))
+                        weeks = working_weeks(vacation)
 
                         classif1 = concordance_category(concordance, sector)
 
@@ -1288,9 +1289,9 @@ def working_hour(workforce,src_csv2,data_path,src_csv3,final_path=None):
                         #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - male' ] = pop_middle_skill_men * (hours_M) * (52-(vacation/5)) / 1000000
                         #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - male' ] = pop_low_skill_men * (hours_M) * (52-(vacation/5)) / 1000000
 
-                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - male' ] = pop_high_skill_men * (hours_M) * (52) / 1000000
-                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - male' ] = pop_middle_skill_men * (hours_M) * (52) / 1000000
-                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - male' ] = pop_low_skill_men * (hours_M) * (52) / 1000000
+                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - male' ] = pop_high_skill_men * (hours_M) * weeks / 1000000
+                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - male' ] = pop_middle_skill_men * (hours_M) * weeks / 1000000
+                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - male' ] = pop_low_skill_men * (hours_M) * weeks / 1000000
 
 
                         #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - female' ] = pop_high_skill_women * (hours_F/5) * (365-vacation) / 1000000
@@ -1299,9 +1300,9 @@ def working_hour(workforce,src_csv2,data_path,src_csv3,final_path=None):
                         #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - female' ] = pop_high_skill_women * (hours_F) * (52-(vacation/5)) / 1000000
                         #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - female' ] = pop_middle_skill_women * (hours_F) * (52-(vacation/5)) / 1000000
                         #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - female' ] = pop_low_skill_women * (hours_F) * (52-(vacation/5)) / 1000000
-                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - female' ] = pop_high_skill_women * (hours_F) * (52) / 1000000
-                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - female' ] = pop_middle_skill_women * (hours_F) * (52) / 1000000
-                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - female' ] = pop_low_skill_women * (hours_F) * (52) / 1000000
+                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - female' ] = pop_high_skill_women * (hours_F) * weeks / 1000000
+                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - female' ] = pop_middle_skill_women * (hours_F) * weeks / 1000000
+                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - female' ] = pop_low_skill_women * (hours_F) * weeks / 1000000
 
 
                         #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - total' ] = (pop_high_skill_men * (hours_M/5) * (365-vacation) / 1000000) + (pop_high_skill_women * (hours_F/5) * (365-vacation) / 1000000)
@@ -1310,9 +1311,9 @@ def working_hour(workforce,src_csv2,data_path,src_csv3,final_path=None):
                         #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - total' ] = (pop_high_skill_men * (hours_M) * (52-(vacation/5)) / 1000000) + (pop_high_skill_women * (hours_F) * (52-(vacation/5)) / 1000000)
                         #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - total' ] = (pop_middle_skill_men * (hours_M) * (52-(vacation/5)) / 1000000)+(pop_middle_skill_women * (hours_F) * (52-(vacation/5)) / 1000000)
                         #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - total' ] = (pop_low_skill_men * (hours_M) * (52-(vacation/5)) / 1000000)+(pop_low_skill_women * (hours_F) * (52-(vacation/5)) / 1000000)
-                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - total' ] = (pop_high_skill_men * (hours_M) * (52) / 1000000) + (pop_high_skill_women * (hours_F) * (52) / 1000000)
-                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - total' ] = (pop_middle_skill_men * (hours_M) * (52) / 1000000)+(pop_middle_skill_women * (hours_F) * (52) / 1000000)
-                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - total' ] = (pop_low_skill_men * (hours_M) * (52) / 1000000)+(pop_low_skill_women * (hours_F) * (52) / 1000000)
+                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - total' ] = (pop_high_skill_men * (hours_M) * weeks / 1000000) + (pop_high_skill_women * (hours_F) * weeks / 1000000)
+                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - total' ] = (pop_middle_skill_men * (hours_M) * weeks / 1000000)+(pop_middle_skill_women * (hours_F) * weeks / 1000000)
+                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - total' ] = (pop_low_skill_men * (hours_M) * weeks / 1000000)+(pop_low_skill_women * (hours_F) * weeks / 1000000)
 
 
                 else :
@@ -1329,6 +1330,7 @@ def working_hour(workforce,src_csv2,data_path,src_csv3,final_path=None):
 
                         
                         vacation = float(vacation_average.loc[vacation_average.EXIO3 == code,'Total Paid Vacation Days'].to_string(index=False,header=False))
+                        weeks = working_weeks(vacation)
                         classif1 = concordance_category(concordance, sector)
                         hours_M, hours_F = sector_hours_pair(
                             _main_code, 'EXIO3', code, classif1, years,
@@ -1347,24 +1349,24 @@ def working_hour(workforce,src_csv2,data_path,src_csv3,final_path=None):
                         #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - male' ] = pop_high_skill_men * (hours_M/5) * (365-vacation) / 1000000
                         #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - male' ] = pop_middle_skill_men * (hours_M/5) * (365-vacation) / 1000000
                         #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - male' ] = pop_low_skill_men * (hours_M/5) * (365-vacation) / 1000000
-                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - male' ] = pop_high_skill_men * (hours_M) * (52) / 1000000
-                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - male' ] = pop_middle_skill_men * (hours_M) * (52) / 1000000
-                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - male' ] = pop_low_skill_men * (hours_M) * (52) / 1000000
+                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - male' ] = pop_high_skill_men * (hours_M) * weeks / 1000000
+                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - male' ] = pop_middle_skill_men * (hours_M) * weeks / 1000000
+                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - male' ] = pop_low_skill_men * (hours_M) * weeks / 1000000
 
                         print(code, sector, hours_M, hours_F, vacation)
                         #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - female' ] = pop_high_skill_women * (hours_F/5) * (365-vacation) / 1000000
                         #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - female' ] = pop_middle_skill_women * (hours_F/5) * (365-vacation) / 1000000
                         #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - female' ] = pop_low_skill_women * (hours_F/5) * (365-vacation) / 1000000
-                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - female' ] = pop_high_skill_women * (hours_F) * (52) / 1000000
-                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - female' ] = pop_middle_skill_women * (hours_F) * (52) / 1000000
-                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - female' ] = pop_low_skill_women * (hours_F) * (52) / 1000000
+                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - female' ] = pop_high_skill_women * (hours_F) * weeks / 1000000
+                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - female' ] = pop_middle_skill_women * (hours_F) * weeks / 1000000
+                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - female' ] = pop_low_skill_women * (hours_F) * weeks / 1000000
 
                         #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - total' ] = (pop_high_skill_men * (hours_M/5) * (365-vacation) / 1000000) + (pop_high_skill_women * (hours_F/5) * (365-vacation) / 1000000)
                         #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - total' ] = (pop_middle_skill_men * (hours_M/5) * (365-vacation) / 1000000) + (pop_middle_skill_women * (hours_F/5) * (365-vacation) / 1000000)
                         #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - total' ] = (pop_low_skill_men * (hours_M/5) * (365-vacation) / 1000000) + (pop_low_skill_women * (hours_F/5) * (365-vacation) / 1000000)
-                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - total' ] = (pop_high_skill_men * (hours_M) * (52) / 1000000) + (pop_high_skill_women * (hours_F) * (52) / 1000000)
-                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - total' ] = (pop_middle_skill_men * (hours_M) * (52) / 1000000) + (pop_middle_skill_women * (hours_F) * (52) / 1000000)
-                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - total' ] = (pop_low_skill_men * (hours_M) * (52) / 1000000) + (pop_low_skill_women * (hours_F) * (52) / 1000000)
+                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - total' ] = (pop_high_skill_men * (hours_M) * weeks / 1000000) + (pop_high_skill_women * (hours_F) * weeks / 1000000)
+                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Middle qualification employement - total' ] = (pop_middle_skill_men * (hours_M) * weeks / 1000000) + (pop_middle_skill_women * (hours_F) * weeks / 1000000)
+                        hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours Low qualification employement - total' ] = (pop_low_skill_men * (hours_M) * weeks / 1000000) + (pop_low_skill_women * (hours_F) * weeks / 1000000)
 
             hours_split_parts.append(hours_split)
         # The regions' rows back in construction order (all_countries).

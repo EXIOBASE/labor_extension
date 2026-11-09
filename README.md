@@ -101,7 +101,9 @@ In order to get the annual average working hours, we need information on total p
 We achieve this by combining data from national government websites, OECD and ILO in a [table](https://github.com/EXIOBASE/labor_extension/blob/main/auxdata/whole_vacation.csv).
 Finally, we obtain the yearly employment hours by doing : 
 
-**Employment hours per skill and sex  = (weekly employment hours per skill and sex / 5) * Employment per skill and sex * (365 - total paid vacation days)**
+**Employment hours per skill and sex = weekly employment hours per skill and sex * Employment per skill and sex * (260 - total paid vacation days) / 5**
+
+260 is the number of weekdays in a year, so `(260 - vacation) / 5` is the number of working weeks. The vacation days of an EXIOBASE region are the unweighted mean of its countries; a region with no country in the table takes the mean of its EXIOBASE 3 bucket. Until 2026-11 the code used weekly hours * 52, which counts leave and public holidays as worked weeks: against OECD annual hours actually worked per worker for 38 countries in 2019, that was a median 15% high and the formula above is a median 2% high (range -13% to +19%). An earlier version of this README gave `(weekly / 5) * (365 - vacation)`, which counts weekends as working days.
 
 Finaly, we combine all results in one table, employment hours being in M.hr and employment being in 1000p.
 
