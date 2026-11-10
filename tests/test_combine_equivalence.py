@@ -4,7 +4,7 @@ Compared with digit-stripping switched off, since the original lost that rename
 (see combine_isic_3_4_vectorised for the detail). What is being verified is the
 merge itself: which value wins for each key, and which source it is tagged with.
 
-Run directly (no pytest needed)::
+Run directly (no pytest needed), or under pytest, which skips without the data::
 
     <fao_data-python> tests/test_combine_equivalence.py [n_countries]
 """
@@ -26,7 +26,18 @@ from working_hours.isic3_to_isic4_vectorised import isic3_to_isic4  # noqa: E402
 DATA = Path("D:/indecol/data/labour/data")
 HOURS_CSV = DATA / "HOW_TEMP_SEX_ECO_NB_A.csv"
 WORKFORCE_CSV = Path("D:/indecol/data/labour/final_table/workforce.csv")
-ISIC3_CSV = REPO / "isic3.csv"
+def _first_existing(*paths: Path) -> Path:
+    """The first of `paths` that exists, else the first (for the message)."""
+    for p in paths:
+        if p.exists():
+            return p
+    return paths[0]
+
+
+# isic3.csv is a debug CSV of the hours stage: the repo root until 2026-11,
+# the labour work folder (config.WORK_DIR on e3) since.
+ISIC3_CSV = _first_existing(REPO / "isic3.csv",
+                            Path("D:/indecol/data/labour/work/isic3.csv"))
 
 COLUMNS = ["ref_area", "sex", "classif1", "time", "obs_value", "source"]
 KEYS = ["ref_area", "sex", "classif1", "time"]
@@ -125,6 +136,18 @@ def main(n_countries: int = 3) -> int:
 
     print("PASS" if failures == 0 else f"FAILURES: {failures}")
     return 0 if failures == 0 else 1
+
+
+def test_combine_equivalence():
+    """pytest entry: runs main() on 3 countries; skips without the stage-1
+    data on D: or without ray."""
+    import pytest
+    missing = [str(p) for p in (HOURS_CSV, WORKFORCE_CSV, ISIC3_CSV) if not p.exists()]
+    if missing:
+        pytest.skip("needs " + ", ".join(missing))
+    # The original combine (working_hours/combine_isic_3_4.py) imports ray.
+    pytest.importorskip("ray")
+    assert main() == 0
 
 
 if __name__ == "__main__":

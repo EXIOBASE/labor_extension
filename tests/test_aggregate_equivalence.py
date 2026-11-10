@@ -6,11 +6,16 @@ reference here is a line-by-line transcription of its loop with the appends
 collected into a list instead - the control flow, the `continue` chain, the
 zero tests, the divisors and the `source` tags are copied verbatim from
 aggregate_isic.py. That is what is being compared against, and it is the only
-executable statement of the original's intent.
+executable statement of the original's intent. working_hours/aggregate_isic.py
+was deleted on 2026-11-10 (9c57e3a); the original is at
+`git show main:working_hours/aggregate_isic.py`.
 
 Run directly (no pytest needed)::
 
     <fao_data-python> tests/test_aggregate_equivalence.py [n_countries]
+
+or under pytest (`test_aggregate_equivalence`), which skips when the stage-1
+data on D: are missing.
 """
 from __future__ import annotations
 
@@ -37,7 +42,18 @@ KEYS = ["ref_area", "sex", "classif1", "time"]
 DATA = Path("D:/indecol/data/labour/data")
 HOURS_CSV = DATA / "HOW_TEMP_SEX_ECO_NB_A.csv"
 WORKFORCE_CSV = Path("D:/indecol/data/labour/final_table/workforce.csv")
-ISIC3_CSV = REPO / "isic3.csv"
+def _first_existing(*paths: Path) -> Path:
+    """The first of `paths` that exists, else the first (for the message)."""
+    for p in paths:
+        if p.exists():
+            return p
+    return paths[0]
+
+
+# isic3.csv is a debug CSV of the hours stage: the repo root until 2026-11,
+# the labour work folder (config.WORK_DIR on e3) since.
+ISIC3_CSV = _first_existing(REPO / "isic3.csv",
+                            Path("D:/indecol/data/labour/work/isic3.csv"))
 
 
 def reference_aggregate(table: pd.DataFrame, years: range) -> pd.DataFrame:
@@ -206,6 +222,16 @@ def main(n_countries: int = 3) -> int:
 
     print("PASS" if failures == 0 else f"FAILURES: {failures}")
     return 0 if failures == 0 else 1
+
+
+def test_aggregate_equivalence():
+    """pytest entry: runs main() on 3 countries; skips without the stage-1
+    data on D:."""
+    import pytest
+    missing = [str(p) for p in (HOURS_CSV, WORKFORCE_CSV, ISIC3_CSV) if not p.exists()]
+    if missing:
+        pytest.skip("needs " + ", ".join(missing))
+    assert main() == 0
 
 
 if __name__ == "__main__":

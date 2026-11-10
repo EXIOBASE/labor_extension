@@ -5,7 +5,7 @@ too slow to run over the full country set (that is why they were replaced), so
 this compares them on a subset: the N countries with the most ISIC3
 observations, which between them exercise every source letter and every target.
 
-Run directly (no pytest needed)::
+Run directly (no pytest needed), or under pytest, which skips without the data::
 
     <fao_data-python> tests/test_isic3_to_isic4_equivalence.py [n_countries]
 
@@ -38,7 +38,18 @@ YEARS = range(1995, 2023)
 TOLERANCE = 2e-6
 
 WORKFORCE_CSV = Path("D:/indecol/data/labour/final_table/workforce.csv")
-ISIC3_CSV = REPO / "isic3.csv"
+def _first_existing(*paths: Path) -> Path:
+    """The first of `paths` that exists, else the first (for the message)."""
+    for p in paths:
+        if p.exists():
+            return p
+    return paths[0]
+
+
+# isic3.csv is a debug CSV of the hours stage: the repo root until 2026-11,
+# the labour work folder (config.WORK_DIR on e3) since.
+ISIC3_CSV = _first_existing(REPO / "isic3.csv",
+                            Path("D:/indecol/data/labour/work/isic3.csv"))
 
 
 def run_original(isic3: pd.DataFrame, workforce: pd.DataFrame) -> pd.DataFrame:
@@ -131,6 +142,16 @@ def main(n_countries: int = 3) -> int:
 
     print("PASS" if failures == 0 else f"FAILURES: {failures}")
     return 0 if failures == 0 else 1
+
+
+def test_isic3_to_isic4_equivalence():
+    """pytest entry: runs main() on 3 countries; skips without the stage-1
+    data on D:."""
+    import pytest
+    missing = [str(p) for p in (WORKFORCE_CSV, ISIC3_CSV) if not p.exists()]
+    if missing:
+        pytest.skip("needs " + ", ".join(missing))
+    assert main() == 0
 
 
 if __name__ == "__main__":
