@@ -111,3 +111,32 @@ def test_informal_single_year_equals_multi_year():
     assert chn["informal_source"].str.startswith("predicted").all()
     v = vul.set_index(["ref_area", "sex", "group", "time"])["share"].loc["CHN"]
     assert (chn["share"] >= v.reindex(chn.index) - 1e-9).groupby(level="sex").mean().min() > 0.5
+
+
+def _build_module():
+    import importlib.util
+    f = Path(__file__).resolve().parents[1] / "scripts" / "build_labour_risk.py"
+    spec = importlib.util.spec_from_file_location("build_labour_risk", f)
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    return m
+
+
+def test_no_stressor_joins_the_employment_totals():
+    """Downstream composites sum `Employment people.*` and `Employment hours.*`."""
+    m = _build_module()
+    assert not [s for s in m.UNITS if s.startswith(("Employment people", "Employment hours"))]
+
+
+def test_write_year_release_format(tmp_path):
+    m = _build_module()
+    cols = pd.MultiIndex.from_tuples([("AT", "Farming"), ("AT", "Steel")], names=["region", "sector"])
+    fd = pd.MultiIndex.from_tuples([("AT", "Households")], names=["region", "category"])
+    F = pd.DataFrame([[1.0, 2.0]], index=pd.Index(["Forced labour"], name="stressor"), columns=cols)
+    m.write_year(tmp_path, F, fd)
+    back = pd.read_csv(tmp_path / "F.txt", sep="\t", header=[0, 1], index_col=0)
+    assert back.columns.equals(cols) and back.index.name == "stressor"
+    fy = pd.read_csv(tmp_path / "F_Y.txt", sep="\t", header=[0, 1], index_col=0)
+    assert fy.columns.equals(fd) and (fy == 0).all().all()
+    import json
+    assert json.loads((tmp_path / "file_parameters.json").read_text())["name"] == "labour_risk"
