@@ -4,14 +4,25 @@ Each function returns country-level values with the ILO employment E
 alongside (columns ref_area, region, sex, group, time, share, E), ready for
 `common.region_share`.
 
-- `informal`: informal employment share. Survey data (`EMP_NIFL_SEX_ECO_NB_A`
-  over `EMP_TEMP_SEX_ECO_NB_A`, ISIC4 sections) cover 122 countries around
-  2019, 55% of world employment, without China or the US, and few years per
-  country. The ratio of the informal share to the vulnerable share of the
-  same country, sex and group (pooled over the survey years) is stable where
-  both are known, so informal = min(1, k * vulnerable), with k from the
-  country, else its UN region, else the world; the year profile then comes
-  from ILO's complete modelled status series.
+- `informal`: informal employment share, ILO's harmonised SDG 8.3.1
+  (`SDG_0831_SEX_ECO_RT_A`, national data only, ILO's modelled aggregates
+  dropped) by sex and the six ECO_AGGREGATE cells (agriculture; mining and
+  utilities; manufacturing; construction; market services; public and other
+  services), falling back to the broad sector, then the national total, and
+  to both sexes where a sex is missing. Interpolated between observed years
+  and carried outside them (data start in 2004 for most countries, so
+  1995-2003 hold the first observation). Within a cell the rate is spread
+  over the labour account's activity groups by their vulnerable share with
+  one logit shift that keeps the cell's employment-weighted rate (as in
+  working_hours/vulnerable_employment). Countries without any SDG 8.3.1
+  data (China, the US, Japan, Canada, Australia and small territories) are
+  predicted from their vulnerable share: informal = r * vulnerable bounded
+  to [vulnerable, 1], with r the ratio of informal to vulnerable workers
+  summed over the observed country-years of the UN region, else the World
+  Bank income group, else the world, by sex and cell. In the 3.12 e3 build
+  146 countries have data (62% of 2019 employment) and the world total is
+  96%, 99% and 99% of ILO's modelled world informal employment
+  (`EMP_2IFL_SEX_NB_A`, X01) in 2005, 2019 and 2024.
 - `working_poverty`: employed people below US$3 a day (2021 PPP), SDG 1.1.1
   (`SDG_0111_SEX_AGE_RT_A`, age 15+, ILO modelled, 2000-2025, every low- and
   middle-income country). High-income countries are not estimated by ILO
@@ -26,55 +37,140 @@ alongside (columns ref_area, region, sex, group, time, share, E), ready for
 """
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
-from labour_risk.common import GROUPS, SECTION_GROUP, SEXES, fill_years, income_group, un_region
+from labour_risk.common import REPO, SEXES, fill_years, income_group
 
 
-def _survey_by_group(path: Path) -> pd.DataFrame:
-    d = pd.read_csv(path, usecols=["ref_area", "sex", "classif1", "time", "obs_value"], low_memory=False)
-    d = d[d["sex"].isin(SEXES) & d["classif1"].str.startswith("ECO_ISIC4_")]
-    d["group"] = d["classif1"].str.removeprefix("ECO_ISIC4_").map(SECTION_GROUP)
-    d = d.dropna(subset=["group"])
-    d["group"] = "ECO_DETAILS_" + d["group"]
-    return d.groupby(["ref_area", "sex", "group", "time"])["obs_value"].sum()
+#: ILO ECO_AGGREGATE cell of each labour-account activity group, and the broad
+#: sector (ECO_SECTOR) of each cell, for SDG 8.3.1.
+CELL = {"ECO_DETAILS_A": "AGR", "ECO_DETAILS_B": "MEL", "ECO_DETAILS_DE": "MEL",
+        "ECO_DETAILS_C": "MAN", "ECO_DETAILS_F": "CON",
+        **{f"ECO_DETAILS_{g}": "MKT" for g in ("G", "HJ", "I", "K", "LMN")},
+        **{f"ECO_DETAILS_{g}": "PUB" for g in ("O", "P", "Q", "RSTU")}}
+CELL_SECTOR = {"AGR": "AGR", "MEL": "IND", "MAN": "IND", "CON": "IND", "MKT": "SER", "PUB": "SER"}
+_EPS = 1e-4
 
 
-def informal(vul_country: pd.DataFrame, risk_dir: Path, un: dict) -> pd.DataFrame:
-    """`vul_country`: vulnerable share by ref_area, region, sex, group, time
-    (columns share, E)."""
-    inf = _survey_by_group(risk_dir / "EMP_NIFL_SEX_ECO_NB_A.csv")
-    tot = _survey_by_group(risk_dir / "EMP_TEMP_SEX_ECO_NB_A.csv")
-    j = pd.DataFrame({"inf": inf, "tot": tot}).dropna()
-    j = j[j["tot"] > 0]
-    v = vul_country.set_index(["ref_area", "sex", "group", "time"])["share"]
-    j["vul"] = v.reindex(j.index).to_numpy()
-    j = j.dropna()
-    j = j[j["vul"] > 0].reset_index()
-    j["unregion"] = j["ref_area"].map(un).fillna("World")
-    # k = pooled informal share / mean vulnerable share over the same years.
-    def k_of(frame, keys):
-        g = frame.groupby(keys).agg(inf=("inf", "sum"), tot=("tot", "sum"), vul=("vul", "mean"))
-        return ((g["inf"] / g["tot"]) / g["vul"]).clip(lower=0)
-    k_c = k_of(j, ["ref_area", "sex", "group"])
-    k_r = k_of(j, ["unregion", "sex", "group"])
-    k_w = k_of(j, ["sex", "group"])
-    out = vul_country.copy()
-    out["unregion"] = out["ref_area"].map(un).fillna("World")
-    k = pd.Series([k_c.get((a, s, g), np.nan) for a, s, g in zip(out.ref_area, out.sex, out.group)],
-                  index=out.index)
-    miss = k.isna()
-    k[miss] = [k_r.get((r, s, g), np.nan) for r, s, g in
-               zip(out.unregion[miss], out.sex[miss], out.group[miss])]
-    miss = k.isna()
-    k[miss] = [k_w.get((s, g), 1.0) for s, g in zip(out.sex[miss], out.group[miss])]
-    out["k"] = k
-    out["k_source"] = np.where(out.ref_area.isin(set(j.ref_area)), "country", "region/world")
-    out["share"] = (out["k"] * out["share"]).clip(upper=1.0)
-    return out.drop(columns=["unregion"])
+def informal_rates(risk_dir: Path, years) -> tuple[pd.Series, set]:
+    """SDG 8.3.1 informal share (0-1) by ref_area, sex, cell, time from
+    national data. Each (country, sex, classification) series is interpolated
+    between observed years and carried outside them, then each cell takes
+    its ECO_AGGREGATE value, else its broad sector's, else the national
+    total; a sex without data takes the both-sexes value. Returns the rates
+    and the set of (ref_area, time) actually observed."""
+    d = pd.read_csv(risk_dir / "SDG_0831_SEX_ECO_RT_A.csv", low_memory=False,
+                    usecols=["ref_area", "source", "sex", "classif1", "time", "obs_value"])
+    # ILO's regional aggregates (X01...) are modelled (source XA); keep countries.
+    d = d[~d["source"].astype(str).str.startswith("XA") & ~d["ref_area"].str.match(r"^X\d\d$")]
+    d = d[d["sex"].isin(["SEX_M", "SEX_F", "SEX_T"]) & d["obs_value"].notna()]
+    observed = set(zip(d["ref_area"], d["time"]))
+    r = fill_years((d.groupby(["ref_area", "sex", "classif1", "time"])["obs_value"].mean() / 100).clip(0, 1),
+                   ["ref_area", "sex", "classif1"], years)
+    w = r.unstack("classif1")
+    out = {}
+    for cell, sector in CELL_SECTOR.items():
+        v = w.get(f"ECO_AGGREGATE_{cell}", pd.Series(np.nan, index=w.index))
+        v = v.fillna(w.get(f"ECO_SECTOR_{sector}", np.nan))
+        v = v.fillna(w.get("ECO_SECTOR_TOTAL", np.nan)).fillna(w.get("ECO_AGGREGATE_TOTAL", np.nan))
+        out[cell] = v
+    c = pd.DataFrame(out)
+    c.columns.name = "cell"
+    c = c.stack(future_stack=True).rename("rate").reset_index()
+    tot = c[c.sex == "SEX_T"].set_index(["ref_area", "cell", "time"])["rate"]
+    c = c[c.sex.isin(SEXES)].set_index(["ref_area", "sex", "cell", "time"])["rate"]
+    # Every (country, sex) with any data, both sexes filled from SEX_T.
+    keys = c.index.to_frame(index=False)[["ref_area", "cell", "time"]]
+    keys = pd.concat([keys, tot.index.to_frame(index=False)]).drop_duplicates()
+    full = pd.concat([keys.assign(sex=s) for s in SEXES]).set_index(["ref_area", "sex", "cell", "time"]).index
+    c = c.reindex(full)
+    t = tot.reindex(pd.MultiIndex.from_arrays([full.get_level_values(i) for i in (0, 2, 3)]))
+    c = c.fillna(pd.Series(t.to_numpy(), index=full)).dropna()
+    return c, observed
+
+
+def _spread(frame: pd.DataFrame) -> np.ndarray:
+    """Within each (ref_area, sex, cell, time), informal share per group:
+    logistic(logit(vulnerable) + k) with k chosen so the employment-weighted
+    mean is the cell rate (working_hours/vulnerable_employment._solve_shift).
+    `frame`: columns ref_area, sex, cell, time, group, vul, E, rate."""
+    if str(REPO / "working_hours") not in sys.path:
+        sys.path.insert(0, str(REPO / "working_hours"))
+    from vulnerable_employment import _solve_shift
+    f = frame.reset_index(drop=True)
+    f["slot"] = f.groupby(["ref_area", "sex", "cell", "time"]).cumcount()
+    key = ["ref_area", "sex", "cell", "time"]
+    P = f.pivot_table(index=key, columns="slot", values="vul", aggfunc="first")
+    W = f.pivot_table(index=key, columns="slot", values="E", aggfunc="first").reindex_like(P)
+    T = f.groupby(key)["rate"].first().reindex(P.index).to_numpy()
+    present = P.notna().to_numpy()
+    p = np.clip(P.fillna(0.5).to_numpy(), _EPS, 1 - _EPS)
+    w = np.where(present, W.fillna(0.0).to_numpy(), 0.0)
+    # A cell without employment: equal weights, so every group gets the rate.
+    w = np.where((w.sum(axis=1, keepdims=True) > 0), w, present.astype(float))
+    lp = np.log(p / (1 - p))
+    k = _solve_shift(lp, w, np.clip(T, 0, 1))
+    v = 1 / (1 + np.exp(-(lp + k[:, None])))
+    v[T <= 0] = 0.0
+    v[T >= 1] = 1.0
+    res = pd.DataFrame(v, index=P.index, columns=P.columns).stack().rename("share")
+    look = f.set_index(key + ["slot"]).index
+    return res.reindex(look).to_numpy()
+
+
+def informal(vul_country: pd.DataFrame, risk_dir: Path, un: dict, years) -> pd.DataFrame:
+    """Informal employment share by country, sex, activity group and year.
+    `vul_country`: vulnerable share by ref_area, region, sex, group, time
+    (columns share, E), every year available (the fit pools observed years)."""
+    years = sorted(set(int(y) for y in years))
+    rates, observed = informal_rates(risk_dir, sorted(set(years) | set(vul_country["time"])))
+    v = vul_country.copy()
+    v["cell"] = v["group"].map(CELL)
+    v["unregion"] = v["ref_area"].map(un).fillna("World")
+    v["income"] = v["ref_area"].map(income_group()).fillna("unknown")
+    v["vw"] = v["share"] * v["E"]
+    cell = v.groupby(["ref_area", "unregion", "income", "sex", "cell", "time"])[["vw", "E"]].sum().reset_index()
+    cell["V"] = (cell["vw"] / cell["E"].where(cell["E"] > 0)).fillna(0.0)
+    cell["rate"] = rates.reindex(pd.MultiIndex.from_frame(cell[["ref_area", "sex", "cell", "time"]])).to_numpy()
+
+    # Countries without any SDG 8.3.1 data: informal = r * vulnerable within
+    # [vulnerable, 1], with r the ratio of informal to vulnerable workers
+    # summed over the observed country-years of the UN region, else the
+    # income group, else the world (by sex and cell).
+    seen = np.array([(a, t) in observed for a, t in zip(cell.ref_area, cell.time)], dtype=bool)
+    obs = cell[seen & cell["rate"].notna().to_numpy()]
+    obs = obs.assign(iw=obs["rate"] * obs["E"])
+    fits = []
+    for keys in (["unregion"], ["income"], []):
+        g = obs.groupby(keys + ["sex", "cell"])[["iw", "vw"]].sum()
+        g = g[g["vw"] > 0]
+        fits.append((keys, (g["iw"] / g["vw"]).clip(lower=1.0)))
+    have = cell["ref_area"].isin(set(rates.index.get_level_values("ref_area")))
+    cell["informal_source"] = np.where(have, "ILO SDG 8.3.1", "")
+    for keys, r in fits:
+        miss = cell["informal_source"].eq("")
+        if not miss.any():
+            break
+        idx = pd.MultiIndex.from_frame(cell.loc[miss, keys + ["sex", "cell"]])
+        rr = r.reindex(idx).to_numpy()
+        ok = ~np.isnan(rr)
+        rows = cell.index[miss][ok]
+        V = cell.loc[rows, "V"].to_numpy()
+        cell.loc[rows, "rate"] = np.clip(rr[ok] * V, V, 1.0)
+        cell.loc[rows, "informal_source"] = "predicted from vulnerable share: " + (
+            "UN region" if keys == ["unregion"] else "income group" if keys == ["income"] else "world")
+    cell["rate"] = cell["rate"].fillna(cell["V"])
+
+    v = v[v["time"].isin(years)]
+    v = v.merge(cell[["ref_area", "sex", "cell", "time", "rate", "informal_source"]],
+                on=["ref_area", "sex", "cell", "time"], how="left")
+    v = v.rename(columns={"share": "vul"})
+    v["share"] = _spread(v)
+    return v[["ref_area", "region", "sex", "group", "time", "share", "E", "informal_source"]]
 
 
 def working_poverty(vul_country: pd.DataFrame, risk_dir: Path, un: dict, years) -> pd.DataFrame:

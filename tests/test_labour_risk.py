@@ -72,3 +72,42 @@ def test_child_labour_single_year_equals_multi_year():
     pd.testing.assert_series_equal(one, many.xs(2010, level="time", drop_level=False))
     # 2008 and 2012 are world benchmarks (ILO 2017 trends); 2010 lies between.
     assert 150_000 < one.sum() < 260_000
+
+
+def test_informal_spread_keeps_cell_rate():
+    from labour_risk import indicators
+    f = pd.DataFrame({"ref_area": "AA", "sex": "SEX_M", "cell": "MKT", "time": 2019,
+                      "group": ["ECO_DETAILS_G", "ECO_DETAILS_I", "ECO_DETAILS_K"],
+                      "vul": [0.4, 0.2, 0.0], "E": [50.0, 30.0, 20.0], "rate": 0.5})
+    s = indicators._spread(f)
+    assert np.isclose((s * f.E).sum() / f.E.sum(), 0.5, atol=1e-6)
+    assert (np.diff(s) < 0).all() and (s >= 0).all() and (s <= 1).all()
+
+
+def _vul_synthetic():
+    from labour_risk import indicators
+    rows = []
+    for a, base in (("IND", 0.7), ("CHN", 0.4), ("BRA", 0.3), ("THA", 0.5), ("USA", 0.05)):
+        for sex in common.SEXES:
+            for i, g in enumerate(common.GROUPS):
+                for t in range(1995, 2026):
+                    rows.append((a, a, sex, g, t, base * (1.5 if g == "ECO_DETAILS_A" else 1.0) * (1 - 0.01 * i),
+                                 100.0 + i))
+    return indicators, pd.DataFrame(rows, columns=["ref_area", "region", "sex", "group", "time", "share", "E"])
+
+
+def test_informal_single_year_equals_multi_year():
+    indicators, vul = _vul_synthetic()
+    risk = Path("d:/indecol/data/labour/data/risk/ilostat_2026-11-10")
+    if not (risk / "SDG_0831_SEX_ECO_RT_A.csv").exists():
+        pytest.skip("SDG 8.3.1 download not available")
+    un = common.un_region(sorted(set(vul.ref_area)))
+    one = indicators.informal(vul, risk, un, [2010]).set_index(["ref_area", "sex", "group", "time"])
+    many = indicators.informal(vul, risk, un, common.SPAN).set_index(["ref_area", "sex", "group", "time"])
+    pd.testing.assert_frame_equal(one, many.xs(2010, level="time", drop_level=False).reindex(one.index))
+    assert (many["share"] <= 1).all() and (many["share"] >= 0).all()
+    # China has no SDG 8.3.1 data: predicted, at least its vulnerable share.
+    chn = many.loc["CHN"]
+    assert chn["informal_source"].str.startswith("predicted").all()
+    v = vul.set_index(["ref_area", "sex", "group", "time"])["share"].loc["CHN"]
+    assert (chn["share"] >= v.reindex(chn.index) - 1e-9).groupby(level="sex").mean().min() > 0.5

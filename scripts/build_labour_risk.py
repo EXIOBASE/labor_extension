@@ -62,7 +62,7 @@ def main() -> None:
     un = common.un_region(sorted(set(vul["ref_area"])))
 
     built = {
-        "informal": indicators.informal(vul, RISK, un),
+        "informal": indicators.informal(vul, RISK, un, years),
         "working_poverty": indicators.working_poverty(vul, RISK, un, years),
         "long_hours": indicators.long_hours(vul, RISK, un, years),
     }
