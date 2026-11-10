@@ -135,10 +135,10 @@ def allocate_counts(account: pd.DataFrame, counts: pd.Series, year: int, sector_
     low = account[LOW_PEOPLE].sum(axis=1)
     grp = account.index.get_level_values("sector").map(sector_group)
     cell = grp.map(BROAD) if key == "broad" else grp
-    frame = pd.DataFrame({"region": account.index.get_level_values("region"),
-                          "cell": cell, "low": low.to_numpy()}, index=account.index)
+    frame = pd.DataFrame({"region": np.asarray(account.index.get_level_values("region")),
+                          "cell": np.asarray(cell), "low": low.to_numpy()})
     tot = frame.groupby(["region", "cell"])["low"].transform("sum")
     c = counts.xs(year, level="time") if "time" in counts.index.names else counts
-    target = pd.Series([c.get((r, k), 0.0) for r, k in zip(frame.region, frame.cell)],
-                       index=account.index)
-    return (target * frame["low"] / tot.where(tot > 0)).fillna(0.0)
+    target = np.array([c.get((r, k), 0.0) for r, k in zip(frame.region, frame.cell)])
+    out = np.where(tot > 0, target * frame["low"] / tot.where(tot > 0, 1.0), 0.0)
+    return pd.Series(out, index=account.index)
