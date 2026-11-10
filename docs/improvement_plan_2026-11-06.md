@@ -275,6 +275,19 @@ regional layer (ILO global and regional estimates, allocated within region
 by section and low-skilled people), or wait for a better source (for
 injuries, the ILO/WHO joint estimates of work-related burden of disease).
 
+Decision (Richard, 2026-11-10): both. Injuries and occupational health
+from the WHO/ILO joint estimates (deaths and DALYs attributable to 19
+occupational risk factors, national for 183 countries, 2000-2016, by sex
+and age, no activity split; download from the WHO Occupational Burden of
+Disease application), allocated to industries by ILOSTAT injury rates by
+section where reported, else the region's pooled profile. Child and forced
+labour as an explicitly modelled regional layer from the ILO-UNICEF 2024
+and ILO/Walk Free/IOM 2021 global estimates, with ILOSTAT national child
+labour where it exists. Open before the build: whether the WHO download is
+scriptable, the regional and sector tables of the two global reports (not
+yet read), and how years outside the sources are filled (proposed: rates
+per worker held flat).
+
 ### Phase 5: code cleanup (after Phase 3 changes the arithmetic, so the
 equivalence tests are rewritten once)
 - Vectorise the salary split and the hours split per region-year (groupby
