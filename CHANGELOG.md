@@ -87,6 +87,33 @@ All notable changes to this project are documented here. Format follows
   country_converter regex does not resolve the Factbook name `isle_of_man`;
   `CIA_ISO3_OVERRIDES` resolves it. 2020 workforce, thousand: Seychelles
   50.1, Reunion 405.9, British Indian Ocean Territory 1.4, Isle of Man 44.5.
+- **Two-value hours mean no longer floored; main countries with no hours
+  take a regional average (3.12.0 release 2, register R-LAB-06).** With
+  exactly two observed years the extrapolation filled the rest with
+  `valeur // 2`, a mean floored to a whole hour (41.0 and 42.0 gave 41, not
+  41.5); now `/ 2`, in both `regression_ILO_region_with_minimum*.py`. A main
+  country with no hours for either sex in a (category, year) was left at zero
+  hours with its people in place; it now takes the weighted average of the
+  rest-of-world bucket of its ILO region (`ILO_REGION_BUCKET`: Africa WF,
+  Americas WL, Arab States WM, Asia and the Pacific WA, Europe and Central
+  Asia WE; the Americas bucket is the nearest there is for Canada and the
+  United States), and `hours_fallbacks.csv` records it as "no hours, took
+  <bucket> average". Counts of "no hours" cells: the frozen 3.12.0 log
+  (`hours_fallbacks.csv`, 30 October 2026, 1995-2025) holds 0. A scratch run
+  of 2015-2022 (production split, new code) logged 8 such cells (Luxembourg,
+  ISIC B, every year 2015-2022; 120 sector-cells), all now infilled, 0 left;
+  that gap is probably a product of the short 2015-2022 extrapolation window
+  and not in the production window. Tests: `tests/test_hours_two_value_mean.py`.
+- **Ukraine's weight in the 2022 hours average (measured, not changed;
+  3.12.0 release 2, register R-LAB-07).** The hours average gives Ukraine
+  0.845 of its 2021 workforce in 2022 (`UKRAINE_WAR_FACTOR`), while the
+  employment account holds it flat at 18,518.87 thousand (factor 1.0). In
+  the rest-of-world Europe average over the 10 countries with reported hours
+  (scratch run 2015-2022, 2022): Ukraine's share of the weight 53.2% against
+  57.4% at factor 1.0; average weekly hours (all categories and both sexes,
+  population-weighted) 39.684 against 39.637 (+0.047 hours a week, 0.12%);
+  by sex and category the change runs from -0.168 to +0.007 hours a week.
+  The weight is left as it is, pending the decision on Ukraine from 2022.
 
 ### Changed (branch improve-labour-account, docs/improvement_plan_2026-11-06.md)
 
