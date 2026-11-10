@@ -65,6 +65,21 @@ def test_group_96_split_by_elementary_ratio():
     assert np.isclose(row["middle"], 0.675)
 
 
+def test_no_survey_country_splits_96_by_its_agriculture():
+    rows = [(c, s, 2019, k, v) for c in ("AAA", "BBB") for s in ("SEX_M", "SEX_F")
+            for k, v in (("OCU_ISCO08_2", 20.0), ("OCU_ISCO08_96", 60.0))]
+    modelled = pd.DataFrame(rows, columns=["ref_area", "sex", "time", "classif1", "obs_value"])
+    # AAA has a survey: group 6 = 30, agriculture 40 -> alpha 0.75.
+    survey = pd.DataFrame([("AAA", s, 2019, c, v) for s in ("SEX_M", "SEX_F")
+                           for c, v in (("OCU_ISCO08_6", 30.0), ("OCU_ISCO08_9", 30.0))],
+                          columns=["ref_area", "sex", "time", "classif1", "obs_value"])
+    agri = pd.Series({(c, s, 2019): 40.0 for c in ("AAA", "BBB") for s in ("SEX_M", "SEX_F")})
+    agri.index.names = ["ref_area", "sex", "time"]
+    out = so.country_skill_shares(modelled, survey, {"AAA": "R", "BBB": "R"}, [2019], agri=agri)
+    # BBB: group 6 = 0.75 * 40 = 30 of 60, so elementary 30 of 80 people.
+    assert np.isclose(out.loc[("BBB", "SEX_M", 2019), "low"], 30 / 80)
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):

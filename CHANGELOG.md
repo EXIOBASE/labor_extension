@@ -25,11 +25,15 @@ All notable changes to this project are documented here. Format follows
   ISCO-08 major group (1-3 high, 4-8 medium, 9 low, the merged group 96
   split by survey ratio), by sex, with the wage-bill mix kept as the
   structure inside industries (RAS). Industry totals by sex are unchanged.
-  2019 world, measured on the production split: low 13.1% -> 18.1%,
-  medium 59.9% -> 61.4%, high 27.0% -> 20.4%; men and women now differ
-  in skill mix (high 18.6% and 23.2%). China's low-skilled share (27.6%)
-  rests on the world ratio of elementary to skilled agricultural workers,
-  because China has no ISCO-08 survey rows. `LABOR_SKILL_FROM_WAGES=1`
+  2019 world, measured on the production split: low 13.1% -> 19.7%,
+  medium 59.9% -> 59.8%, high 27.0% -> 20.4%; men and women now differ
+  in skill mix (high 18.6% and 23.2%). A country without ISCO-08 survey
+  rows for groups 6 and 9 gets group 6 = 0.73 (survey median ratio to
+  agricultural employment) x its agricultural employment, capped at group
+  96. That decides China: 34.7% low-skilled, against 0.5% on its 2000
+  census, 27.8% with the world 9/(6+9) ratio and 41% with Eastern Asia's;
+  its group 96 (394 million, 2019) is twice its agricultural employment
+  (185 million), so the world ratio was a floor. `LABOR_SKILL_FROM_WAGES=1`
   restores the old split.
 - **Full e3 rebuild with the three changes (2026-11-10, scratchpad, SUTs
   and downloads of the production run).** World people unchanged

@@ -26,7 +26,9 @@ This module rebalances the salary split's output, per region, year and sex:
 The modelled table merges groups 6 (skilled agricultural, medium) and 9
 (elementary, low) into one category, 96. It is split by the ratio 9 / (6 + 9)
 in the country's survey data (`EMP_TEMP_SEX_OCU_NB_A`, ISCO-08 rows, pooled
-over years), or, for a country without them, the world's pooled ratio. The survey's own skill
+over years); for a country without them, group 6 is set to the survey median
+ratio of group 6 to agricultural employment times the country's agricultural
+employment (capped at group 96), the rest of group 96 being elementary. The survey's own skill
 levels are not used as the margin: many countries have one or two survey
 years (China only the 2000 census, with almost no elementary occupations),
 so carrying them would freeze the skill mix, while the modelled series is
@@ -79,14 +81,27 @@ def elementary_ratio(survey: pd.DataFrame, un_region: dict) -> pd.DataFrame:
     return country, ratio(reg), ratio(wld)
 
 
+def agri_alpha(survey: pd.DataFrame, agri: pd.Series) -> pd.Series:
+    """Median over survey country-years of ISCO-08 group 6 / agricultural
+    employment, by sex (ratios outside (0, 2) dropped as mismatched)."""
+    s = survey[(survey["classif1"] == "OCU_ISCO08_6") & survey["sex"].isin(SEXES)]
+    g6 = s.groupby(["ref_area", "sex", "time"])["obs_value"].mean()
+    ratio = (g6 / agri.reindex(g6.index)).dropna()
+    ratio = ratio[(ratio > 0) & (ratio < 2)]
+    return ratio.groupby(level="sex").median()
+
+
 def country_skill_shares(modelled: pd.DataFrame, survey: pd.DataFrame,
-                         un_region: dict, years) -> pd.DataFrame:
+                         un_region: dict, years, agri: pd.Series | None = None) -> pd.DataFrame:
     """Skill shares by (ref_area, sex, time): columns low, middle, high.
 
     From ILO's modelled employment by ISCO-08 major group (every country and
     year): high = groups 1-3, middle = 4, 5, 7, 8 and the skilled
     agricultural part of the merged group 96, low = its elementary part,
-    split by `elementary_ratio`.
+    split by `elementary_ratio` where the country has survey rows for
+    groups 6 and 9, else by `agri` (agricultural employment by ref_area,
+    sex, time): group 6 = alpha * agri, capped at group 96, with alpha the
+    median survey ratio of group 6 to agricultural employment for that sex.
     """
     m = modelled[modelled["sex"].isin(SEXES) & modelled["time"].isin(years)
                  & (modelled["classif1"] != "OCU_ISCO08_TOTAL")]
@@ -95,15 +110,28 @@ def country_skill_shares(modelled: pd.DataFrame, survey: pd.DataFrame,
     country, reg, wld = elementary_ratio(survey, un_region)
     idx = p.index.to_frame(index=False)
     r = pd.Series([country.get((a, s), np.nan) for a, s in zip(idx.ref_area, idx.sex)])
-    # No survey: the world pool, not the UN region's. A region pool is set
-    # by whichever members report, and for China (394 million in group 96 in
-    # 2019, about nine tenths of the group 96 workers without a survey)
-    # Eastern Asia's pool is Japan's and Korea's, 0.81, against 0.43-0.49 for
-    # India, Indonesia and Pakistan; the world pool is 0.53.
+    g = lambda c: p[c].to_numpy() if c in p.columns else 0.0
+    # No survey for groups 6 and 9: tie group 6 to the country's own farm
+    # workforce. Skilled agricultural workers work in agriculture, so group 6
+    # is at most agricultural employment; in survey country-years it is a
+    # median 0.73 of it (both sexes, 1,518 country-years, 2026-11-10). For
+    # China (394 million in group 96 in 2019 against 185 million in
+    # agriculture) this gives about 34% low-skilled; a pooled 9/(6+9) ratio
+    # cannot see that group 96 is twice the farm workforce (world pool 0.53:
+    # 28%; Eastern Asia's pool, set by Japan and Korea, 0.81: 41%).
+    miss = r.isna().to_numpy()
+    if agri is not None and miss.any():
+        alpha = agri_alpha(survey, agri)
+        a = agri.reindex(p.index).to_numpy()
+        g96 = g("OCU_ISCO08_96") * np.ones(len(p))
+        g6 = np.minimum(np.array([alpha.get(s, np.nan) for s in idx.sex]) * a, g96)
+        with np.errstate(invalid="ignore", divide="ignore"):
+            r_agri = np.where(g96 > 0, 1 - g6 / g96, np.nan)
+        use = miss & np.isfinite(r_agri)
+        r[use] = r_agri[use]
     miss = r.isna()
     r[miss] = [wld.get(s, 0.5) for s in idx.sex[miss]]
     r = r.to_numpy()
-    g = lambda c: p[c].to_numpy() if c in p.columns else 0.0
     out = pd.DataFrame({
         "low": g("OCU_ISCO08_96") * r,
         "middle": g("OCU_ISCO08_4") + g("OCU_ISCO08_5") + g("OCU_ISCO08_7")
@@ -127,7 +155,9 @@ def region_skill_shares(modelled: pd.DataFrame, survey: pd.DataFrame,
                    & employment["EXIO3"].notna() & (employment["EXIO3"] != "not found")]
     e = e.groupby(["ref_area", "EXIO3", "sex", "time"], as_index=False)["obs_value"].sum()
     un = _un_region(sorted(set(e["ref_area"]) | set(survey["ref_area"]) | set(modelled["ref_area"])))
-    cs = country_skill_shares(modelled, survey, un, years)
+    a = employment[(employment["classif1"] == "ECO_DETAILS_A") & employment["sex"].isin(SEXES)]
+    agri = a.groupby(["ref_area", "sex", "time"])["obs_value"].sum()
+    cs = country_skill_shares(modelled, survey, un, years, agri=agri)
     e["unregion"] = e["ref_area"].map(un).fillna("World")
 
     e = e.join(cs, on=["ref_area", "sex", "time"])
