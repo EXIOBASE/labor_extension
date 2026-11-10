@@ -140,3 +140,11 @@ def test_write_year_release_format(tmp_path):
     assert fy.columns.equals(fd) and (fy == 0).all().all()
     import json
     assert json.loads((tmp_path / "file_parameters.json").read_text())["name"] == "labour_risk"
+
+
+def test_every_workforce_code_has_an_ilo_region():
+    from labour_risk import child_forced as cf
+    t = pd.read_csv(common.REPO / "auxdata" / "countries_en.csv", encoding="utf-8-sig")
+    have = set(t.dropna(subset=["ILO Region"])["ISO3 Code"]) | set(cf.ILO_REGION_EXTRA)
+    assert {"XKX", "CHI", "BES", "SJM", "CXR", "CCK", "VAT"} <= have
+    assert set(cf.ILO_REGION_EXTRA.values()) <= set(t["ILO Region"].dropna())

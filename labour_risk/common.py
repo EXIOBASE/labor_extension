@@ -58,7 +58,10 @@ def un_region(iso3) -> dict:
 
 def income_group() -> dict:
     t = pd.read_csv(REPO / "auxdata" / "countries_en.csv", encoding="utf-8-sig")
-    return dict(zip(t["ISO3 Code"], t["World Bank Income Group"]))
+    out = dict(zip(t["ISO3 Code"], t["World Bank Income Group"]))
+    # The workforce codes Kosovo XKX, the table KOS.
+    out.setdefault("XKX", out.get("KOS"))
+    return out
 
 
 def sector_groups() -> dict:

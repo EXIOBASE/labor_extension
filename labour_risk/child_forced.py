@@ -54,6 +54,19 @@ EARLY = RISK / "ilo_child_labour_2017_trends" / "derived" / "world_child_labour_
 SECTOR_CODE = {"ECO_SECTOR_AGR": "AGR", "ECO_SECTOR_IND": "IND", "ECO_SECTOR_SER": "SER"}
 REPORT_SECTOR = {"Agriculture": "AGR", "Industry": "IND", "Services": "SER"}
 
+#: ILO region of the workforce codes auxdata/countries_en.csv lacks (it has
+#: Kosovo as KOS; the workforce uses XKX). Kept here rather than editing the
+#: shared auxdata file; by geography, ILO's five-region split.
+ILO_REGION_EXTRA = {
+    "XKX": "Europe and Central Asia",
+    "CHI": "Europe and Central Asia",  # Channel Islands
+    "SJM": "Europe and Central Asia",  # Svalbard and Jan Mayen
+    "VAT": "Europe and Central Asia",  # Holy See
+    "BES": "Americas",                 # Bonaire, Sint Eustatius and Saba
+    "CXR": "Asia and the Pacific",     # Christmas Island
+    "CCK": "Asia and the Pacific",     # Cocos (Keeling) Islands
+}
+
 #: UN M49 sub-region (country_converter `UNregion`) -> SDG region.
 SDG_REGION = {
     **{r: "Sub-Saharan Africa" for r in ("Eastern Africa", "Middle Africa", "Southern Africa", "Western Africa")},
@@ -209,7 +222,7 @@ def forced_labour(employment: pd.DataFrame, years, region_of: dict) -> pd.Series
     fle_b = fle_b / fle_b.sum()
 
     ilo_region = pd.read_csv(REPO / "auxdata" / "countries_en.csv", encoding="utf-8-sig")
-    ilo_region = dict(zip(ilo_region["ISO3 Code"], ilo_region["ILO Region"]))
+    ilo_region = {**dict(zip(ilo_region["ISO3 Code"], ilo_region["ILO Region"])), **ILO_REGION_EXTRA}
     e = employment.groupby(["ref_area", "group", "time"])["E"].sum().reset_index()
     e["broad"] = e["group"].map(BROAD)
     e["ilo"] = e["ref_area"].map(ilo_region)
