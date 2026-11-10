@@ -1,51 +1,70 @@
-# labor.py
+# Method: how the labour account is built
 
-labor is a Python library for calculating the workforce and the average working hour par ISO3 country / year / sex and ISIC 4 categories.
+This file follows the code as it is on branch `improve-labour-account`
+(2026-11). It replaces the description of `labor.py`, `download.py`,
+`salary_split.py` and `aggregate_isic.py`, which were deleted on
+2026-11-10 (9c57e3a). The README gives the sources, the environment
+variables (section "Running") and the published rows; `COVERAGE.md` the
+years and what is projected; `CHANGELOG.md` the history.
 
-## Description
+## Pipeline at a glance
 
-labor.py is composed of 3 main modules : download, workforce and average_working_hour.
+```
+run_windows.py [--axis e3|rx2]
+  1a download_all                      ILOSTAT (rplumber API) and Eurostat CSVs -> data folder
+  1b workforce_salary.workforce.workforce_calculation
+       ref_label.add_ref_label          ILO labels, ISO3 -> axis region
+       from_cia_to_ilo.cia_to_ilo       countries ILO does not model (Factbook, hand-compiled, drop-outs)
+       salary_split_ray.salary_split_year
+         skill_splice                   skill shares across coe-shares breaks
+         skill_from_occupation.rebalance people by skill from ILO occupation (RAS)
+  2  working_hours.average_working_hours.working_hour
+       clean_*, isic3_to_isic4_vectorised, substitute, combine_isic_3_4_vectorised,
+       aggregate_isic_vectorised, regression_*, complete_hours, complete_hours_2
+                                        weekly hours by country, sex, ILO activity group, year
+       annual_hours.working_weeks       (260 - vacation and holiday days) / 5
+       vulnerable_employment.region_shares
+     -> final_table/final_labor_SUTs_<version>.xlsx (handoff workbook, one sheet per year)
 
-
-``` python
-from download import download_data
-from workforce import workforce_calculation
-from average_working_hours import working_hour
+desire_upload_prepper (other repo)      workbook -> raw/Extensions/labour/{ixi,pxp}/<year>/
+scripts/nowcast_tail.py                 2026-2028 on the release tree
+scripts/build_labour_risk.py            the separate labour_risk extension
 ```
 
+Paths come from `config.yaml` (`config.local.yaml` overrides per machine)
+through `config.py`. On e3 the downloads go to
+`d:/indecol/data/labour/data`, the outputs to
+`d:/indecol/data/labour/final_table` and the debug CSVs to
+`d:/indecol/data/labour/work`; an rx2 run reads the e3 downloads and writes
+under the folders `config.yaml` `axes.rx2` names. Nothing is written into
+the repo.
 
-The data are downloaded from the [International labor organization](https://www.ilo.org/global/lang--en/index.htm), [Eurostat](https://ec.europa.eu/eurostat) and from [the CIA World Factbook](https://www.cia.gov/the-world-factbook/).
+Parallelism: the salary split runs its years on a process pool
+(`LABOR_WORKERS`), the hours stage runs the few calls that used ray through
+the serial stand-in `working_hours/serial_ray.py`. `LABOR_RAY=1` restores
+ray for both.
 
+## Stage 1a: download
 
-### 1. download
+`run_windows.download_all` fetches each source as a CSV (the old ILO bulk
+endpoint was retired):
 
-The download.py module download data from url and store in download folder. Then the data are Unzip and store in the data folder.
+| File | Content | Used by |
+| --- | --- | --- |
+| `EMP_2EMP_SEX_ECO_NB_A` | ILO modelled employment by sex and economic activity | workforce |
+| `HOW_TEMP_SEX_ECO_NB_A` | mean weekly hours actually worked by sex and economic activity | hours |
+| `POP_2POP_SEX_NB_A` | ILO total population | territory totals to workforce |
+| `EMP_2EMP_SEX_STE_NB_A`, `EMP_TEMP_SEX_STE_ECO_NB_A` | employment by status (modelled; survey by activity) | vulnerable employment |
+| `EMP_2EMP_SEX_OCU_NB_A`, `EMP_TEMP_SEX_OCU_NB_A` | employment by occupation (modelled; survey) | people by skill |
+| Eurostat `lfsa_ewhuna`, `lfsa_ewhun2` | usual weekly hours by NACE | hours, agriculture before 2009 |
 
-``` python
-storage_root = Path(".").absolute()
-download_path = storage_root / "download"
-data_path = storage_root / "data"
-```
+`SKIP_DOWNLOAD=1` reuses the files already there; an rx2 run must set it.
 
+## Stage 1b: workforce by country
 
-```python
-download_data(src_url,src_csv,src_url2,src_csv2,src_url3,src_csv3)
-```
-
-### 2. workforce
-
-```python
-workforce = workforce_calculation(data_path,src_csv,src_csv2)
-```
-
-For the workforce calculation, we import 3 modules :
-```python
-from ref_label import add_ref_label
-from from_cia_to_ilo import cia_to_ilo
-from salary_split import salary_split_year
-```
-
-From ILO, we get, for each country (ref_area), sex, year (time) and economic activity (classif1) the employment(obs_value) :
+`workforce_calculation` reads the ILO employment table: for each country
+(`ref_area`), sex, year (`time`) and ILO activity group (`classif1`), the
+number employed in thousands (`obs_value`):
 
 | ref_area | indicator           | source  | sex   | classif1            | time | obs_value |
 |----------|---------------------|---------|-------|---------------------|------|-----------|
@@ -65,408 +84,236 @@ From ILO, we get, for each country (ref_area), sex, year (time) and economic act
 | AFG      | EMP_2EMP_SEX_ECO_NB | XA:2198 | SEX_T | ECO_DETAILS_Q       | 1991 | 203.657   |
 | AFG      | EMP_2EMP_SEX_ECO_NB | XA:2198 | SEX_T | ECO_DETAILS_RSTU    | 1991 | 26.282    |
 
-ILO data comprise all persons of working age who, during a specified brief period, were in the following categories: 
-1.  paid employment (whether at work or with a job but not at work); 
-2.  self-employment (whether at work or with an enterprise but not at work). 
-
-ILO Data are disaggregated by economic activity, which refers to the main activity of the establishment in which a person worked during the reference period. 
-The series is part of the [ILO modelled](https://www.ilo.org/ilostat-files/Documents/TEM.pdf). As such, missing data have been estimated and harmonized directly from the ILO model to account for differences in national data and scope of coverage, collection and tabulation methodologies as well as for other country-specific factors (for detailed information about ILO projections see: [ILO modelled estimates and projections](https://ilostat.ilo.org/resources/concepts-and-definitions/ilo-modelled-estimates/).
-
-However, despite the estimated missing data, ILO data do not contain information for all the different Exiobase countries listed in [Exiobase](https://www.exiobase.eu/). 
-Part of the missing information can be calcullated by combining data from the CIA World Factbook (these data are available in the **auxdata** folder : CIA.json) and ILO data. 
-
-```python
-with open("auxdata/CIA.json", "r") as read_file:
-    data_cia = json.load(read_file)
-```
-
-For each missing country available in the World Fact Book but not in the ILO data, two different pieces of information are necessary:
-
-1. The corresponding ILO region or ILO subregion to the missing country belongs;
-2. The corresponding World Bank income level to the missing country belongs. 
-
-These information are found in a dataframe called **correspondance**, which we import from a csv file found in the **auxdata** folder.
-```python 
-    filename = Path('auxdata/countries_en.csv')
-    correspondance_ilo = pd.read_csv(filename)
-```
-| ISO3 Code | Country             | ILO Region              | ILO Subregion - Broad                 | ILO Subregion - Detailed | World Bank Income Group |
-|-----------|---------------------|-------------------------|---------------------------------------|--------------------------|-------------------------|
-| AFG       | Afghanistan         | Asia and the Pacific    | Southern Asia                         | Southern Asia            | Low income              |
-| ALB       | Albania             | Europe and Central Asia | Northern, Southern and Western Europe | Southern Europe          | Upper-middle income     |
-| DZA       | Algeria             | Africa                  | Northern Africa                       | Northern Africa          | Lower-middle income     |
-| ASM       | American Samoa      | Asia and the Pacific    | South-Eastern Asia and the Pacific    | Pacific Islands          | Upper-middle income     |
-| AND       | Andorra             | Europe and Central Asia | Northern, Southern and Western Europe | Southern Europe          | High income             |
-| AGO       | Angola              | Africa                  | Sub-Saharan Africa                    | Central Africa           | Lower-middle income     |
-| AIA       | Anguilla            | Americas                | Latin America and the Caribbean       | Caribbean                | Upper-middle income     |
-| ATG       | Antigua and Barbuda | Americas                | Latin America and the Caribbean       | Caribbean                | High income             |
-| ARG       | Argentina           | Americas                | Latin America and the Caribbean       | South America            | Upper-middle income     |
-
-
-As such, for each missing country available in the World Fact Book but not in the ILO data we get: 
-1. From the **correspondance table**, the corresponding  **ILO region** and  **world bank income group**.
-2. From **CIA**, for certain years, the total workforce.
-
-Then, from ILO data, we calcualte for every pair: ILO region / World bank level of income the average workforce detailed by sex, year and economic activity.
-
-For exemple ASM (American Samoa) is missing from ILO data.
-We look into the correspondance table and find out the ILO Region, ILO Subregion and the World Bank Income Group:
-
-| ISO3 Code | Country        | ILO Region           | ILO Subregion - Broad              | ILO Subregion - Detailed | World Bank Income Group |
-|-----------|----------------|----------------------|------------------------------------|--------------------------|-------------------------|
-| ASM       | American Samoa | Asia and the Pacific | South-Eastern Asia and the Pacific | Pacific Islands          | Upper-middle income     |
-
-Therefore, American Samoa is part of the ILO subregion: South-Eastern Asia and the Pacific. 
-Furthermore, American Samoa is also part of the world bank income group: upper-middle-income.
-
-From CIA, we get the total workforce (for both gender) for a certain year :
-
-|           "labor_force": {           |   |   |
-|--------------------------------------|---|---|
-|             "total_size": {          |   |   |
-|               "total_people": 17850, |   |   |
-|               "global_rank": 213,    |   |   |
-|               "date": "2015"         |   |   |
-
-From CIA, we know that the total American Samoa workforce in **2015** was **17850**.
-
-From ILO, we know how the total workforce of a ILO region (for a certain world bank income group) for a certain year is distributed over the different category. Lets see how the population in 2015 for the Pacific Islands region, Upper-middle income, was distributed over the classifications:
-
-| ref_area | ref_area.label                                          | EXIO3     | indicator           | source  | sex   | classif1          | time | obs_value  |
-|----------|---------------------------------------------------------|-----------|---------------------|---------|-------|-------------------|------|------------|
-| X52      | South-Eastern Asia and the Pacific: Upper-middle income | not found | EMP_2EMP_SEX_ECO_NB | XA:8435 | SEX_T | ECO_DETAILS_TOTAL | 2015 | 172292.597 |
-| X52      | South-Eastern Asia and the Pacific: Upper-middle income | not found | EMP_2EMP_SEX_ECO_NB | XA:8435 | SEX_T | ECO_DETAILS_A     | 2015 | 53674.541  |
-| X52      | South-Eastern Asia and the Pacific: Upper-middle income | not found | EMP_2EMP_SEX_ECO_NB | XA:8435 | SEX_T | ECO_DETAILS_B     | 2015 | 1566.271   |
-| X52      | South-Eastern Asia and the Pacific: Upper-middle income | not found | EMP_2EMP_SEX_ECO_NB | XA:8435 | SEX_T | ECO_DETAILS_C     | 2015 | 25256.27   |
-| X52      | South-Eastern Asia and the Pacific: Upper-middle income | not found | EMP_2EMP_SEX_ECO_NB | XA:8435 | SEX_T | ECO_DETAILS_DE    | 2015 | 824.207    |
-| X52      | South-Eastern Asia and the Pacific: Upper-middle income | not found | EMP_2EMP_SEX_ECO_NB | XA:8435 | SEX_T | ECO_DETAILS_F     | 2015 | 11713.278  |
-| X52      | South-Eastern Asia and the Pacific: Upper-middle income | not found | EMP_2EMP_SEX_ECO_NB | XA:8435 | SEX_T | ECO_DETAILS_G     | 2015 | 30913.497  |
-| X52      | South-Eastern Asia and the Pacific: Upper-middle income | not found | EMP_2EMP_SEX_ECO_NB | XA:8435 | SEX_T | ECO_DETAILS_HJ    | 2015 | 7599.561   |
-| X52      | South-Eastern Asia and the Pacific: Upper-middle income | not found | EMP_2EMP_SEX_ECO_NB | XA:8435 | SEX_T | ECO_DETAILS_I     | 2015 | 9087.836   |
-| X52      | South-Eastern Asia and the Pacific: Upper-middle income | not found | EMP_2EMP_SEX_ECO_NB | XA:8435 | SEX_T | ECO_DETAILS_K     | 2015 | 2665.985   |
-| X52      | South-Eastern Asia and the Pacific: Upper-middle income | not found | EMP_2EMP_SEX_ECO_NB | XA:8435 | SEX_T | ECO_DETAILS_LMN   | 2015 | 3998.469   |
-| X52      | South-Eastern Asia and the Pacific: Upper-middle income | not found | EMP_2EMP_SEX_ECO_NB | XA:8435 | SEX_T | ECO_DETAILS_O     | 2015 | 6489.841   |
-| X52      | South-Eastern Asia and the Pacific: Upper-middle income | not found | EMP_2EMP_SEX_ECO_NB | XA:8435 | SEX_T | ECO_DETAILS_P     | 2015 | 7934.907   |
-| X52      | South-Eastern Asia and the Pacific: Upper-middle income | not found | EMP_2EMP_SEX_ECO_NB | XA:8435 | SEX_T | ECO_DETAILS_Q     | 2015 | 2798.709   |
-| X52      | South-Eastern Asia and the Pacific: Upper-middle income | not found | EMP_2EMP_SEX_ECO_NB | XA:8435 | SEX_T | ECO_DETAILS_RSTU  | 2015 | 7769.226   |
-
-In order to distribute the total workworce of American Samoa in 2015 over the different classifications, we assign the same proportion of the total workforce over the classifications.
-So, the total workforce for the ILO region is 172292. 53674 is allocated to **ECO_DETAILS_A**.
-
-For American Samoa, the total workforce allocated to **ECO_DETAILS_A** will be :
-
-total workforce of American Samoa * (total workforce allocated to **ECO_DETAILS_A** for South-Eastern Asia and the Pacific : Upper-middle income) / (total workforce of for South-Eastern Asia and the Pacific : Upper-middle income) = **5560**
-
-We do this for all categories for this known year and then, we extrapolate the values by making them varying like the ones for the ILO regions : 
-
-```Python
-if str(ILO_region)+': '+str(World_Bank_Income_Group) in data_list_old['ref_area.label'].values:
-    date = int(fetched_data.loc[fetched_data['ISO3']==a,['date']].to_string(index=False, header=False))
-    pop_total_year_know = float((data_list_old.loc[(data_list_old['ref_area.label']==str(ILO_region)+': '+str(World_Bank_Income_Group))&(data_list_old['classif1']=='ECO_SECTOR_TOTAL')&(data_list_old['sex']=='SEX_T')&(data_list_old['time']==date),['obs_value']].to_string(index=False, header=False)))
-    pop_known_year_know = float(fetched_data.loc[fetched_data['ISO3']==a,['population']].to_string(index=False, header=False))
-    for year in range(1991,2020):
-        if year == int(fetched_data.loc[fetched_data['ISO3']==a,['date']].to_string(index=False, header=False)):
-            pop_of_interest = float((data_list_old.loc[(data_list_old['ref_area.label']==str(ILO_region)+': '+str(World_Bank_Income_Group))&(data_list_old['classif1']==c)&(data_list_old['sex']==s)&(data_list_old['time']==year),['obs_value']].to_string(index=False, header=False)))
-            from_cia_to_ilo=from_cia_to_ilo.append(pd.Series([a,cc_all.convert(names = a ,src = 'ISO3',to='name_official'),cc_all.convert(names = a ,src = 'ISO3',to='EXIO3'),s,c,year,pop_known_year_know/pop_total_year_know*pop_of_interest,'ILO_region'], index=[i for i in column_data_list]),ignore_index=True)
-        else:
-            pop_of_interest = float((data_list_old.loc[(data_list_old['ref_area.label']==str(ILO_region)+': '+str(World_Bank_Income_Group))&(data_list_old['classif1']==c)&(data_list_old['sex']==s)&(data_list_old['time']==year),['obs_value']].to_string(index=False, header=False)))
-            pop_country=pop_known_year_know*pop_of_interest/pop_total_year_know
-            from_cia_to_ilo=from_cia_to_ilo.append(pd.Series([a,cc_all.convert(names = a ,src = 'ISO3',to='name_official'),cc_all.convert(names = a ,src = 'ISO3',to='EXIO3'),s,c,year,pop_country,'ILO_region'], index=[i for i in column_data_list]),ignore_index=True)
-```
-
-
-The remaining countries have to be filled by hand in a file. This file is also available in the **auxdata** folder:
-
-```python
-xls = pd.ExcelFile('auxdata/Exiobase_Population_Data_not_found.xlsx')
-    missing_data = pd.read_excel(xls, 'Exiobase data not automatised')
-```
-
-In this file, we have for each remaining missing countries, the corresponding ILO region and World bank income group. We have also the workforce value for all years from 1990 to 2020 included.
-
-| ISO3 | Name                              | Label_short           | Remark         | 1990  | 1991  | 1992  | 1993  | 1994  | 1995  | 1996  | 1997  | 1998  | 1999  | 2000  | 2001  | 2002  | 2003  | 2004  | 2005  | 2006  | 2007  | 2008  | 2009  | 2010 | 2011  | 2012  | 2013  | 2014 | 2015 | 2016 | 2017  | 2018  | 2019  | 2020 |
-|------|-----------------------------------|-----------------------|----------------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|------|-------|-------|-------|------|------|------|-------|-------|-------|------|
-| ATA  | Antarctica                        | Americas: High income | Only scientist | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0    | 0     | 0     | 0     | 0    | 0    | 0    | 0     | 0     | 0     | 0    |
-| BES  | Bonaire, Saint Eustatius and Saba | Americas: High income |                | 13019 | 13429 | 13934 | 14443 | 14863 | 15107 | 15164 | 15083 | 14887 | 14638 | 14393 | 14127 | 13886 | 13748 | 13894 | 14403 | 15337 | 16649 | 18153 | 19646 | 2094 | 21993 | 22842 | 23505 | 2407 | 2457 | 2502 | 25401 | 25711 | 25979 | N/A  |
-| BVT  | Bouvet Island                     | Americas: High income |                | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0    | 0     | 0     | 0     | 0    | 0    | 0    | 0     | 0     | 0     | 0    |
-| CCK  | Cocos (Keeling) Islands           | Pacific Islands       |                | N/A   | 370   | 371   | 374   | 386   | 400   | 407   | 412   | 419   | 428   | 439   | 444   | 451   | 458   | 466   | 478   | 488   | 499   | 508   | 508   | 516  | 525   | 531   | 538   | 544  | 553  | 563  | 574   | 585   | 595   | N/A  |
-| CXR  | Christmas Island                  | Pacific Islands       |                | N/A   | 1210  | 1214  | 1225  | 1265  | 1311  | 1331  | 1348  | 1373  | 1400  | 1436  | 1453  | 1476  | 1500  | 1525  | 1565  | 1598  | 1635  | 1664  | 1664  | 1689 | 1720  | 1740  | 1762  | 1781 | 1812 | 1843 | 1878  | 1916  | 1947  | N/A  |
-
-For these missing countries, the procedure is the same as before.
-
-
-Having the  workforce per country / sex / classification / year, we then aggregate per Exiobase region :
-
-| EXIO3 | sex   | classif1      | time | obs_value        |
-|-------|-------|---------------|------|------------------|
-| AT    | SEX_T | ECO_DETAILS_A | 2010 | 213.384          |
-| AU    | SEX_T | ECO_DETAILS_A | 2010 | 360.337          |
-| BE    | SEX_T | ECO_DETAILS_A | 2010 | 60.838           |
-| BG    | SEX_T | ECO_DETAILS_A | 2010 | 209.73           |
-| BR    | SEX_T | ECO_DETAILS_A | 2010 | 11121.723        |
-| CA    | SEX_T | ECO_DETAILS_A | 2010 | 315.67           |
-| CH    | SEX_T | ECO_DETAILS_A | 2010 | 146.698          |
-| CN    | SEX_T | ECO_DETAILS_A | 2010 | 278066           |
-| CY    | SEX_T | ECO_DETAILS_A | 2010 | 20.835           |
-| CZ    | SEX_T | ECO_DETAILS_A | 2010 | 151.357          |
-| DE    | SEX_T | ECO_DETAILS_A | 2010 | 636.347          |
-| DK    | SEX_T | ECO_DETAILS_A | 2010 | 68.019           |
-| EE    | SEX_T | ECO_DETAILS_A | 2010 | 24.035           |
-| ES    | SEX_T | ECO_DETAILS_A | 2010 | 797.711          |
-| FI    | SEX_T | ECO_DETAILS_A | 2010 | 109.005          |
-| FR    | SEX_T | ECO_DETAILS_A | 2010 | 782.908          |
-| GB    | SEX_T | ECO_DETAILS_A | 2010 | 363.198          |
-| GR    | SEX_T | ECO_DETAILS_A | 2010 | 534.412          |
-| HR    | SEX_T | ECO_DETAILS_A | 2010 | 242.885          |
-| HU    | SEX_T | ECO_DETAILS_A | 2010 | 172.159          |
-| ID    | SEX_T | ECO_DETAILS_A | 2010 | 42708.68         |
-| IE    | SEX_T | ECO_DETAILS_A | 2010 | 111.679          |
-| IN    | SEX_T | ECO_DETAILS_A | 2010 | 225087.938       |
-| IT    | SEX_T | ECO_DETAILS_A | 2010 | 845.552          |
-| JP    | SEX_T | ECO_DETAILS_A | 2010 | 2582.085         |
-| KR    | SEX_T | ECO_DETAILS_A | 2010 | 1606.176         |
-| LT    | SEX_T | ECO_DETAILS_A | 2010 | 110.074          |
-| LU    | SEX_T | ECO_DETAILS_A | 2010 | 2.514            |
-| LV    | SEX_T | ECO_DETAILS_A | 2010 | 74.474           |
-| MT    | SEX_T | ECO_DETAILS_A | 2010 | 2.192            |
-| MX    | SEX_T | ECO_DETAILS_A | 2010 | 6437.427         |
-| NL    | SEX_T | ECO_DETAILS_A | 2010 | 257.907          |
-| NO    | SEX_T | ECO_DETAILS_A | 2010 | 64.062           |
-| PL    | SEX_T | ECO_DETAILS_A | 2010 | 2143.591         |
-| PT    | SEX_T | ECO_DETAILS_A | 2010 | 549.721          |
-| RO    | SEX_T | ECO_DETAILS_A | 2010 | 2733.412         |
-| RU    | SEX_T | ECO_DETAILS_A | 2010 | 5469.298         |
-| SE    | SEX_T | ECO_DETAILS_A | 2010 | 95.017           |
-| SI    | SEX_T | ECO_DETAILS_A | 2010 | 85.161           |
-| SK    | SEX_T | ECO_DETAILS_A | 2010 | 74.489           |
-| TR    | SEX_T | ECO_DETAILS_A | 2010 | 5340.59          |
-| TW    | SEX_T | ECO_DETAILS_A | 2010 | 584.185          |
-| US    | SEX_T | ECO_DETAILS_A | 2010 | 2015.61          |
-| WA    | SEX_T | ECO_DETAILS_A | 2010 | 223589.285567905 |
-| WE    | SEX_T | ECO_DETAILS_A | 2010 | 425602.246566898 |
-| WF    | SEX_T | ECO_DETAILS_A | 2010 | 352994.561402374 |
-| WL    | SEX_T | ECO_DETAILS_A | 2010 | 135852.625407734 |
-| WM    | SEX_T | ECO_DETAILS_A | 2010 | 15613.147        |
-| ZA    | SEX_T | ECO_DETAILS_A | 2010 | 690.377          |
-
-
-
-
-Finally, we split the workforce per country / sex / classification / year further by introducing the skill level of the employees (**salary_split.py**).
-So, for each country / sex / classification / year, we split the workforce by : 
-
-1. Low qualification
-2. Middle qualification
-3. high qualification
-
-
-
-Following this, 2 files are produced :
-1. workforce.to_csv('workforce.csv')
-2. split.xlsx
-
-
-### 3. average_working_hours
-
-```python
-average_hour = working_hour(workforce,src_csv2,data_path,src_csv3)
-```
-
-In order for this module to run properly, we need to import 8 other modules : 
-
-```python
-from clean_workforce import clean
-from clean_hour_list import clean_hour
-from clean_hour_eurostat import reshape_eurostat
-from isic3_to_isic4 import correspondance_isic
-from substitute import substitute_isic_a
-from combine_isic_3_4 import combine
-from aggregate_isic import aggregate
-from average_hour import average_working_hour
-```
-
-**clean_workforce.py**
-```python
-workforce,workforce2 = clean (workforce,coco)
-```
-This module remove some unwanted information in the workforce table.
-We also introduce here the EXIO3 region corresponding to each ISO3 country code.
-
-
-**clean_hour_list.py**
-```python
-hour_list,hour_list_without_zero = clean_hour(hour_list)
-```
-This module also remove unwanted informations from the hour_list dataframe.
-It also replace 0 values by empty clean_hour_list
-
-**clean_hour_eurostat.py**
-```python
-hour_eurostat_reshape = reshape_eurostat(hour_eurostat,cc_all)
-```
-This module remove unwanted informations :
-```python
-hour_eurostat = hour_eurostat[hour_eurostat['age'].str.contains('Y15-64',regex=True)]
-hour_eurostat = hour_eurostat[hour_eurostat['worktime'].str.contains('TOTAL',regex=True)]
-hour_eurostat = hour_eurostat[hour_eurostat['sex'].str.contains('F|M',regex=True)]
-hour_eurostat = hour_eurostat[hour_eurostat['wstatus'].str.contains('EMP',regex=True)]
-hour_eurostat = hour_eurostat[hour_eurostat['nace_r1'].str.contains('A_B',regex=True)]
-hour_eurostat = hour_eurostat[~hour_eurostat['geo\\time'].str.contains('EA19|EU15|EU27_2020|EU28')]
-hour_eurostat.columns = hour_eurostat.columns.str.replace(' ', '')
-```
-
-and we create a new dataframe where we keep only information for the ISIC_A categorie, values which will be used later in the script
-```python
-hour_eurostat_reshape = pd.DataFrame(data=None,columns=['ref_area','sex','classif1','time','obs_value'])
-for code in hour_eurostat.ref_area.unique():
-    for year in range(1992,2009):
-        for sex in hour_eurostat.sex.unique():
-            for classif in hour_eurostat.classif1.unique():
-                if not hour_eurostat.loc[(hour_eurostat['ref_area']==code)&(hour_eurostat['sex']==sex)&(hour_eurostat['classif1']==classif),[year]].isnull().values.all(): 
-                    value =  float(hour_eurostat.loc[(hour_eurostat['ref_area']==code)&(hour_eurostat['sex']==sex)&(hour_eurostat['classif1']==classif),[year]].to_string(index=False, header=False))
-                    hour_eurostat_reshape=hour_eurostat_reshape.append(pd.Series([code,sex,'ECO_ISIC3_A',year,value], index=[i for i in hour_eurostat_reshape]),ignore_index=True)
-        
-                    break
-```
-
-
-**Interpolation and regression**
-
-If is does exist empty cells between 2 known values, we interpolate linearly between the known values
-```python    
-hour_eurostat_reshape_pivot_interpolate = hour_eurostat_reshape_pivot.interpolate(method='linear',axis=1,limit_area='inside')
-```
-for the regression, we use :
-**regression_ILO_region_with_minimum.py**
-```python
-hour_eurostat_reshape_pivot_extrapolate = regression(hour_eurostat_reshape_pivot_interpolate,1992,2008)
-```
-
-This module does an extrapolation in order to fill empty cells before the first known value or after the last know value.
-The way the module works is :
-1. If there is only one value available, we keep this value constant for all years.
-```python
-    if first_year == last_year:
-        value =hour_pivot.loc[(hour_pivot.index==code),[first_year]]
-        value=float(value.to_string(index=False, header=False))
-        for years  in list(range(year_begin,year_end+1)):   
-            hour_pivot.loc[(hour_pivot.index==code),[years]] = value
-
-        continue
-    pass
-```
-2. If there are 2 known values, we calculate the average and allocate this value to the years where the value is unknown
-```python
-    if last_year-first_year==1 :
-        valeur=0
-        for years in range (first_year, last_year+1):
-            instant=hour_pivot.loc[(hour_pivot.index==code),[years]]
-            instant=float(instant.to_string(index=False, header=False))
-            valeur=valeur+instant
-        valeur= valeur // 2
-        
-        
-        for years in range (year_begin,first_year):
-            if hour_pivot.loc[(hour_pivot.index==code),[years]].isnull().values.all():
-                hour_pivot.loc[(hour_pivot.index==code),[years]]=valeur
-
-        for years in range (last_year,year_end+1):
-            if hour_pivot.loc[(hour_pivot.index==code),[years]].isnull().values.all():
-                hour_pivot.loc[(hour_pivot.index==code),[years]]=valeur
-        
-        continue
-```
-
-3. If the are 3 or more known values, we look at the **number of consecutive values** and keep this number in memory.
-In order to get the unknown value before the first known value, we do the average of the known values and allocate the result to the unknown value. We then, carry on with the same method by averaging over the same amount of known values.
-```python
-if (last_year-first_year>=2) : 
-    print(code)
-    known_values = (last_year-first_year)+1
-    first_values = list(i for i in range(1,known_values+1))
-    last_values = list(i for i in range(known_values+1,2*known_values+1))
-    print(known_values, first_values, last_values)
-    for years in range(first_year-1,year_begin-1,-1):
-        for num in first_values:
-            print(num, first_year-1, year_begin-1)
-            value_num= hour_pivot.loc[(hour_pivot.index==code),[years+num]]
-            value_num=float(value_num.to_string(index=False, header=False))
-            first_consecutive_values[(num)]=value_num  
-        numbers1 = [first_consecutive_values[key] for key in first_consecutive_values]
-        average = statistics.mean(numbers1)
-        #if average> minimum  :
-        hour_pivot.loc[(hour_pivot.index==code),[years]]=average
-    first_consecutive_values={}
-    known_values = (last_year-year_begin)+1
-    
-    
-    last_values = list(i for i in range(1,known_values+1))
-    print(code, known_values, last_values)
-    for years in range(last_year+1,year_end+1):
-        print(years)
-        for num in last_values:
-            value_num= hour_pivot.loc[(hour_pivot.index==code),[years-num]]
-            value_num=float(value_num.to_string(index=False, header=False))
-            last_consecutive_values[(num)]=value_num 
-                
-                
-        numbers1 = [last_consecutive_values[key] for key in last_consecutive_values]
-        average = statistics.mean(numbers1)
-        print(average)
-        #if average> minimum:
-        hour_pivot.loc[(hour_pivot.index==code),[years]]=average
-    last_consecutive_values={}
-    
-        
-    
-    continue
-pass
-```
-
-**isic3_to_isic4.py**
-
-```python
-isic4_from_isic3_data = correspondance_isic(isic3)
-```
-The ISIC classification changed in 2008 and took effect in 2009.
-In order to have a continuity of values from 1995 to 2020, we need to translate the ISIC3 values to ISIC4 values for the period 1995-2008, following the [correspondance](auxdata/correspondance_ISIC3_ISIC4.xls).
-
-
-**substitute.py**
-
-```python
-isic4_from_isic3_data = substitute_isic_a(hour_eurostat_reshape_pivot_extrapolate,isic4_from_isic3_data)
-```
-
-Because there is a change in ISIC classification from 2009, as we "transpose" ISIC3 to ISIC4, we introduce some scattering into the ISIC values. This is mainly found for the **ISIC A** classification corresponding to **Agriculture; forestry and fishing**.
-One way to reduce the scattering is to substitute the ISIC A values form 1995 to 2008 by the corresponding data from eurostat.
-ISIC values                |  Values with Eurostat
-:-------------------------:|:-------------------------:
-![](pictures_readme/outliers1.png)   |  ![](pictures_readme/outliers2.png)
-
-**combine_isic_3_4.py**
-
-```python
-new_table_150222 = combine(hour_list,isic4_from_isic3_data,new_table_150222,new_table_150222_columns,isic4)
-```
-This module combine in a new dataframe, the ISIC3 values (transposed to ISIC classification) from years 1995 to 2008 inclued and the ISIC4 values for years 2009-2020. 
-
-**aggregate_isic.py**
-We have for every ISIC categories, the average number of working hour.
-As some ISIC categories do not existe on their own, we have to aggregage some of them. 
-In order to do this, we apply the average to the new ISIC category.
-So ISIC D,E,H,J,L,M,N,R,R,T,U deseappear and ISIC DE, HJ, LMN and RSTU are created.
-
-
-**average_hour.py**
-
-```python
-final_table = average_working_hour(new_table_150222_pivot_extrapolate,cc_all,workforce2,final_table)
-```
-Finally, we calculate the average working hour per EXIO3 region per ISIC category per year and per sex.
-The calculation is done by taking into consideration, for each ISO3 country, the average working hour and the workforce.
-So, for each EXIO3 region, we calculate the weighted average of all countries included in this particular region.
-
+ILO counts all persons of working age who, in a short reference period,
+were in paid employment (at work, or with a job but not at work) or
+self-employed. The activity is the main activity of the establishment.
+The series are [ILO modelled estimates](https://ilostat.ilo.org/resources/concepts-and-definitions/ilo-modelled-estimates/):
+missing national data are estimated by ILO.
+
+`ref_label.add_ref_label` attaches the ILO area labels (taken from the
+export itself) and the axis region of every ISO3 code
+(`config.convert_to_region`: country_converter `EXIO3` on e3, io_utils on
+rx2).
+
+### Countries ILO does not model
+
+ILO's modelled estimates do not cover every country of the axis.
+`from_cia_to_ilo.cia_to_ilo` adds three groups, each tagged in
+`obs_status`:
+
+1. **Countries in the CIA World Factbook** (`auxdata/CIA.json`). The
+   Factbook gives a total workforce for one year. The country is placed in
+   an ILO aggregate with `auxdata/countries_en.csv`:
+
+   | ISO3 Code | Country             | ILO Region              | ILO Subregion - Broad                 | ILO Subregion - Detailed | World Bank Income Group |
+   |-----------|---------------------|-------------------------|---------------------------------------|--------------------------|-------------------------|
+   | AFG       | Afghanistan         | Asia and the Pacific    | Southern Asia                         | Southern Asia            | Low income              |
+   | ALB       | Albania             | Europe and Central Asia | Northern, Southern and Western Europe | Southern Europe          | Upper-middle income     |
+   | ASM       | American Samoa      | Asia and the Pacific    | South-Eastern Asia and the Pacific    | Pacific Islands          | Upper-middle income     |
+
+   The aggregate is "<ILO subregion>: <income group>", else "<ILO region>:
+   <income group>", else "World: <income group>"
+   (`resolve_aggregate`). The country's share of that aggregate in the
+   Factbook year is held for every year, and the aggregate's own
+   breakdown by sex and activity is applied. Example: American Samoa had a
+   workforce of 17,850 in 2015 (Factbook); its aggregate, "South-Eastern
+   Asia and the Pacific: Upper-middle income" (X52), had 172,292.597
+   thousand employed in 2015, of whom 53,674.541 in `ECO_DETAILS_A`:
+
+   | ref_area | ref_area.label                                          | sex   | classif1          | time | obs_value  |
+   |----------|---------------------------------------------------------|-------|-------------------|------|------------|
+   | X52      | South-Eastern Asia and the Pacific: Upper-middle income | SEX_T | ECO_DETAILS_TOTAL | 2015 | 172292.597 |
+   | X52      | South-Eastern Asia and the Pacific: Upper-middle income | SEX_T | ECO_DETAILS_A     | 2015 | 53674.541  |
+   | X52      | South-Eastern Asia and the Pacific: Upper-middle income | SEX_T | ECO_DETAILS_C     | 2015 | 25256.27   |
+   | X52      | South-Eastern Asia and the Pacific: Upper-middle income | SEX_T | ECO_DETAILS_G     | 2015 | 30913.497  |
+
+   so American Samoa's agriculture in 2015 is 17,850 x 53,674.541 /
+   172,292.597 = 5,560 people, and other years follow the aggregate.
+   Jersey and Guernsey are built only when ILO lacks the Channel Islands
+   (CHI), so the islands are not counted twice; Factbook names
+   country_converter does not resolve are mapped in `CIA_ISO3_OVERRIDES`.
+
+2. **Hand-compiled entities** (`auxdata/Exiobase_Population_Data_not_found.xlsx`,
+   sheet "Exiobase data not automatised"): a yearly total for 1990-2022 and
+   the ILO aggregate of each entity, for example:
+
+   | ISO3 | Name                              | Label_short           | 2015 | 2016 | 2017  |
+   |------|-----------------------------------|-----------------------|------|------|-------|
+   | CCK  | Cocos (Keeling) Islands           | Pacific Islands       | 553  | 563  | 574   |
+   | CXR  | Christmas Island                  | Pacific Islands       | 1812 | 1843 | 1878  |
+
+   These totals are population, so each is multiplied by the
+   employment-to-population ratio of its ILO aggregate (ILO employment
+   over `POP_2POP_SEX_NB_A`, same aggregate and year);
+   `LABOR_TERRITORY_PARTICIPATION=0` books them as they are. The
+   breakdown by sex and activity is the aggregate's, as above. After 2022
+   the share of the aggregate is held at its last year
+   (`ILO_Subregion_Broad_nowcast`, see COVERAGE.md).
+
+3. **Countries ILO stops reporting** (Ukraine after 2021, also SDN, SSD,
+   LBN, PSE): every cell is held at its last reported value
+   (`ILO_dropout_carried`).
+
+The complete table is summed to the axis regions
+(`table_workforce_by_EXIO3.csv`, `workforce_total_exio3.csv` in the
+final_table folder) and written as `workforce.csv` by `run_windows.py`.
+
+### Salary split: ILO activity groups to EXIOBASE industries
+
+`salary_split_ray.salary_split_year` spreads each region's ILO employment
+of an activity group over the EXIOBASE industries in it
+(`auxdata/Exiobase_ISIC_Rev-4.xlsx`, sheet `ILO_mapping_sector`) in
+proportion to each industry's compensation of employees, the SUT
+value-added rows `w03.a/b/c` (low, medium, high skilled) of the
+per-country `usebpdom.csv` under `config.yaml` `paths.sut_csv_root`.
+Sections whose industries have no wages fall back to output for A and
+RSTU; men and women follow ILO's sex shares of the activity group. One
+year is one task (`calcul_year_impl`), working one region at a time.
+
+`skill_splice` replaces, for the regions and years listed in
+`config.yaml` `skill_split_splice`, an industry's wage-bill skill shares
+before a break in 06-SUT_balance's `coe-shares.mat` with the shares of the
+first year after it (CN, IN, ID, WA, WF, US, IT); the industry totals are
+unchanged.
+
+### People by skill from ILO occupation
+
+`skill_from_occupation.rebalance` sets the number of people at each skill
+level (since 2026-11; `LABOR_SKILL_FROM_WAGES=1` keeps the wage-share
+split). Per region, year and sex:
+
+- row totals: the people of each industry from the salary split;
+- column totals: people by ISCO-08 skill level from ILO's modelled
+  employment by occupation (`EMP_2EMP_SEX_OCU_NB_A`): groups 1-3 high,
+  4-8 medium, 9 low. ILO merges groups 6 and 9 into group 96, split by the
+  country's survey ratio 9 / (6 + 9) (`EMP_TEMP_SEX_OCU_NB_A`, pooled over
+  the years that report both groups); else group 6 = alpha x the
+  country's agricultural employment, alpha the median survey ratio of
+  group 6 to agricultural employment for that sex, where that is below
+  group 96; else the world's pooled ratio. Countries are summed to the
+  region with their employment as weight; a country with no modelled row
+  takes its UN region's mix, then the world's;
+- structure inside each industry: the wage bill by skill, balanced to
+  both totals by RAS.
+
+Outputs: `split_workforce_by_skill_newSUT.xlsx` (one sheet per year) and
+`skill_shares_occupation.csv` in the final_table folder.
+
+## Stage 2: hours
+
+`average_working_hours.working_hour` turns people into hours.
+
+### Weekly hours by country, sex and activity group
+
+- ILO mean weekly hours actually worked (`HOW_TEMP_SEX_ECO_NB_A`), zero
+  values dropped. Countries that report only activity aggregates get ISIC4
+  rows from them (`add_isic4_from_aggregates`).
+- Eurostat usual weekly hours (`lfsa_ewhuna`), kept for ages 15-64, men
+  and women separately, full-time and part-time together, employed and
+  self-employed, NACE A_B (agriculture and forestry, where NACE and ISIC
+  match), country rows only, 1992-2008 (`clean_hour_eurostat`).
+- ISIC Rev.3 rows (to 2008) are converted to ISIC Rev.4
+  (`isic3_to_isic4_vectorised`, `auxdata/correspondance_ISIC3_ISIC4.xls`,
+  weighted by the workforce), and section A before 2009 is replaced by
+  the Eurostat value (`substitute`), because the conversion scatters
+  agriculture. `combine_isic_3_4_vectorised` keeps the converted Rev.3
+  values before 2009 and native Rev.4 from 2009.
+- Sections are grouped as ILO groups them (D+E, H+J, L+M+N, R+S+T+U) by
+  averaging (`aggregate_isic_vectorised`).
+
+Gaps in a series are filled linearly between observed years; outside them
+(`regression_ILO_region_with_minimum`, `..._ray`):
+
+- one observed value: held for every year;
+- two: their mean (no longer floored to a whole hour since 3.12.0 release
+  2);
+- three or more: each missing year takes the mean of as many neighbouring
+  values as there are observations, moving outwards.
+
+`complete_hours` adds empty rows for the ISIC4 sections a country does
+not report, and `complete_hours_2` fills the grouped sections (DE, HJ,
+LMN, RSTU) from their components (the mean where both are there, else the
+one that is), before the regional averages.
+
+### Regions
+
+A single-country region uses its own country. A rest-of-world bucket (WA,
+WE, WF, WL, WM) takes the average of its countries weighted by
+workforce; a country with no hours for a cell takes its region's average
+(`regional_infill`). A single-country region whose country reports no
+hours (Taiwan on e3, 22 countries on rx2) takes its e3 bucket's average,
+and a main-country cell with no hours takes the rest-of-world bucket of
+its ILO region (`ILO_REGION_BUCKET`). Ukraine's 2022 row in WE carries its
+2021 hours with the population scaled by 0.845 (e3 only).
+
+### Hours per year
+
+For each region, industry, skill level and sex:
+
+**Employment hours = weekly hours x people x (260 - paid vacation and
+public holiday days) / 5**
+
+`annual_hours.working_weeks`; vacation days from
+`auxdata/whole_vacation.csv`, the unweighted mean of a region's countries,
+else the mean of its e3 bucket. A region that takes its hours from another
+region keeps its own vacation days. Until 2026-11 the code used weekly
+hours x 52. The industry's weekly hours are those of its ILO activity
+group and sex (`concordance_category`). Fallbacks the split had to use are
+written to `hours_fallbacks.csv`; the hours by skill to
+`hours_split_newSUTS.xlsx`.
+
+### Vulnerable employment
+
+`vulnerable_employment.region_shares` gives the share of own-account and
+contributing family workers (ICSE-93 groups 3 and 5) by region, sex, ILO
+activity group and year: the national share by sex from
+`EMP_2EMP_SEX_STE_NB_A`, spread over the 14 activity groups by the
+country's survey profile (`EMP_TEMP_SEX_STE_ECO_NB_A`, pooled over its
+survey years; UN region, then world, where it has no survey for a group)
+with one logit shift that keeps the national share, then weighted by
+employment over a region's countries. The share of an industry's group
+applies to its people and hours (`vulnerable_shares.csv`).
+
+### The handoff workbook
+
+`final_labor_SUTs_<version>.xlsx`, one sheet per year, 14 rows by (region,
+sector) columns in the axis order (rx2 sheets are written long, since 159
+x 163 columns exceed Excel's limit):
+
+| Row | Unit |
+| --- | --- |
+| `Employment people: <Low/Medium/High>-skilled <male/female>` (6) | 1000 p |
+| `Employment hours: <Low/Medium/High>-skilled <male/female>` (6) | M.hr |
+| `Vulnerable employment: people` | 1000 p |
+| `Vulnerable employment: hours` | M.hr |
+
+The vulnerable rows are a subset of the six skill and sex rows and are
+named so that totals summing `Employment people.*` or `Employment hours.*`
+do not count them twice. `desire_upload_prepper`
+(`exiobase_labour_extensions_reformat.py`) writes the workbook into
+`raw/Extensions/labour/{ixi,pxp}/<year>/`, deriving pxp from ixi through
+the MRSUT product mix.
+
+## After the build
+
+- `scripts/nowcast_tail.py` projects ixi on the release tree to 2028
+  (io_utils `level_trend`, median-robust slope from 2009, capped at 5% a
+  year) and derives pxp through the product mix of the target year;
+  `--check` compares without writing, `--axis rx2` uses the per-country
+  supply tables. Method choice: COVERAGE.md.
+- `scripts/build_labour_risk.py` builds the `labour_risk` extension from
+  the workbook and `workforce.csv` (informal employment, working poverty,
+  long hours, child labour, forced labour, deaths and DALYs from long
+  working hours). Sources and method: README, COVERAGE.md and the
+  docstrings of `labour_risk/`.
+
+## Tests
+
+`pytest tests` with the repo venv. The equivalence tests
+(`test_isic3_to_isic4_equivalence`, `test_combine_equivalence`,
+`test_aggregate_equivalence`) compare the vectorised hours modules with
+the original implementations on three countries; they need the stage-1
+outputs on D: (and ray for the combine test) and skip without them.
 
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
