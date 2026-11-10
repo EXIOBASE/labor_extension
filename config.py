@@ -68,7 +68,16 @@ YEAR_END = _req_int("years.end")
 
 
 def year_range() -> range:
-    """Years to build, as a range (YEAR_END is inclusive in config)."""
+    """Years to build, as a range (YEAR_END is inclusive in config).
+
+    LABOR_YEARS=2020 or LABOR_YEARS=1995-2010 overrides config for every
+    stage (it used to reach only the salary split, so the hours stage then
+    asked the split workbook for years it did not have).
+    """
+    override = os.environ.get("LABOR_YEARS")
+    if override:
+        lo, _, hi = override.partition("-")
+        return range(int(lo), int(hi or lo) + 1)
     return range(YEAR_START, YEAR_END + 1)
 FINAL_LABOR_FILENAME = _req_str("final_labor_filename")
 

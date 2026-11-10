@@ -77,14 +77,8 @@ def read_sut_csv(path):
 
 
 def _resolve_years():
-    """Years to build: config.yaml, or LABOR_YEARS=2020 / LABOR_YEARS=1995-2010."""
-    override = os.environ.get("LABOR_YEARS")
-    if not override:
-        return list(_cfg.year_range())
-    if "-" in override:
-        lo, hi = (int(p) for p in override.split("-", 1))
-        return list(range(lo, hi + 1))
-    return [int(override)]
+    """Years to build: config.year_range(), which honours LABOR_YEARS."""
+    return list(_cfg.year_range())
 
 
 def calcul_year_impl(years, salary_split2, exio3_codes, concordance,
