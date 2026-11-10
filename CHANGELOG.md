@@ -5,6 +5,43 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Fixed (3.12.0 release 2, branch improve-labour-account)
+
+- **Channel Islands counted once (3.12.0 release 2).** ILO reports the
+  islands as one entity (CHI), and Jersey (JEY) and Guernsey (GGY) were also
+  rebuilt from the Factbook as "missing", so rest-of-world Europe held the
+  islands twice (2020: CHI 79.4 thousand, plus JEY 60.7 and GGY 33.5). JEY
+  and GGY are now built only when ILO lacks CHI
+  (`from_cia_to_ilo.DOUBLE_COUNTED`). Test:
+  `tests/test_supplementary_countries.py`.
+- **Territory totals scaled from population to workforce (3.12.0 release 2,
+  register R-LAB-04).** The 11 non-zero entities that come from the
+  hand-compiled `auxdata/Exiobase_Population_Data_not_found.xlsx` (BES, CCK,
+  CXR, XKX, SJM, VAT, MYT, GUF, MTQ, GLP, NRU) are total population
+  (worldometers, World Bank SP.POP.TOTL, statisticstimes), and were booked as
+  if every inhabitant were employed. Each total is now multiplied by the
+  employment-to-population ratio of the entity's own ILO aggregate (ILO
+  employment over ILO total population `POP_2POP_SEX_NB_A`, same aggregate and
+  year), which `run_windows.py` now downloads. The Factbook-anchored
+  entities (JEY, GGY and the rest) are labour-force figures already and are
+  unchanged. `LABOR_TERRITORY_PARTICIPATION=0` restores the 3.12.0 behaviour;
+  the default is on, and a missing population file stops the run rather than
+  falling back silently. Effect on 2020 workforce (thousand, stage 1 only,
+  scratch build): Kosovo 1,790.1 -> 606.0, Guadeloupe 407.4 -> 165.7,
+  Martinique 356.6 -> 163.6, French Guiana 289.1 -> 132.6, Mayotte 284.4 ->
+  103.4; rest-of-world Latin America 126,587.5 -> 125,982.2 (-0.48%),
+  Europe 33,855.8 -> 32,620.0 (-3.65%, of which Kosovo -1,184.1, the
+  Channel Islands fix -94.2, Isle of Man +44.5).
+- **Territories ILO has no aggregate for are no longer skipped (3.12.0
+  release 2).** Seychelles (Factbook), Reunion and the British Indian Ocean
+  Territory (hand-compiled) are labelled "Africa: High income" or sit in a
+  region with no high-income group, and were dropped silently because ILO
+  has no such aggregate. They now scale against "World: <income group>"
+  (`obs_status = ILO_World_income`). The Isle of Man was dropped because the
+  country_converter regex does not resolve the Factbook name `isle_of_man`;
+  `CIA_ISO3_OVERRIDES` resolves it. 2020 workforce, thousand: Seychelles
+  50.1, Reunion 405.9, British Indian Ocean Territory 1.4, Isle of Man 44.5.
+
 ### Changed (branch improve-labour-account, docs/improvement_plan_2026-11-06.md)
 
 - **Hours per year: weekly hours * (260 - paid vacation and public holiday
