@@ -1315,7 +1315,11 @@ def working_hour(workforce,src_csv2,data_path,src_csv3,final_path=None):
                         pop_low_skill_women = 1000* float(workforce_year.loc[(workforce_year.Country == code) & (workforce_year.Sector == concordance.loc[concordance.Name == sector,'CodeNr'].to_string(index=False)),'Split Low qualification employment - female'].to_string(index=False, header=False))
 
 
-                        vacation = float(vacation_average.loc[vacation_average.EXIO3 == _fb_region,'Total Paid Vacation Days'].to_string(index=False,header=False))
+                        # Hours come from the fallback region; vacation days,
+                        # which enter the hours through working_weeks, are the
+                        # region's own where it has them (e3: TW, 17 days).
+                        _vac_region = code if (vacation_average.EXIO3 == code).any() else _fb_region
+                        vacation = float(vacation_average.loc[vacation_average.EXIO3 == _vac_region,'Total Paid Vacation Days'].to_string(index=False,header=False))
                         weeks = working_weeks(vacation)
 
                         classif1 = concordance_category(concordance, sector)
