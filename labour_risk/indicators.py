@@ -30,10 +30,12 @@ alongside (columns ref_area, region, sex, group, time, share, E), ready for
   rate. The national rate is spread over activity groups in proportion to
   the vulnerable share (working poverty is concentrated in own-account and
   family work), capped at 1 and rescaled to keep the national rate.
-- `long_hours`: share of employed people usually working 49 hours a week or
-  more (ILO's "excessive hours" band, `EMP_TEMP_SEX_HOW_NB_A`); national by
-  sex, no activity detail, so uniform over groups; gaps take the UN region,
-  then the world.
+- `long_hours`: share of employed people who actually worked 49 hours a week
+  or more in the reference week (ILO's "excessive hours" band,
+  `EMP_TEMP_SEX_HOW_NB_A`, hours actually worked, not usual hours), out of
+  those whose hours are classified (HOW_BANDS_X left out of the
+  denominator); national by sex, no activity detail, so uniform over
+  groups; interpolated over years, gaps take the UN region, then the world.
 """
 from __future__ import annotations
 
@@ -206,10 +208,14 @@ def working_poverty(vul_country: pd.DataFrame, risk_dir: Path, un: dict, years) 
 def long_hours(vul_country: pd.DataFrame, risk_dir: Path, un: dict, years) -> pd.DataFrame:
     d = pd.read_csv(risk_dir / "EMP_TEMP_SEX_HOW_NB_A.csv",
                     usecols=["ref_area", "sex", "classif1", "time", "obs_value"])
-    d = d[d["sex"].isin(SEXES) & d["classif1"].isin(["HOW_BANDS_HGE49", "HOW_BANDS_TOTAL"])]
+    d = d[d["sex"].isin(SEXES) & d["classif1"].isin(["HOW_BANDS_HGE49", "HOW_BANDS_TOTAL", "HOW_BANDS_X"])]
     p = d.pivot_table(index=["ref_area", "sex", "time"], columns="classif1", values="obs_value", aggfunc="mean")
-    p = p[(p["HOW_BANDS_TOTAL"] > 0)].dropna()
-    rate = fill_years((p["HOW_BANDS_HGE49"] / p["HOW_BANDS_TOTAL"]).clip(0, 1), ["ref_area", "sex"], years)
+    p = p.reindex(columns=["HOW_BANDS_HGE49", "HOW_BANDS_TOTAL", "HOW_BANDS_X"])
+    # Workers whose hours are not classified are left out of the denominator,
+    # i.e. assumed to have the same hours distribution as those classified.
+    den = p["HOW_BANDS_TOTAL"] - p["HOW_BANDS_X"].fillna(0.0)
+    p = p.assign(den=den)[(den > 0) & p["HOW_BANDS_HGE49"].notna()]
+    rate = fill_years((p["HOW_BANDS_HGE49"] / p["den"]).clip(0, 1), ["ref_area", "sex"], years)
     out = vul_country[["ref_area", "region", "sex", "group", "time", "E"]].copy()
     out["share"] = rate.reindex(pd.MultiIndex.from_frame(out[["ref_area", "sex", "time"]])).to_numpy()
     out["unregion"] = out["ref_area"].map(un).fillna("World")
