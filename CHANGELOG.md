@@ -31,6 +31,15 @@ All notable changes to this project are documented here. Format follows
   rests on the world ratio of elementary to skilled agricultural workers,
   because China has no ISCO-08 survey rows. `LABOR_SKILL_FROM_WAGES=1`
   restores the old split.
+- **Full e3 rebuild with the three changes (2026-11-10, scratchpad, SUTs
+  and downloads of the production run).** World people unchanged
+  (2,390,683 thousand in 1995, 3,333,357 in 2019, 3,605,271 in 2025); 14
+  stressors; no negative or NaN cell; vulnerable people and hours at or
+  below the six-row total in every cell (1995, 2019). 2019 people by skill
+  (thousand): low 436,331 -> 604,261, medium 1,996,768 -> 2,047,760, high
+  900,258 -> 681,337. 1995 low-skilled share 11.8% -> 23.5%. World hours
+  per worker 2,210 -> 2,012 (2019). Vulnerable share 48.6% (1995), 42.2%
+  (2019), 42.2% (2025).
 - **Process pool by default, ray only with `LABOR_RAY=1`; e3 debug CSVs go
   to `d:/indecol/data/labour/work`, not the repo root (2026-11-10).**
 
