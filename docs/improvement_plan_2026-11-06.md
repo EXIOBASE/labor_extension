@@ -288,6 +288,28 @@ scriptable, the regional and sector tables of the two global reports (not
 yet read), and how years outside the sources are filled (proposed: rates
 per worker held flat).
 
+Wider source search, 2026-11-10 (Richard: "surely there is more data now
+than when we did Simas et al"). ILOSTAT coverage measured on API downloads
+of that day, share of world employment 2019 from `EMP_2EMP_SEX_ECO_NB_A`,
+country rows with an observation within two years:
+
+| Theme | Source | Coverage | Activity detail |
+| --- | --- | --- | --- |
+| Informal employment | ILOSTAT `EMP_NIFL_SEX_ECO_NB_A`, `SDG_0831_SEX_ECO_RT_A` | 122 countries, 55% (2017-2021); no China, no US | broad sector and aggregate (8 groups) |
+| Working poverty (< US$3 PPP) | ILOSTAT `SDG_0111_SEX_AGE_RT_A` | 117 countries, 81%, incl. China and India | none (sex, age) |
+| Labour rights compliance | ILOSTAT `SDG_0882_NOC_RT_A` | 187 countries, 99%, 2015-2024 | none (national score) |
+| Hours bands (long hours) | ILOSTAT `EMP_TEMP_SEX_HOW_NB_A` | 180 areas listed | none |
+| Earnings, pay gap | ILOSTAT `EAR_*_SEX_ECO/OCU` | 105-197 areas listed | activity, occupation |
+| Child labour, hazardous work | ILOSTAT `CLD_XCHL/XHAZ_SEX_AGE_ECO_NB_A`; ILO-UNICEF 2024 global estimates | see audit above; global report regional by 3 sectors | broad sector |
+| Occupational burden of disease | WHO/ILO joint estimates (19 risk factors incl. injuries and long hours; deaths, DALYs; 183 countries, 2000-2016); IHME GBD occupational risks (204 countries, 1990-2023, account needed) | national | none |
+| Forced labour | Walk Free Global Slavery Index 2023 (160 countries, reference 2021, modelled); ILO/Walk Free/IOM 2021 global estimates (regional, by sector) | national (GSI), regional | sector in the global report |
+| Goods made with child or forced labour | US DOL ILAB list 2024 (204 goods, 82 countries) | country x good flags | product |
+
+Coverage figures for the WHO/ILO, GBD, GSI and DOL rows are as stated by
+their publishers, not checked against a download. Related work found: the
+2020 PLOS ONE "indecent labour footprint" (fatal and non-fatal injuries,
+forced labour, MRIO) and PSILCA v4 (106 social indicators on Eora).
+
 ### Phase 5: code cleanup (after Phase 3 changes the arithmetic, so the
 equivalence tests are rewritten once)
 - Vectorise the salary split and the hours split per region-year (groupby
