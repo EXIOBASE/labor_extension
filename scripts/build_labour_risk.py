@@ -38,6 +38,8 @@ UNITS = {
     "Child labour": "1000 p",
     "Child labour: hazardous work": "1000 p",
     "Forced labour": "1000 p",
+    "Long working hours: attributable deaths": "1000 p",
+    "Long working hours: attributable DALYs": "1000 DALY",
 }
 
 
@@ -64,6 +66,7 @@ def main() -> None:
     }
     shares = {k: common.region_share(v) for k, v in built.items()}
     counts = child_forced.region_counts(wf, years, un)
+    who = indicators.who_long_hours(common.employment_by_country(wf), RISK, years)
 
     src = []
     for k, v in built.items():
@@ -89,6 +92,15 @@ def main() -> None:
         F["Employment people: Long hours (49 hours a week or more)"] = p
         for name, c in counts.items():
             F[name] = common.allocate_counts(acc, c, y, sector_group, key="broad")
+        # Burden of long hours, spread over a region's industries by their
+        # people working 49 hours or more.
+        lh = F["Employment people: Long hours (49 hours a week or more)"]
+        lh_tot = lh.groupby(level="region").transform("sum")
+        for name, key in (("Long working hours: attributable deaths", "deaths"),
+                          ("Long working hours: attributable DALYs", "dalys")):
+            r = who[key].xs(y, level="time") if y in who[key].index.get_level_values("time") else pd.Series(dtype=float)
+            tgt = lh.index.get_level_values("region").map(r).fillna(0.0).to_numpy()
+            F[name] = (tgt * lh / lh_tot.where(lh_tot > 0)).fillna(0.0)
         F = F.T
         F.index.name = "stressor"
         d = args.out / "ixi" / str(y)

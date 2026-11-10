@@ -129,3 +129,40 @@ def long_hours(vul_country: pd.DataFrame, risk_dir: Path, un: dict, years) -> pd
     miss = out["share"].isna()
     out.loc[miss, "share"] = [wld.get((s, t), 0.0) for s, t in zip(out.sex[miss], out.time[miss])]
     return out.drop(columns=["unregion"])
+
+
+def who_long_hours(employment: pd.DataFrame, risk_dir: Path, years) -> dict:
+    """Deaths and DALYs (thousands) attributable to exposure to long working hours
+    (ischaemic heart disease and stroke, both sexes, age 15+, point
+    estimates), WHO/ILO joint estimates 2023, 183 countries, 2000, 2010 and
+    2016. Per employed person, interpolated between those years and held
+    outside them, times the country's employment; summed to (region, time).
+    `employment`: common.employment_by_country."""
+    import country_converter as coco
+    f = Path(risk_dir).parent / "who_ilo_joint_estimates" / "WHO_ILO_BOD_2023_05.csv"
+    w = pd.read_csv(f)
+    w.columns = ["risk", "year", "region", "country", "sex", "age", "cause", "measure",
+                 "estimate", "number", "rate"]
+    w = w[(w.risk == "Exposure to long working hours") & (w.sex == "Both") & (w.estimate == "Point")
+          & w.age.astype(str).str.endswith("15 years") & w.age.astype(str).str.startswith("≥")
+          & w.country.notna() & (w.country != "NA")]
+    names = sorted(w.country.unique())
+    iso = dict(zip(names, coco.convert(names, to="ISO3", not_found=None)))
+    w["ref_area"] = w.country.map(iso)
+    E = employment.groupby(["ref_area", "region", "time"])["E"].sum().reset_index()
+    out = {}
+    for measure, label in (("Deaths", "deaths"), ("Disability-adjusted life years", "dalys")):
+        m = w[w.measure == measure].groupby(["ref_area", "year"])["number"].sum()
+        # To thousands. The file's column is headed "Number (for DALYs in
+        # 1000s)" but holds plain counts for both measures: the 2016 country
+        # rows sum to 744,924 deaths and 23.3 million DALYs, the published
+        # scale (WHO/ILO 2021 monitoring report).
+        m = m / 1000.0
+        m.index.names = ["ref_area", "time"]
+        e = E.set_index(["ref_area", "time"])["E"]
+        per = (m / e.groupby(level=["ref_area", "time"]).sum().reindex(m.index)).dropna()
+        per = fill_years(per, ["ref_area"], years)
+        j = E[E.time.isin(years)].copy()
+        j["v"] = per.reindex(pd.MultiIndex.from_frame(j[["ref_area", "time"]])).fillna(0.0).to_numpy() * j["E"]
+        out[label] = j.groupby(["region", "time"])["v"].sum()
+    return out

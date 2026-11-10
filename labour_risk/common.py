@@ -93,7 +93,7 @@ def fill_years(series: pd.Series, keys: list, years) -> pd.Series:
     observation carried outside them. Index: keys + ['time']."""
     years = sorted(set(years))
     out = []
-    for k, g in series.groupby(level=keys):
+    for k, g in series.groupby(level=keys[0] if len(keys) == 1 else keys):
         g = g.droplevel(keys)
         full = g.reindex(sorted(set(g.index) | set(years))).interpolate(
             method="index", limit_area="inside").ffill().bfill().loc[years]
