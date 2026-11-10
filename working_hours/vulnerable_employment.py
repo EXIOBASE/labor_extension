@@ -168,13 +168,9 @@ def country_shares(employment: pd.DataFrame, V: pd.Series, profiles, un_region) 
     return out.reset_index().rename(columns={"level_3": "classif1"})
 
 
-def region_shares(employment: pd.DataFrame, data_dir: Path) -> pd.DataFrame:
-    """Share of vulnerable employment by axis region, sex, group and year.
-
-    `employment` is the workforce table (workforce.csv): ref_area, EXIO3 (the
-    axis region), sex, classif1, time, obs_value. Rows whose region is
-    `not found` (ILO aggregates) are ignored.
-    """
+def country_table(employment: pd.DataFrame, data_dir: Path) -> pd.DataFrame:
+    """Vulnerable share by country: columns ref_area, region, sex, classif1
+    (the activity group), time, share, E. Same inputs as `region_shares`."""
     data_dir = Path(data_dir)
     modelled = pd.read_csv(data_dir / STATUS_MODELLED,
                            usecols=["ref_area", "sex", "classif1", "time", "obs_value"])
@@ -189,6 +185,17 @@ def region_shares(employment: pd.DataFrame, data_dir: Path) -> pd.DataFrame:
                         V, profiles, un_region)
     region_of = emp.drop_duplicates("ref_area").set_index("ref_area")["EXIO3"]
     cs["region"] = cs["ref_area"].map(region_of)
+    return cs
+
+
+def region_shares(employment: pd.DataFrame, data_dir: Path) -> pd.DataFrame:
+    """Share of vulnerable employment by axis region, sex, group and year.
+
+    `employment` is the workforce table (workforce.csv): ref_area, EXIO3 (the
+    axis region), sex, classif1, time, obs_value. Rows whose region is
+    `not found` (ILO aggregates) are ignored.
+    """
+    cs = country_table(employment, data_dir)
     cs["vul"] = cs["share"] * cs["E"]
     g = cs.groupby(["region", "sex", "classif1", "time"])[["vul", "E"]].sum()
     g["share"] = np.where(g["E"] > 0, g["vul"] / g["E"].where(g["E"] > 0, 1), 0.0)
