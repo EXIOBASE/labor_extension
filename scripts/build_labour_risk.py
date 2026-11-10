@@ -55,8 +55,10 @@ def main() -> None:
 
     wf = pd.read_csv(args.final_table / "workforce.csv", low_memory=False,
                      usecols=["ref_area", "EXIO3", "sex", "classif1", "time", "obs_value"])
+    # Every year of the vulnerable table, not only the requested ones: the
+    # indicators pool and interpolate over the full source span, and a year's
+    # values must not depend on --years.
     vul = ve.country_table(wf, DATA).rename(columns={"classif1": "group"})
-    vul = vul[vul["time"].isin(years)]
     un = common.un_region(sorted(set(vul["ref_area"])))
 
     built = {

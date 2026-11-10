@@ -44,7 +44,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from labour_risk.common import BROAD, GROUPS, REPO
+from labour_risk.common import BROAD, GROUPS, REPO, SPAN
 
 RISK = Path("d:/indecol/data/labour/data/risk")
 ILOSTAT = RISK / "ilostat_2026-11-10"
@@ -108,18 +108,24 @@ def child_labour(indicator: str, years, region_of: dict, un: dict) -> pd.Series:
     'child_labour' or 'hazardous_work'."""
     ilo_id = {"child_labour": "CLD_XCHL_SEX_AGE_ECO_NB_A", "hazardous_work": "CLD_XHAZ_SEX_AGE_ECO_NB_A"}[indicator]
     rate, split = _survey(ilo_id)
-    rate = _interp(rate, years)
     reg = pd.read_csv(CHILD / "child_labour_by_region_sex_age.csv")
     reg = reg[(reg.indicator == indicator) & (reg.region_classification == "SDG")
               & (reg.sex == "total") & (reg.age_group == "5-17")].set_index("region")
     trend = pd.read_csv(CHILD / "child_labour_trends_2016_2020_2024.csv")
     trend = trend[trend.indicator == indicator]
-    world_bench = {2016: trend[(trend.breakdown == "World") & (trend.year == 2016)]["number_thousands"].iloc[0]}
+    w16 = trend[(trend.breakdown == "World") & (trend.year == 2016)]["number_thousands"]
+    world_bench = {2016: float(w16.iloc[0])} if len(w16) else {}
     early = pd.read_csv(EARLY)
     early = early[early.indicator == indicator]
     world_bench.update({int(y): n / 1000 for y, n in zip(early.year, early.number) if y < 2016})
     sdg_bench = trend[trend.breakdown == "SDG"].dropna(subset=["number_thousands"])
 
+    # Compute over the full span and every benchmark year, keep the requested
+    # years at the end: the scale of a year must not depend on which other
+    # years were asked for.
+    want = sorted(set(int(y) for y in years))
+    years = sorted(set(want) | set(SPAN) | set(world_bench) | set(int(y) for y in sdg_bench.year))
+    rate = _interp(rate, years)
     pop = _child_population(years)
     df = pop.rename("pop").reset_index()
     df["sdg"] = df["ref_area"].map(lambda a: SDG_REGION.get(un.get(a, ""), None))
@@ -140,14 +146,19 @@ def child_labour(indicator: str, years, region_of: dict, un: dict) -> pd.Series:
                 pts[int(row.year)] = row.number_thousands / raw_r[(sdg, row.year)]
         # World benchmarks for the rounds without a regional split.
         for yb, W in world_bench.items():
-            if yb in years and yb not in pts:
+            if yb not in pts:
                 wraw = df[df.time == yb]["raw"].sum()
-                pts[yb] = W / wraw if wraw > 0 else 1.0
-        s = pd.Series(pts).sort_index()
+                if wraw > 0:
+                    pts[yb] = W / wraw
+        if not pts:
+            for y in years:
+                scale[(sdg, y)] = 1.0
+            continue
+        s = pd.Series(pts, dtype=float).sort_index()
         full = s.reindex(sorted(set(s.index) | set(years))).interpolate(
             method="index", limit_area="inside").ffill().bfill()
         for y in years:
-            scale[(sdg, y)] = full.loc[y] if len(s) else 1.0
+            scale[(sdg, y)] = full.loc[y]
     df["count"] = df["raw"] * [scale[(s, t)] for s, t in zip(df.sdg, df.time)]
 
     # Broad sector split: country survey, SDG region, world.
@@ -173,6 +184,7 @@ def child_labour(indicator: str, years, region_of: dict, un: dict) -> pd.Series:
         for b in ("AGR", "IND", "SER"):
             rows.append((region, b, t, n * float(sh.get(b, 0.0))))
     out = pd.DataFrame(rows, columns=["region", "broad", "time", "v"])
+    out = out[out.time.isin(want)]
     return out.groupby(["region", "broad", "time"])["v"].sum()
 
 

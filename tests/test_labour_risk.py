@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 
 import numpy as np
+import pytest
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -43,3 +44,31 @@ def test_allocate_counts_by_low_skilled_within_broad_sector():
     out = common.allocate_counts(acc, counts, 2019, GROUP)
     assert np.isclose(out.sum(), 11.0)
     assert np.isclose(out[("AA", "Farming")], 7.0)
+
+
+def test_allocate_counts_year_without_counts_is_zero():
+    acc = _account()
+    counts = pd.Series({("AA", "AGR", 2019): 7.0})
+    counts.index.names = ["region", "broad", "time"]
+    out = common.allocate_counts(acc, counts, 2005, GROUP)
+    assert (out == 0).all()
+
+
+def _child_inputs():
+    from labour_risk import child_forced as cf
+    if not (cf.ILOSTAT / "CLD_2POP_SEX_AGE_NB_A.csv").exists():
+        pytest.skip("ILOSTAT child labour downloads not available")
+    pop = pd.read_csv(cf.ILOSTAT / "CLD_2POP_SEX_AGE_NB_A.csv", usecols=["ref_area"])
+    areas = sorted(a for a in pop.ref_area.unique() if not a.startswith("X"))
+    return cf, {a: a for a in areas}, common.un_region(areas)
+
+
+def test_child_labour_single_year_equals_multi_year():
+    """A year's count must not depend on the other years requested: the
+    benchmark scale is interpolated over the full span either way."""
+    cf, region_of, un = _child_inputs()
+    one = cf.child_labour("child_labour", [2010], region_of, un)
+    many = cf.child_labour("child_labour", list(range(1995, 2026)), region_of, un)
+    pd.testing.assert_series_equal(one, many.xs(2010, level="time", drop_level=False))
+    # 2008 and 2012 are world benchmarks (ILO 2017 trends); 2010 lies between.
+    assert 150_000 < one.sum() < 260_000

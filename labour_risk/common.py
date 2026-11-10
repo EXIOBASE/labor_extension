@@ -40,6 +40,10 @@ PEOPLE = {sex: [f"Employment people: {k}-skilled {sex}" for k in ("Low", "Medium
           for sex in ("male", "female")}
 HOURS = {sex: [f"Employment hours: {k}-skilled {sex}" for k in ("Low", "Medium", "High")]
          for sex in ("male", "female")}
+#: Years every indicator is computed over, whatever years a build writes, so a
+#: year's values never depend on which other years were requested (pooling,
+#: interpolation and benchmark scaling all see the same span).
+SPAN = list(range(1995, 2026))
 LOW_PEOPLE = ["Employment people: Low-skilled male", "Employment people: Low-skilled female"]
 
 
@@ -138,7 +142,11 @@ def allocate_counts(account: pd.DataFrame, counts: pd.Series, year: int, sector_
     frame = pd.DataFrame({"region": np.asarray(account.index.get_level_values("region")),
                           "cell": np.asarray(cell), "low": low.to_numpy()})
     tot = frame.groupby(["region", "cell"])["low"].transform("sum")
-    c = counts.xs(year, level="time") if "time" in counts.index.names else counts
+    if "time" in counts.index.names:
+        have = year in counts.index.get_level_values("time")
+        c = counts.xs(year, level="time") if have else counts.iloc[0:0].droplevel("time")
+    else:
+        c = counts
     target = np.array([c.get((r, k), 0.0) for r, k in zip(frame.region, frame.cell)])
     out = np.where(tot > 0, target * frame["low"] / tot.where(tot > 0, 1.0), 0.0)
     return pd.Series(out, index=account.index)
