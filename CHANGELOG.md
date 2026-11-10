@@ -112,14 +112,25 @@ All notable changes to this project are documented here. Format follows
   medium 59.9% -> 59.8%, high 27.0% -> 20.4%; men and women now differ
   in skill mix (high 18.6% and 23.2%). A country without ISCO-08 survey
   rows for groups 6 and 9 gets group 6 = 0.73 (survey median ratio to
-  agricultural employment) x its agricultural employment, capped at group
-  96. That decides China: 34.7% low-skilled, against 0.5% on its 2000
-  census, 27.8% with the world 9/(6+9) ratio and 41% with Eastern Asia's;
-  its group 96 (394 million, 2019) is twice its agricultural employment
-  (185 million), so the world ratio was a floor. `LABOR_SKILL_FROM_WAGES=1`
-  restores the old split.
-- **Full e3 rebuild with the three changes (2026-11-10, scratchpad, SUTs
-  and downloads of the production run).** World people unchanged
+  agricultural employment) x its agricultural employment (de5856d). That
+  decides China: 34.7% low-skilled, against 0.5% on its 2000 census, 27.8%
+  with the world 9/(6+9) ratio and 41% with Eastern Asia's; its group 96
+  (394 million, 2019) is twice its agricultural employment (185 million),
+  so the world ratio was a floor. Since 84cd2c1 the agriculture route is
+  used only where it leaves elementary workers (alpha x agricultural
+  employment below group 96); otherwise (Taiwan's men every year, Oman's
+  and Syria's women in the 1990s) the world pooled 9/(6+9) ratio applies,
+  and a country's survey ratio pools only the years that report both
+  groups (New Caledonia had no low-skilled workers before). The 19.7% and
+  34.7% above were measured at de5856d, before that change.
+  `LABOR_SKILL_FROM_WAGES=1` restores the old split.
+- **Full e3 rebuild (2026-11-10, scratchpad, SUTs and downloads of the
+  production run). Superseded: this run predates de5856d (the China and
+  agriculture rule for the skill split) and every later fix on this
+  branch (84cd2c1, the vulnerable and hours fixes f87f7c5 to 854bebc), so
+  its skill figures do not match the entry above and none of its figures
+  describes the current code. A new full rebuild is running; its numbers
+  will replace these.** World people unchanged
   (2,390,683 thousand in 1995, 3,333,357 in 2019, 3,605,271 in 2025); 14
   stressors; no negative or NaN cell; vulnerable people and hours at or
   below the six-row total in every cell (1995, 2019). 2019 people by skill
@@ -128,7 +139,13 @@ All notable changes to this project are documented here. Format follows
   per worker 2,210 -> 2,012 (2019). Vulnerable share 48.6% (1995), 42.2%
   (2019), 42.2% (2025).
 - **Process pool by default, ray only with `LABOR_RAY=1`; e3 debug CSVs go
-  to `d:/indecol/data/labour/work`, not the repo root (2026-11-10).**
+  to `d:/indecol/data/labour/work`, not the repo root (2026-11-10).** The
+  salary split runs its years on a process pool (`LABOR_WORKERS` workers;
+  `LABOR_PARALLEL=serial` runs them in turn) and the hours stage runs its
+  ray calls through the serial stand-in `working_hours/serial_ray.py`.
+  `LABOR_RAY=1` restores ray for both. `LABOR_NO_RAY` is no longer read:
+  the `LABOR_NO_RAY=1 ...` recipes in the 2026-11-06 entries below and in
+  `docs/rx2_axis_plan_2026-11-06.md` describe the code of that date.
 
 ### Removed
 
@@ -141,11 +158,29 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
-- **Vulnerable employment, two stressors (2026-11-10).** `Employment
-  people: Vulnerable employment` (1000 p) and `Employment hours: Vulnerable
-  employment` (M.hr): own-account plus contributing family workers, a
-  subset of the six skill-sex rows, as 3.8.2 shipped them and 3.9-3.12 did
-  not. National share by sex from ILO's modelled status table, spread over
+- **Labour-risk account (2026-11-10, f9547df, cd122e3, 0b93e87; fixes
+  above).** `scripts/build_labour_risk.py` builds a second extension,
+  `labour_risk`, from the labour handoff workbook, separate from the
+  labour account and never to be added to it: `Informal employment:
+  people` / `hours`, `Working poverty (below US$3 a day): people`, `Long
+  hours (49 hours a week or more): people`, `Child labour`, `Child labour:
+  hazardous work`, `Forced labour`, `Long working hours: attributable
+  deaths` and `Long working hours: attributable DALYs`. Child and forced
+  labour are a modelled layer (ILO global and regional totals, country and
+  industry detail by allocation). Occupational injuries are not yet
+  included. Sources and method: README, `labour_risk/*.py` docstrings,
+  COVERAGE.md.
+
+- **Vulnerable employment, two stressors (2026-11-10).** `Vulnerable
+  employment: people` (1000 p) and `Vulnerable employment: hours` (M.hr):
+  own-account plus contributing family workers, a subset of the six
+  skill-sex rows, as 3.8.2 shipped them and 3.9-3.12 did not. 3.8.2 named
+  them `Employment: Vulnerable employment` and `Employment hours:
+  Vulnerable employment`, and this entry first gave them `Employment
+  people:` / `Employment hours:` names; they were renamed (4b91417), as the
+  labour-risk rows were (3b47348), because downstream totals sum every row
+  matching `Employment people.*` / `Employment hours.*` and would count
+  these subsets twice. National share by sex from ILO's modelled status table, spread over
   the 14 activity groups by the country's pooled survey profile with a
   logit shift that keeps ILO's national share. World share against ILO's
   world aggregate (X01): within 0.002 in 1995, 2010, 2019 and 2025 (2019:

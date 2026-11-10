@@ -6,6 +6,28 @@ The accuracy of social satellite data is crucial in assessing the social and eco
 * Mean weekly hours actually worked per employed person by sex and ecoomic activity - Annual : [Here](https://rshiny.ilo.org/dataexplorer22/?lang=en&segment=indicator&id=HOW_TEMP_SEX_ECO_NB_A)
 * Average number of usual weekly hours of work in main job, by sex, age, professional status, full-time/part-time and economic activity (1998-2008, NACE Rev. 1.1) : [Here](https://ec.europa.eu/eurostat/databrowser/view/lfsa_ewhuna/default/table?lang=en)
 * ILOSTAT, through the rplumber API (`run_windows.py` `SOURCES`), since 2026-11: employment by sex and occupation, modelled (`EMP_2EMP_SEX_OCU_NB_A`) and survey (`EMP_TEMP_SEX_OCU_NB_A`); employment by sex and status in employment, modelled (`EMP_2EMP_SEX_STE_NB_A`) and survey by economic activity (`EMP_TEMP_SEX_STE_ECO_NB_A`)
+# Running
+
+`run_windows.py` runs the whole labour account from the repo root: download, workforce (stage 1, `workforce_salary/workforce.py`, which calls the salary split and the skill split), then hours (stage 2, `working_hours/average_working_hours.py`), ending with the handoff workbook `final_labor_SUTs_<version>.xlsx` in the final_table folder. `method.md` describes each step. The labour-risk account is built afterwards by `scripts/build_labour_risk.py`, and the 2026-2028 tail on the release tree by `scripts/nowcast_tail.py`. Paths come from `config.yaml` (override per machine in `config.local.yaml`).
+
+Environment variables the code reads:
+
+| Variable | Effect |
+| --- | --- |
+| `--axis e3\|rx2` or `LABOR_AXIS` | country axis: `e3` (49 regions, default) or `rx2` (159 regions, needs `SKIP_DOWNLOAD=1`); see `docs/rx2_axis_plan_2026-11-06.md` |
+| `SKIP_DOWNLOAD=1` | do not download the ILO and Eurostat sources; reuse the files in the data folder |
+| `REUSE_WORKFORCE=1` | load `final_table/workforce.csv` instead of rebuilding stage 1 (debugging stage 2 only) |
+| `SKIP_SALARY_SPLIT=1` | build the workforce table but skip the salary split (and with it the skill split) |
+| `SKIP_HOURS=1` | stop after stage 1 |
+| `LABOR_WORKERS=n` | worker count for the salary split's process pool (and for ray when it is on); default CPU count minus 4 |
+| `LABOR_PARALLEL=serial` | run the salary split's years one after another instead of on a process pool (default `process`) |
+| `LABOR_RAY=1` | use ray for the salary split and the hours stage, as before 2026-11; without it the hours stage runs its ray calls through the serial stand-in `working_hours/serial_ray.py`. `LABOR_NO_RAY` is no longer read |
+| `LABOR_YEARS=2020` or `LABOR_YEARS=1995-2010` | salary split years, overriding `config.yaml` `years` (smoke tests) |
+| `LABOR_REGIONS=WA,AT` | limit the salary split to these regions (profiling and smoke tests only) |
+| `LABOR_FINAL_TABLE_DIR`, `LABOR_WORK_DIR` | send the final_table outputs and the debug CSVs elsewhere (check runs) |
+| `LABOR_SKILL_FROM_WAGES=1` | people by skill from the wage bill, the split used until 2026-11 |
+| `LABOR_TERRITORY_PARTICIPATION=0` | book the hand-compiled territory totals as population, as in 3.12.0 (default scales them to workforce) |
+
 # Overview
 We used the same definition than ILOEST for employed persons: all persons of working age who, during a specified brief period, were in the following categories: Paid employment (whether at work or with a job but not at work), or self-employment (whether at work or with an enterprise but not at work). For the missing data, ILOEST includes nationally reported observations and imputed data for countries with missing data. The imputations are not based on proxies but on a series of econometric models developed by ILO (ILO, 2023). In summary, the construction of the ILOEST database employs a dual-method approach to achieve global consistency and reliability. Nearly half of its dataset is curated from authoritative figures like national labour force surveys and government statistics, which are renowned for their cross-national comparability. To complete the database, an estimation procedure is performed directly by ILO via ILOEST. This involves logistic transformations to normalize labour force participation rates, interpolation techniques to fill data gaps, remedies for non-response biases, and the utilization of weighted least squares models for definitive country-level estimates. 
 It is important to note that the ILOEST database, while comprehensive, covers only 186 countries or regions, despite the inclusion of estimated data. In contrast, the United Nations' "Standard Country or Area Codes for Statistical Use1", which serves as the primary classification system for UN publications and databases, identifies 249 unique ISO-alpha3 coded areas. Given the ILO's affiliation with the UN and its use of the M49 standard, adopting this framework helps mitigate risks of double-counting or omissions. Consequently, data for the 63 areas or countries not currently included in the ILOEST database have been supplemented by aggregating information from the [CIA World Factbook](https://www.cia.gov/the-world-factbook/) (Central Intelligence Agency, 2021), additional ILO datasets, and [Eurostat](https://github.com/EXIOBASE/labor_extension/blob/main/auxdata/countries_en.csv) data. 
@@ -58,7 +80,13 @@ Then the workforce results are available for each EXIOBASE area/region, gender, 
 
 ## People by skill level (since 2026-11)
 
-The wage split above gives each industry its people by sex. The number of people at each skill level is not taken from the wage bill (that would count as many high-skilled people as their share of pay, which is too many). It is taken from ILO's modelled employment by sex and occupation (`EMP_2EMP_SEX_OCU_NB_A`), on the ISCO-08 skill levels: managers, professionals and technicians (major groups 1-3) are high-skilled, groups 4-8 medium-skilled, elementary occupations (group 9) low-skilled. ILO's model merges groups 6 (skilled agricultural workers) and 9 into one category; it is split by the country's ratio of group 9 to groups 6 and 9 in ILO's survey data (`EMP_TEMP_SEX_OCU_NB_A`, pooled over years), or the world's ratio for a country without survey data (China, which has only its 2000 census, is the largest).
+The wage split above gives each industry its people by sex. The number of people at each skill level is not taken from the wage bill (that would count as many high-skilled people as their share of pay, which is too many). It is taken from ILO's modelled employment by sex and occupation (`EMP_2EMP_SEX_OCU_NB_A`), on the ISCO-08 skill levels: managers, professionals and technicians (major groups 1-3) are high-skilled, groups 4-8 medium-skilled, elementary occupations (group 9) low-skilled. ILO's model merges groups 6 (skilled agricultural workers, medium) and 9 (elementary, low) into one category, 96, which is split in three steps, by sex:
+
+1. A country with ISCO-08 survey rows for both groups (`EMP_TEMP_SEX_OCU_NB_A`) uses its own ratio 9 / (6 + 9), pooled over the survey years that report both groups.
+2. Otherwise group 6 = alpha x the country's agricultural employment (ILO section A), with alpha the median, over survey country-years, of group 6 over agricultural employment for that sex; the rest of group 96 is elementary. This is used only where alpha x agricultural employment is below group 96. China, whose only survey is its 2000 census, is the largest country split this way.
+3. Where step 2 would take all of group 96 (Taiwan's men, for example), the world's pooled survey ratio 9 / (6 + 9).
+
+A country with no modelled occupation row (the hand-compiled supplementary entities) takes its UN region's employment-weighted skill mix, then the world's.
 
 For each region, year and sex the people of each industry (from the wage split) and the people at each skill level (from occupation) are both fixed, and the wage bill by skill of each industry (`w03.a/b/c` in the SUT) gives the structure inside the industry; the table is balanced to both totals by RAS. Men and women therefore have their own skill mix. Code: `workforce_salary/skill_from_occupation.py`. `LABOR_SKILL_FROM_WAGES=1` reproduces the earlier wage-share split.
 
