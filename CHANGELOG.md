@@ -13,7 +13,10 @@ All notable changes to this project are documented here. Format follows
   (`DSD_HW@DF_AVG_ANN_HRS_WKD`, 38 countries, 2019) the old formula was a
   median 15% high (0% to 33%), the new one a median 2% high (-13% to +19%),
   so it applies to the ILO and the Eurostat hours alike. Hours fall by the
-  region's vacation share, 4% (US, 10 days) to 16% (RU, 42 days). The
+  region's vacation share, 4% (US, 10 days) to 16% (RU, 42 days). Checked
+  on an e3 hours-stage run from the production split (2026-11-10): people
+  unchanged, world hours per worker 2,210 -> 2,012 in 2019 (-8.9%; -8.8% in
+  1995, -9.0% in 2025), regions -3.8% (US) to -16.2% (RU). The
   README formula, `(weekly / 5) * (365 - vacation)`, counted weekends and
   was never the code's; corrected.
 - **People by skill from ILO occupation (2026-11-10).** The number of
