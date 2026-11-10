@@ -23,14 +23,16 @@ Child labour and hazardous child work (children 5-17, 1000 p)
 Forced labour (all ages, 1000 p)
 --------------------------------
 - ILO/Walk Free/IOM 2021 totals for the five ILO regions, spread over the
-  region's countries by employment in 2021 and moved with each country's
-  employment in other years (a constant rate per worker).
+  region's countries in 2021 by the Walk Free Global Slavery Index 2023
+  country estimates (people in modern slavery, which also counts forced
+  marriage, used only as the key; its regional sums reproduce the ILO
+  totals), countries outside the index by the region's index number per
+  worker; other years move with each country's employment (a constant rate
+  per worker).
 - Broad sector, world composition applied to every region: forced labour
   exploitation by the sector shares of Fig. 8 ("other" spread pro rata),
   forced commercial sexual exploitation to services, state-imposed forced
   labour by the region's employment.
-- A country-level source (Walk Free Global Slavery Index 2023) replaces the
-  employment allocation when its dataset is in `risk/walkfree_gsi_2023/`.
 
 Within a region and broad sector, `common.allocate_counts` spreads the count
 over industries by their low-skilled people.
@@ -202,7 +204,16 @@ def forced_labour(employment: pd.DataFrame, years, region_of: dict) -> pd.Series
     e = e.dropna(subset=["ilo"])
     nat = e.groupby(["ref_area", "ilo", "time"])["E"].sum().reset_index()
     base = nat[nat.time == 2021].set_index("ref_area")
-    base_r = base.groupby("ilo")["E"].sum()
+    # Country key in 2021: the Global Slavery Index number of people in
+    # modern slavery where the country is covered (160 countries), else the
+    # region's GSI number per worker times the country's employment.
+    gsi = gsi_numbers()
+    base["key"] = gsi.reindex(base.index)
+    cov = base.dropna(subset=["key"])
+    per_worker = cov.groupby("ilo")["key"].sum() / cov.groupby("ilo")["E"].sum()
+    miss = base["key"].isna()
+    base.loc[miss, "key"] = base.loc[miss, "E"] * base.loc[miss, "ilo"].map(per_worker).fillna(0.0)
+    base_r = base.groupby("ilo")["key"].sum()
     rows = []
     for ilo, g in e.groupby("ilo"):
         if ilo not in tot.index:
@@ -217,7 +228,8 @@ def forced_labour(employment: pd.DataFrame, years, region_of: dict) -> pd.Series
         for (a, t), E_ct in g.groupby(["ref_area", "time"])["E"].sum().items():
             if t not in years or a not in base.index:
                 continue
-            n = T * E_ct / base_r[ilo]
+            # 2021 share of the region by the key, moved with employment.
+            n = T * base.at[a, "key"] / base_r[ilo] * E_ct / base.at[a, "E"]
             region = region_of.get(a)
             if region is None:
                 continue
@@ -225,6 +237,20 @@ def forced_labour(employment: pd.DataFrame, years, region_of: dict) -> pd.Series
                 rows.append((region, b, t, n * sh))
     out = pd.DataFrame(rows, columns=["region", "broad", "time", "v"])
     return out.groupby(["region", "broad", "time"])["v"].sum()
+
+
+def gsi_numbers() -> pd.Series:
+    """Walk Free Global Slavery Index 2023: estimated number of people in
+    modern slavery (forced labour and forced marriage, 2021) by ISO3."""
+    import country_converter as coco
+    f = RISK / "walkfree_gsi_2023" / "2023-Global-Slavery-Index-Data.xlsx"
+    if not f.exists():
+        return pd.Series(dtype=float)
+    g = pd.read_excel(f, "GSI 2023 summary data", header=2).iloc[:, :5]
+    g.columns = ["country", "population", "region", "prevalence", "number"]
+    g = g.dropna(subset=["country", "number"])
+    g["iso"] = coco.convert(list(g["country"]), to="ISO3", not_found=None)
+    return g.dropna(subset=["iso"]).groupby("iso")["number"].sum()
 
 
 def region_counts(workforce: pd.DataFrame, years, un: dict) -> dict:
