@@ -5,6 +5,52 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Fixed (labour-risk account, branch improve-labour-account)
+
+- **Results no longer depend on `--years`.** `scripts/build_labour_risk.py`
+  cut the vulnerable table to the requested years before the informal ratio
+  was pooled over survey years in range (a 2000-only build had no survey
+  data, so the ratio was 1 everywhere), and child labour cut the child
+  population to the requested years, losing benchmark years outside them
+  (2010 alone: 128,542 thousand; within 1995-2025: 192,524). Every
+  indicator is now computed over 1995-2025 plus the benchmark years and
+  `--years` only picks the years written. Tests:
+  `tests/test_labour_risk.py` (child labour and informal, single year equals
+  the same year of a multi-year build).
+- **Informal employment rebuilt on ILO's SDG 8.3.1 shares.** The old ratio
+  k = pooled survey informal share / mean vulnerable share exploded where
+  the vulnerable share was near zero (up to about 442,745; 571 of 6,664
+  cells capped at 1 in 2016), and the informal and total survey counts were
+  summed without matching the survey source (469 of 1,094 country-years,
+  informal above total in 469 cells). The country rate is now
+  `SDG_0831_SEX_ECO_RT_A` (national data) by sex and activity aggregate,
+  interpolated and held over years, spread over the activity groups of an
+  aggregate by the vulnerable profile with a logit shift that keeps the
+  aggregate's rate; countries never observed are predicted from their
+  vulnerable share (ratio of sums over observed countries of the UN region,
+  else income group, else world, bounded to [vulnerable, 1]). World
+  informal employment in the 3.12 e3 build, thousand: 1,621,142 (2005),
+  1,865,490 (2019), 2,035,530 (2024), against ILO's modelled world total
+  (`EMP_2IFL_SEX_NB_A`, X01) of 1,689,106, 1,891,662 and 2,058,108 (96.0%,
+  98.6%, 98.9%); no cell exceeds its people or hours total (e3 and rx2,
+  2016).
+- **Output in the release labour extension format, stressors renamed.**
+  `F.txt` columns follow the release (region, sector) order of the axis
+  (`--axis e3|rx2`, io_utils `sector_layout`), with a zero `F_Y.txt` on the
+  release final-demand columns and `file_parameters.json` (name
+  `labour_risk`). The stressors no longer start with `Employment people` or
+  `Employment hours`, which downstream composites (exio_incubator bridges,
+  characterization_builder) sum into the employment totals: now
+  `Informal employment: people` / `hours`, `Working poverty (below US$3 a
+  day): people`, `Long hours (49 hours a week or more): people`.
+- **Forced labour for XKX, CHI, BES, SJM, CXR, CCK, VAT.**
+  `auxdata/countries_en.csv` has no ILO region for these codes, so they got
+  none; `child_forced.ILO_REGION_EXTRA` assigns them. Regional totals are
+  unchanged.
+- **Long hours:** workers with unclassified hours (`HOW_BANDS_X`) are left
+  out of the denominator; the docstring now says hours actually worked, not
+  usual hours. A year a source lacks gives zeros instead of a KeyError.
+
 ### Fixed (3.12.0 release 2, branch improve-labour-account)
 
 - **Channel Islands counted once (3.12.0 release 2).** ILO reports the
