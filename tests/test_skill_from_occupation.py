@@ -80,6 +80,67 @@ def test_no_survey_country_splits_96_by_its_agriculture():
     assert np.isclose(out.loc[("BBB", "SEX_M", 2019), "low"], 30 / 80)
 
 
+def test_agriculture_above_group_96_falls_back_to_world_ratio():
+    # CCC (no survey) has more farm workers than group 96: alpha * agri
+    # would take all of group 96 and leave no elementary workers, so the
+    # world pool 9 / (6 + 9) = 30 / 60 is used instead.
+    rows = [(c, s, 2019, k, v) for c in ("AAA", "CCC") for s in ("SEX_M", "SEX_F")
+            for k, v in (("OCU_ISCO08_2", 20.0), ("OCU_ISCO08_96", 60.0))]
+    modelled = pd.DataFrame(rows, columns=["ref_area", "sex", "time", "classif1", "obs_value"])
+    survey = pd.DataFrame([("AAA", s, 2019, c, v) for s in ("SEX_M", "SEX_F")
+                           for c, v in (("OCU_ISCO08_6", 30.0), ("OCU_ISCO08_9", 30.0))],
+                          columns=["ref_area", "sex", "time", "classif1", "obs_value"])
+    agri = pd.Series({(c, s, 2019): a for c, a in (("AAA", 40.0), ("CCC", 100.0))
+                      for s in ("SEX_M", "SEX_F")})
+    agri.index.names = ["ref_area", "sex", "time"]
+    out = so.country_skill_shares(modelled, survey, {"AAA": "R", "CCC": "R"}, [2019], agri=agri)
+    for s in ("SEX_M", "SEX_F"):
+        assert np.isclose(out.loc[("CCC", s, 2019), "low"], 0.5 * 60 / 80)
+
+
+def test_survey_years_with_one_group_are_not_pooled():
+    # 2015 reports both groups (6: 3, 9: 1); 2016 only group 6, which must
+    # not count as zero elementary workers. DDD reports only group 9: no
+    # survey ratio, so the world pool (AAA's 2015, 0.25) is used.
+    rows = [(c, s, 2019, k, v) for c in ("AAA", "DDD") for s in ("SEX_M", "SEX_F")
+            for k, v in (("OCU_ISCO08_2", 20.0), ("OCU_ISCO08_96", 80.0))]
+    modelled = pd.DataFrame(rows, columns=["ref_area", "sex", "time", "classif1", "obs_value"])
+    survey = pd.DataFrame([("AAA", s, y, c, v) for s in ("SEX_M", "SEX_F")
+                           for y, c, v in ((2015, "OCU_ISCO08_6", 3.0), (2015, "OCU_ISCO08_9", 1.0),
+                                           (2016, "OCU_ISCO08_6", 50.0))]
+                          + [("DDD", s, 2015, "OCU_ISCO08_9", 7.0) for s in ("SEX_M", "SEX_F")],
+                          columns=["ref_area", "sex", "time", "classif1", "obs_value"])
+    country, _, wld = so.elementary_ratio(survey, {"AAA": "R", "DDD": "R"})
+    assert np.isclose(country[("AAA", "SEX_M")], 0.25)
+    assert ("DDD", "SEX_M") not in country.index
+    assert np.isclose(wld["SEX_F"], 0.25)
+    out = so.country_skill_shares(modelled, survey, {"AAA": "R", "DDD": "R"}, [2019])
+    assert np.isclose(out.loc[("DDD", "SEX_M", 2019), "low"], 0.25 * 0.8)
+
+
+def test_region_skill_shares_weight_countries_by_employment():
+    rows = [(c, s, 2019, k, v) for c, low in (("AAA", 10.0), ("BBB", 50.0))
+            for s in ("SEX_M", "SEX_F")
+            for k, v in (("OCU_ISCO08_2", 100.0 - low), ("OCU_ISCO08_96", low))]
+    modelled = pd.DataFrame(rows, columns=["ref_area", "sex", "time", "classif1", "obs_value"])
+    survey = pd.DataFrame([(c, s, 2019, "OCU_ISCO08_9", 1.0) for c in ("AAA", "BBB")
+                           for s in ("SEX_M", "SEX_F")]
+                          + [(c, s, 2019, "OCU_ISCO08_6", 0.0) for c in ("AAA", "BBB")
+                             for s in ("SEX_M", "SEX_F")],
+                          columns=["ref_area", "sex", "time", "classif1", "obs_value"])
+    # AAA and BBB form region R1 (3 and 1 people); an ILO aggregate with a
+    # blank region and a `not found` row must not count.
+    emp = pd.DataFrame([(c, reg, s, "ECO_DETAILS_TOTAL", 2019, e)
+                        for c, reg, e in (("AAA", "R1", 3.0), ("BBB", "R1", 1.0),
+                                          ("X01", "", 1000.0), ("X02", "not found", 1000.0))
+                        for s in ("SEX_M", "SEX_F")],
+                       columns=["ref_area", "EXIO3", "sex", "classif1", "time", "obs_value"])
+    sh = so.region_skill_shares(modelled, survey, emp, [2019])
+    assert list(sh.index.get_level_values("region").unique()) == ["R1"]
+    assert np.isclose(sh.loc[("R1", "SEX_M", 2019), "low"], (3 * 0.1 + 1 * 0.5) / 4)
+    assert np.allclose(sh.sum(axis=1), 1.0)
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):

@@ -26,9 +26,11 @@ This module rebalances the salary split's output, per region, year and sex:
 The modelled table merges groups 6 (skilled agricultural, medium) and 9
 (elementary, low) into one category, 96. It is split by the ratio 9 / (6 + 9)
 in the country's survey data (`EMP_TEMP_SEX_OCU_NB_A`, ISCO-08 rows, pooled
-over years); for a country without them, group 6 is set to the survey median
-ratio of group 6 to agricultural employment times the country's agricultural
-employment (capped at group 96), the rest of group 96 being elementary. The survey's own skill
+over the years that report both groups); for a country without them, group 6
+is set to the survey median ratio of group 6 to agricultural employment times
+the country's agricultural employment, the rest of group 96 being elementary.
+Where that would take all of group 96 (Taiwan's men), agriculture says nothing
+about the split and the world's pooled ratio is used instead. The survey's own skill
 levels are not used as the margin: many countries have one or two survey
 years (China only the 2000 census, with almost no elementary occupations),
 so carrying them would freeze the skill mix, while the modelled series is
@@ -66,12 +68,16 @@ def _un_region(iso3):
 
 
 def elementary_ratio(survey: pd.DataFrame, un_region: dict) -> pd.DataFrame:
-    """r = ISCO-08 group 9 / (6 + 9) by (ref_area, sex), pooled over every
-    survey year; also the UN region and world pools. Returns three Series."""
+    """r = ISCO-08 group 9 / (6 + 9) by (ref_area, sex), pooled over the
+    survey years that report both groups (a year with only one of them says
+    nothing about the ratio); also the UN region and world pools. Returns
+    three Series."""
     s = survey[survey["classif1"].isin(["OCU_ISCO08_6", "OCU_ISCO08_9"])
                & survey["sex"].isin(SEXES)]
-    p = s.pivot_table(index=["ref_area", "sex"], columns="classif1",
-                      values="obs_value", aggfunc="sum").fillna(0.0)
+    p = s.pivot_table(index=["ref_area", "sex", "time"], columns="classif1",
+                      values="obs_value", aggfunc="sum")
+    p = p.reindex(columns=["OCU_ISCO08_6", "OCU_ISCO08_9"]).dropna()
+    p = p.groupby(level=["ref_area", "sex"]).sum()
     p = p[(p["OCU_ISCO08_6"] + p["OCU_ISCO08_9"]) > 0].reset_index()
     p["unregion"] = p["ref_area"].map(un_region).fillna("World")
     reg = p.groupby(["unregion", "sex"])[["OCU_ISCO08_6", "OCU_ISCO08_9"]].sum()
@@ -100,8 +106,11 @@ def country_skill_shares(modelled: pd.DataFrame, survey: pd.DataFrame,
     agricultural part of the merged group 96, low = its elementary part,
     split by `elementary_ratio` where the country has survey rows for
     groups 6 and 9, else by `agri` (agricultural employment by ref_area,
-    sex, time): group 6 = alpha * agri, capped at group 96, with alpha the
-    median survey ratio of group 6 to agricultural employment for that sex.
+    sex, time): group 6 = alpha * agri, with alpha the median survey ratio
+    of group 6 to agricultural employment for that sex, used only where it
+    is below group 96. Otherwise (alpha * agri >= group 96, which would
+    leave no elementary workers) and without agricultural employment, the
+    world's pooled ratio.
     """
     m = modelled[modelled["sex"].isin(SEXES) & modelled["time"].isin(years)
                  & (modelled["classif1"] != "OCU_ISCO08_TOTAL")]
@@ -124,9 +133,13 @@ def country_skill_shares(modelled: pd.DataFrame, survey: pd.DataFrame,
         alpha = agri_alpha(survey, agri)
         a = agri.reindex(p.index).to_numpy()
         g96 = g("OCU_ISCO08_96") * np.ones(len(p))
-        g6 = np.minimum(np.array([alpha.get(s, np.nan) for s in idx.sex]) * a, g96)
+        g6 = np.array([alpha.get(s, np.nan) for s in idx.sex]) * a
+        # Only where agriculture is informative: if alpha * agri reaches
+        # group 96 (Taiwan's men every year; Oman's and Syria's women in the
+        # 1990s), capping g6 at group 96 would leave no elementary workers,
+        # so those fall through to the world pool below.
         with np.errstate(invalid="ignore", divide="ignore"):
-            r_agri = np.where(g96 > 0, 1 - g6 / g96, np.nan)
+            r_agri = np.where((g96 > 0) & (g6 < g96), 1 - g6 / g96, np.nan)
         use = miss & np.isfinite(r_agri)
         r[use] = r_agri[use]
     miss = r.isna()
@@ -152,7 +165,8 @@ def region_skill_shares(modelled: pd.DataFrame, survey: pd.DataFrame,
     e = employment[(employment["classif1"] == "ECO_DETAILS_TOTAL")
                    & employment["sex"].isin(SEXES)
                    & employment["time"].isin(years)
-                   & employment["EXIO3"].notna() & (employment["EXIO3"] != "not found")]
+                   & employment["EXIO3"].notna()
+                   & ~employment["EXIO3"].isin(["not found", ""])]
     e = e.groupby(["ref_area", "EXIO3", "sex", "time"], as_index=False)["obs_value"].sum()
     un = _un_region(sorted(set(e["ref_area"]) | set(survey["ref_area"]) | set(modelled["ref_area"])))
     a = employment[(employment["classif1"] == "ECO_DETAILS_A") & employment["sex"].isin(SEXES)]
@@ -183,6 +197,12 @@ def region_skill_shares(modelled: pd.DataFrame, survey: pd.DataFrame,
     shares = r[wcols].div(r["obs_value"].where(r["obs_value"] > 0), axis=0)
     shares.columns = list(SKILLS)
     shares.index = shares.index.set_names(["region", "sex", "time"])
+    # A region-sex-year without people gets 1/3 each, harmlessly (nothing to
+    # split); one with people but no skill shares is a gap in the fallbacks.
+    gap = shares.isna().any(axis=1) & (r["obs_value"] > 0).to_numpy()
+    if gap.any():
+        print(f"[WARN] skill shares: {int(gap.sum())} region-sex-years with people "
+              f"but no skill shares set to 1/3 each, e.g. {list(shares.index[gap][:5])}")
     return shares.fillna(1 / 3)
 
 
@@ -207,7 +227,11 @@ def ras(prior: np.ndarray, rows: np.ndarray, cols: np.ndarray,
         cs = X.sum(axis=0)
         X *= np.divide(cols, cs, out=np.zeros_like(cols), where=cs > 0)[None, :]
         if np.abs(X.sum(axis=1) - rows).max() <= tol * max(rows.max(), 1.0):
-            break
+            return X
+    resid = np.abs(X.sum(axis=1) - rows).max()
+    if resid > 1e-6 * max(rows.max(), 1.0):
+        print(f"[WARN] ras: no convergence after {iters} iterations, largest row "
+              f"residual {resid:.3g} of row total {rows.max():.3g}")
     return X
 
 
