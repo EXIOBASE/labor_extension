@@ -9,6 +9,10 @@ with the axis as a parameter. No copy of the pipeline.
 - 12 stressors (not 13): 6 `Employment people: <skill> <sex>` in 1000 p, 6
   `Employment hours: <skill> <sex>` in M.hr (checked on
   `EXIOBASE_3_12_0/raw/Extensions/labour/pxp/2019/unit.txt`). F_Y is all zero.
+  (Note 2026-11-10: on branch `improve-labour-account` the account has 14
+  rows, the 12 plus `Vulnerable employment: people` and `Vulnerable
+  employment: hours`; see COVERAGE.md. This plan describes main as of
+  2026-11-06.)
 - labor_extension `run_windows.py`: stage 1 builds the ILO workforce by ISO3
   (plus CIA and hand-compiled supplements), maps each ISO3 to its region with
   country_converter `EXIO3`, aggregates, and splits each region's ILO ISIC4
@@ -91,7 +95,11 @@ dependent from it; `config.yaml` gets an `axes.rx2` block:
   module level (`calcul_year_impl`, body unchanged) so a process pool can run
   it: `LABOR_NO_RAY=1 LABOR_PARALLEL=process LABOR_WORKERS=4`. ray stays the
   default. Check runs can redirect output with `LABOR_FINAL_TABLE_DIR` and
-  `LABOR_WORK_DIR`.
+  `LABOR_WORK_DIR`. (Note 2026-11-10: `LABOR_NO_RAY` is no longer read.
+  The process pool is now the default for the salary split and the serial
+  stand-in for the hours stage; `LABOR_RAY=1` restores ray and
+  `LABOR_PARALLEL=serial` runs the salary split serially. See README,
+  "Running".)
 - Reformat (desire_upload_prepper) and tail (labor_extension
   `scripts/nowcast_tail.py`) take `--axis rx2`: columns from
   `io_utils.classification.sector_layout/final_demand_layout("rx2")`, product
@@ -138,7 +146,9 @@ a worker died with an access violation. The salary split now has a process
 pool (`LABOR_PARALLEL=process`) and the four hours modules that call ray take
 a serial stand-in under `LABOR_NO_RAY=1` (`working_hours/serial_ray.py`,
 arguments deep-copied per call as a ray task would get them). The hours
-modules' ray worker count now honours `LABOR_WORKERS`.
+modules' ray worker count now honours `LABOR_WORKERS`. (Note 2026-11-10:
+both are now the defaults and `LABOR_NO_RAY` is no longer read; ray only
+with `LABOR_RAY=1`.)
 
 ## Run order (rx2)
 
