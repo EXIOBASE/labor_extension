@@ -78,13 +78,26 @@ def section_profiles(by_activity: pd.DataFrame, un_region: dict) -> pd.DataFrame
     fallbacks filled in; index (ref_area, sex), one column per group."""
     t = by_activity[by_activity["sex"].isin(SEXES)
                     & by_activity["classif2"].str.startswith("ECO_ISIC4_")
-                    & by_activity["classif1"].isin(VULNERABLE + (TOTAL,))].copy()
+                    & by_activity["classif1"].str.startswith("STE_ICSE93_")].copy()
     t["group"] = t["classif2"].str.removeprefix("ECO_ISIC4_").map(SECTION_GROUP)
     t = t.dropna(subset=["group"])
     t["group"] = "ECO_DETAILS_" + t["group"]
-    t["kind"] = np.where(t["classif1"] == TOTAL, "tot", "vul")
-    pooled = t.pivot_table(index=["ref_area", "sex", "group"], columns="kind",
-                           values="obs_value", aggfunc="sum").fillna(0.0)
+    t["kind"] = np.where(t["classif1"] == TOTAL, "tot",
+                         np.where(t["classif1"].isin(VULNERABLE), "vul", "other"))
+    # Pool over the survey cells (country, sex, year, section). A cell that
+    # reports no ICSE 3 or 5 count is a zero if its other statuses (1, 2, 4,
+    # 6) add up to its total, as in 4,535 of 5,139 such cells (2026-11-10;
+    # e.g. employees only in public administration, or domestic workers),
+    # and is left out otherwise: the gap may be suppressed vulnerable
+    # workers, and counting it as none would pull the section down.
+    cell = t.pivot_table(index=["ref_area", "sex", "time", "classif2", "group"],
+                         columns="kind", values="obs_value", aggfunc="sum")
+    cell = cell.reindex(columns=["vul", "tot", "other"])
+    cell = cell[cell["tot"] > 0]
+    closed = (cell["tot"] - cell["other"]).abs() <= 0.005 + 1e-6 * cell["tot"]
+    cell["vul"] = cell["vul"].where(cell["vul"].notna() | ~closed, 0.0)
+    cell = cell.dropna(subset=["vul"])
+    pooled = cell.groupby(level=["ref_area", "sex", "group"])[["vul", "tot"]].sum()
     pooled = pooled[pooled["tot"] > 0]
 
     def shares(frame, keys):
@@ -149,8 +162,14 @@ def country_shares(employment: pd.DataFrame, V: pd.Series, profiles, un_region) 
     idx.loc[miss, "V"] = [reg_v.get((r, s, t), np.nan) for r, s, t in
                           idx.loc[miss, ["unregion", "sex", "time"]].itertuples(index=False)]
     miss = idx["V"].isna()
-    idx.loc[miss, "V"] = [wld_v.get((s, t), 0.0) for s, t in
+    idx.loc[miss, "V"] = [wld_v.get((s, t), np.nan) for s, t in
                           idx.loc[miss, ["sex", "time"]].itertuples(index=False)]
+    miss = idx["V"].isna()
+    if miss.any():
+        print(f"[WARN] vulnerable employment: {int(miss.sum())} country-sex-years with "
+              f"people but no national, regional or world share set to 0, e.g. "
+              f"{list(idx.loc[miss, ['ref_area', 'sex', 'time']].head(5).itertuples(index=False, name=None))}")
+        idx.loc[miss, "V"] = 0.0
     target = idx["V"].clip(0, 1 - _EPS).to_numpy()
 
     prof = {}
@@ -176,7 +195,8 @@ def country_table(employment: pd.DataFrame, data_dir: Path) -> pd.DataFrame:
                            usecols=["ref_area", "sex", "classif1", "time", "obs_value"])
     by_activity = pd.read_csv(data_dir / STATUS_BY_ACTIVITY,
                               usecols=["ref_area", "sex", "classif1", "classif2", "time", "obs_value"])
-    emp = employment[employment["EXIO3"].notna() & (employment["EXIO3"] != "not found")]
+    emp = employment[employment["EXIO3"].notna()
+                     & ~employment["EXIO3"].isin(["not found", ""])]
     countries = sorted(set(emp["ref_area"]) | set(by_activity["ref_area"]))
     un_region = _un_region(countries)
     V = national_shares(modelled)
@@ -193,7 +213,7 @@ def region_shares(employment: pd.DataFrame, data_dir: Path) -> pd.DataFrame:
 
     `employment` is the workforce table (workforce.csv): ref_area, EXIO3 (the
     axis region), sex, classif1, time, obs_value. Rows whose region is
-    `not found` (ILO aggregates) are ignored.
+    `not found` or blank (ILO aggregates) are ignored.
     """
     cs = country_table(employment, data_dir)
     cs["vul"] = cs["share"] * cs["E"]
