@@ -135,3 +135,17 @@ Finaly, we combine all results in one table, employment hours being in M.hr and 
 | Employment people: Medium-skilled female     | 0                         | 4.36215              | 8.492183                         |
 | Employment people: Medium-skilled male       | 0                         | 4.656875             | 9.065948                         |
 
+
+# Labour-risk account (since 2026-11, separate from the labour account)
+
+`scripts/build_labour_risk.py` builds a second extension from the labour account: the stressors below by region and industry, per year, written as `F.txt` and `unit.txt` per year. Each is a subset of, or an attribute of, the labour account's people; none is to be added to the employment rows. Sources are in `d:/indecol/data/labour/data/risk/` (one folder per source, with a SOURCE.md); the method of each is in the docstrings of `labour_risk/indicators.py` and `labour_risk/child_forced.py`.
+
+| Stressor | Unit | Source | Country and sector detail |
+| --- | --- | --- | --- |
+| Employment people / hours: Informal employment | 1000 p, M.hr | ILOSTAT informal employment by sex and ISIC section (122 countries around 2019) | informal/vulnerable ratio by country and section, applied to the annual vulnerable shares; UN region or world ratio where a country has no survey |
+| Employment people: Working poverty (below US$3 a day) | 1000 p | ILOSTAT SDG 1.1.1, ILO modelled, 2000-2025 | national rate by sex, spread over sections by the vulnerable profile; high-income countries 0 |
+| Employment people: Long hours (49 hours a week or more) | 1000 p | ILOSTAT employment by weekly hours actually worked | national by sex, uniform over sections |
+| Child labour; Child labour: hazardous work | 1000 p (children 5-17) | ILOSTAT national surveys (68 countries); ILO-UNICEF 2024 and ILO 2017 global estimates | scaled to ILO's world totals (2000-2016) and SDG-region totals (2020, 2024); broad sector from surveys or the reports; industries by low-skilled people |
+| Forced labour | 1000 p | ILO, Walk Free and IOM 2021 global estimates, five ILO regions | regional total spread by employment, world sector composition; industries by low-skilled people |
+
+Child and forced labour are modelled: the totals are ILO's, the country and industry detail is allocation. Occupational injuries and disease are not yet included: the national sources (WHO/ILO joint estimates, IHME GBD) need a browser download or a login.

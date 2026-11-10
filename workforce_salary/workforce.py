@@ -9,7 +9,8 @@ from pathlib import Path
 # `from from_cia_to_ilo import ...` silently picks up the ROOT copy and any fix
 # made here is dead code. Confirmed by the root copy's uncommented
 # `data_list_old.to_csv('data_list_old.csv')` firing on every run.
-from workforce_salary.from_cia_to_ilo import cia_to_ilo
+from workforce_salary.from_cia_to_ilo import (cia_to_ilo,
+                                              load_population_aggregates)
 from workforce_salary.ref_label import add_ref_label
 import country_converter as coco
 
@@ -113,7 +114,14 @@ def workforce_calculation(data_path,src_csv,src_csv2,final_path):
     missing_data.loc[:,1990.0:2022.0] = missing_data.loc[:,1990.0:2022.0].div(1000)
 
     
-    from_cia_to_ilo, missing_countries = cia_to_ilo(data_list,data_cia,correspondance_ilo,missing_data)
+    # The hand-compiled territory totals are total population; scale them by
+    # the employment-to-population ratio of their ILO aggregate (default).
+    # LABOR_TERRITORY_PARTICIPATION=0 restores the 3.12.0 behaviour.
+    population_agg = None
+    if os.environ.get("LABOR_TERRITORY_PARTICIPATION", "1") != "0":
+        population_agg = load_population_aggregates(data_path)
+
+    from_cia_to_ilo, missing_countries = cia_to_ilo(data_list,data_cia,correspondance_ilo,missing_data,population_agg=population_agg)
     
     # final = data_list.append(from_cia_to_ilo)
     final = pd.concat([data_list,from_cia_to_ilo])

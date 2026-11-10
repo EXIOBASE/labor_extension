@@ -22,6 +22,74 @@ ILO_FIRST_YEAR = 1991
 AGG_TOTAL_CLASSIF = "ECO_SECTOR_TOTAL"
 AGG_TOTAL_SEX = "SEX_T"
 
+#: ILO reports the Channel Islands as one entity (CHA, renamed CHI in
+#: ref_label.py). Jersey and Guernsey are also separate EXIOBASE countries and
+#: would be rebuilt from the Factbook as "missing", counting the islands twice
+#: (3.12.0: CHI 79.4 thousand in 2020, plus JEY 60.7 and GGY 33.5). When ILO
+#: has the combined code the parts are not built; when it does not, they are.
+DOUBLE_COUNTED = {"CHI": ("JEY", "GGY")}
+
+#: Factbook entity names (underscore form in auxdata/CIA.json) that the
+#: country_converter regex does not resolve but whose ISO3 is known.
+CIA_ISO3_OVERRIDES = {"isle_of_man": "IMN"}
+
+#: ILO's modelled total population (UN estimates), downloaded by
+#: run_windows.py next to the employment export. Gives the region aggregates'
+#: population that the hand-compiled territory totals are scaled against.
+POPULATION_CSV = "POP_2POP_SEX_NB_A.csv"
+
+
+def drop_double_counted(missing_countries, iso3_in_ilo):
+    """Remove from `missing_countries` the parts of a combined ILO entity.
+
+    Returns (kept, dropped). See DOUBLE_COUNTED.
+    """
+    ilo = set(iso3_in_ilo)
+    dropped = [part for whole, parts in DOUBLE_COUNTED.items() if whole in ilo
+               for part in parts if part in missing_countries]
+    kept = [c for c in missing_countries if c not in dropped]
+    return kept, dropped
+
+
+def load_population_aggregates(data_path):
+    """(ref_area.label) x time -> total population (thousands), SEX_T.
+
+    Read from ILO's POP_2POP_SEX_NB_A export, which carries the same 45
+    "<region>: <income group>" aggregates as the employment export.
+    """
+    path = Path(data_path) / POPULATION_CSV
+    if not path.exists():
+        raise FileNotFoundError(
+            f"{path} not found. The territory participation scaling needs ILO's "
+            f"population export ({POPULATION_CSV}); run the download step, or "
+            "set LABOR_TERRITORY_PARTICIPATION=0 to keep the territory totals "
+            "as total population (the 3.12.0 behaviour, a known defect).")
+    pop = pd.read_csv(path, encoding="utf-8-sig",
+                      usecols=["ref_area.label", "sex", "time", "obs_value"])
+    pop = pop[pop["sex"] == AGG_TOTAL_SEX]
+    return (pop.drop_duplicates(["ref_area.label", "time"])
+               .set_index(["ref_area.label", "time"])["obs_value"]
+               .unstack("time").sort_index())
+
+
+def resolve_aggregate(sub_label, reg_label, income, agg_labels):
+    """The ILO aggregate a supplementary country is scaled against.
+
+    "<subregion>: <income>", else "<region>: <income>", else, where ILO has no
+    aggregate for that income group in the region (Africa has no high-income
+    group, which is why Seychelles, Reunion and the British Indian Ocean
+    Territory were silently skipped), "World: <income>". Returns (label,
+    status) or (None, None).
+    """
+    if sub_label in agg_labels:
+        return sub_label, "ILO_Subregion_Broad"
+    if reg_label in agg_labels:
+        return reg_label, "ILO_region"
+    world = f"World: {income}"
+    if world in agg_labels:
+        return world, "ILO_World_income"
+    return None, None
+
 cc = coco.CountryConverter()
 cc.valid_class
 cc.get_correspondence_dict('ISO3', 'EXIO3')
@@ -135,7 +203,9 @@ def _build_cia_countries(missing_countries, fetched_data, df, agg, agg_labels,
     Each country is assumed to hold a constant share of its ILO aggregate, the
     share being fixed in the CIA reference year, and the ILO aggregate supplies
     the whole year profile. Prefers the "<subregion>: <income group>" aggregate
-    and falls back to "<region>: <income group>".
+    and falls back to "<region>: <income group>", then "World: <income group>"
+    (see resolve_aggregate). The Factbook figure is a labour force, not a
+    population, so it is used as it stands.
     """
     frames = []
     for a in missing_countries:
@@ -152,21 +222,19 @@ def _build_cia_countries(missing_countries, fetched_data, df, agg, agg_labels,
         sub_label = f'{meta["ILO Subregion - Broad"].iloc[0]}: {income}'
         reg_label = f'{meta["ILO Region"].iloc[0]}: {income}'
 
-        if sub_label in agg_labels:
-            label, status = sub_label, "ILO_Subregion_Broad"
-            if date <= 1990:
-                # Original: the aggregate has no 1990 value for this case
-                # (e.g. TCA), so extrapolate back from 1991 and 1992.
-                pop_total = (2 * _agg_total(agg, label, 1991)
-                             - _agg_total(agg, label, 1992))
-            else:
-                pop_total = _agg_total(agg, label, date)
-        elif reg_label in agg_labels:
-            # NB: the original applies no <=1990 extrapolation in this branch.
-            label, status = reg_label, "ILO_region"
-            pop_total = _agg_total(agg, label, date)
-        else:
+        label, status = resolve_aggregate(sub_label, reg_label, income,
+                                          agg_labels)
+        if label is None:
             continue
+        if status == "ILO_Subregion_Broad" and date <= 1990:
+            # Original: the aggregate has no 1990 value for this case
+            # (e.g. TCA), so extrapolate back from 1991 and 1992.
+            pop_total = (2 * _agg_total(agg, label, 1991)
+                         - _agg_total(agg, label, 1992))
+        else:
+            # NB: the original applies no <=1990 extrapolation outside the
+            # subregion branch.
+            pop_total = _agg_total(agg, label, date)
 
         factor = pop_known / pop_total
         print(a, pop_known)
@@ -185,13 +253,22 @@ def _build_cia_countries(missing_countries, fetched_data, df, agg, agg_labels,
 
 def _build_xlsx_entities(missing_data, agg, agg_labels, cc_all, already_covered,
                          year_cols, last_xlsx_year, classifications, list_sex,
-                         years, columns):
+                         years, columns, population_agg=None):
     """Entities with hand-compiled totals in auxdata/Exiobase_Population_Data_not_found.xlsx.
 
     Same constant-share method, but the country total is observed per year, so
     the ratio is recomputed each year. Past `last_xlsx_year` the ratio is held
     at its last observed value and the aggregate carries the series forward -
     those rows are tagged `..._nowcast`.
+
+    The xlsx totals are TOTAL POPULATION (worldometers, World Bank SP.POP.TOTL,
+    statisticstimes), not workforce. With `population_agg` (the ILO region
+    aggregates' total population, see load_population_aggregates) each total
+    is multiplied by the employment-to-population ratio of the entity's
+    aggregate, ILO employment over ILO population of the same aggregate and
+    year, before it is shared out. Without it (the 3.12.0 behaviour) the
+    population is booked as if it were all employed: Kosovo as 1,790 thousand
+    workers, Guadeloupe 407, Martinique 357.
     """
     frames = []
     for code in missing_data["ISO3"].values:
@@ -203,16 +280,28 @@ def _build_xlsx_entities(missing_data, agg, agg_labels, cc_all, already_covered,
         if row.empty:
             continue
         label = str(row["Label_short"].iloc[0])
+        base_status = "ILO_Subregion_Broad"
         if label not in agg_labels:
-            continue
+            # ILO has no aggregate for this region and income group (Africa:
+            # High income: Reunion, the British Indian Ocean Territory).
+            income = label.split(": ", 1)[1] if ": " in label else ""
+            world = f"World: {income}"
+            if not income or world not in agg_labels:
+                continue
+            label, base_status = world, "ILO_World_income"
 
         factor_by_year, status_by_year = {}, {}
         for y in years:
             anchor = min(y, last_xlsx_year)
             pop_known = float(row[year_cols[anchor]].iloc[0])
-            factor_by_year[y] = pop_known / _agg_total(agg, label, anchor)
-            status_by_year[y] = ("ILO_Subregion_Broad_nowcast"
-                                 if y > last_xlsx_year else "ILO_Subregion_Broad")
+            employed = _agg_total(agg, label, anchor)
+            if population_agg is None:
+                participation = 1.0
+            else:
+                participation = employed / float(population_agg.loc[label, anchor])
+            factor_by_year[y] = pop_known * participation / employed
+            status_by_year[y] = (base_status + "_nowcast"
+                                 if y > last_xlsx_year else base_status)
         print(code)
         frames.append(_rows_for(
             agg, label, factor_by_year, columns,
@@ -340,7 +429,7 @@ def _build_dropouts(data_list_old, cc_all, classifications, list_sex, years,
     return pd.concat(frames, ignore_index=True)
 
 
-def cia_to_ilo(data_list,data_cia,df,missing_data):
+def cia_to_ilo(data_list,data_cia,df,missing_data,population_agg=None):
 
     cc_all = coco.CountryConverter(include_obsolete=True)
    
@@ -361,8 +450,13 @@ def cia_to_ilo(data_list,data_cia,df,missing_data):
     for item in ISO3_in_EXIOBASE:
         if not item in ISO3_in_ILO:
             missing_countries.append(item)
-            
-            
+
+    missing_countries, double_counted = drop_double_counted(
+        missing_countries, ISO3_in_ILO)
+    if double_counted:
+        print(f"[cia_to_ilo] {double_counted} not built: ILO already reports "
+              "them inside the Channel Islands (CHI)")
+
 
     
     data_list_old = data_list.copy()
@@ -415,6 +509,7 @@ def cia_to_ilo(data_list,data_cia,df,missing_data):
     cia_iso3 = cc_all.convert(names=cia_names, src='regex', to='ISO3')
     if not isinstance(cia_iso3, list):
         cia_iso3 = [cia_iso3]
+    cia_iso3 = [CIA_ISO3_OVERRIDES.get(n, c) for n, c in zip(cia_names, cia_iso3)]
     missing_set = set(missing_countries)
 
     fetched_data = pd.DataFrame(data=None,columns=['ISO3','population','date'])
@@ -503,6 +598,7 @@ def cia_to_ilo(data_list,data_cia,df,missing_data):
         list_sex=list_sex,
         years=years_list,
         columns=column_data_list,
+        population_agg=population_agg,
     )
 
     # Countries ILO reported and then stopped. Not covered by either builder

@@ -79,6 +79,9 @@ _ILO_API = "https://rplumber.ilo.org/data/indicator/?id={id}&type=both&format=.c
 SOURCES = [
     (_ILO_API.format(id="EMP_2EMP_SEX_ECO_NB_A"), "EMP_2EMP_SEX_ECO_NB_A.csv"),
     (_ILO_API.format(id="HOW_TEMP_SEX_ECO_NB_A"), "HOW_TEMP_SEX_ECO_NB_A.csv"),
+    # Total population, for scaling the hand-compiled territory totals to
+    # workforce (workforce_salary/from_cia_to_ilo.py).
+    (_ILO_API.format(id="POP_2POP_SEX_NB_A"), "POP_2POP_SEX_NB_A.csv"),
     # Status in employment, for the vulnerable employment rows
     # (working_hours/vulnerable_employment.py).
     (_ILO_API.format(id="EMP_2EMP_SEX_STE_NB_A"), "EMP_2EMP_SEX_STE_NB_A.csv"),
