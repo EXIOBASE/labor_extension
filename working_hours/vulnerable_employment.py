@@ -3,7 +3,11 @@
 Vulnerable employment is own-account workers plus contributing family
 workers (ICSE-93 groups 3 and 5), the ILO definition and the one behind the
 two `Vulnerable employment` stressors EXIOBASE 3.8.2 shipped
-(docs/improvement_plan_2026-11-06.md, Phase 2).
+(docs/improvement_plan_2026-11-06.md, Phase 2). The rows are named
+`Vulnerable employment: people` (1000 p) and `Vulnerable employment: hours`
+(M.hr), not `Employment people: ...` / `Employment hours: ...` as in 3.8.2:
+downstream totals sum every row with those prefixes, and vulnerable workers
+are already counted in the six skill and sex rows.
 
 Sources, both ILOSTAT:
 

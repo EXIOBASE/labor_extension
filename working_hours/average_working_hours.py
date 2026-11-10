@@ -23,8 +23,12 @@ from annual_hours import working_weeks
 from vulnerable_employment import region_shares as vulnerable_region_shares
 
 #: The two stressors added in 2026-11 (3.8.2 shipped them; 3.9-3.12 did not).
-VULNERABLE_PEOPLE = "Employment people: Vulnerable employment"
-VULNERABLE_HOURS = "Employment hours: Vulnerable employment"
+#: Not named "Employment people: ..." / "Employment hours: ...": downstream
+#: totals sum every row matching those prefixes, and these rows are a subset
+#: of the six skill and sex rows, so they would be counted twice. The
+#: reformat's unit rule (a name containing "hours" is M.hr) still applies.
+VULNERABLE_PEOPLE = "Vulnerable employment: people"
+VULNERABLE_HOURS = "Vulnerable employment: hours"
 from isic3_to_isic4_vectorised import isic3_to_isic4
 from complete_hours import complete
 from complete_hours_2 import complete2

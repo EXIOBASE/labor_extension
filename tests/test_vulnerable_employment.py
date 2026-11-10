@@ -102,6 +102,23 @@ def test_region_shares_aggregate_countries_and_stay_below_people(tmp_path):
         assert np.isclose(o.E.sum(), e.sum())
 
 
+def test_row_names_are_outside_the_employment_totals():
+    # Downstream totals sum every row matching `Employment people.*` and
+    # `Employment hours.*`; the vulnerable rows are a subset of those rows,
+    # so they must not match. The hours row must still contain "hours" (the
+    # reformat gives such rows M.hr).
+    import ast
+    import re
+    src = (Path(__file__).resolve().parents[1] / "working_hours" / "average_working_hours.py").read_text(encoding="utf-8")
+    names = {n.targets[0].id: n.value.value for n in ast.parse(src).body
+             if isinstance(n, ast.Assign) and isinstance(n.targets[0], ast.Name)
+             and n.targets[0].id in ("VULNERABLE_PEOPLE", "VULNERABLE_HOURS")}
+    assert len(names) == 2
+    for name in names.values():
+        assert not re.match(r"Employment (people|hours)", name)
+    assert "hours" in names["VULNERABLE_HOURS"] and "hours" not in names["VULNERABLE_PEOPLE"]
+
+
 if __name__ == "__main__":
     import tempfile
     test_national_share_is_reproduced_and_bounded()
@@ -109,4 +126,5 @@ if __name__ == "__main__":
     test_suppressed_vulnerable_counts_are_not_pooled_as_zero()
     with tempfile.TemporaryDirectory() as d:
         test_region_shares_aggregate_countries_and_stay_below_people(Path(d))
+    test_row_names_are_outside_the_employment_totals()
     print("ok")
