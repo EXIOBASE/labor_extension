@@ -10,6 +10,61 @@ still build everything we used to (gender, forced labour, and so on), and
 what is the plan to fix and improve it. His decisions of 2026-11-06 are in
 section 4.
 
+## Status, 2026-11-10
+
+The plan below is kept as written on 2026-11-06 and 2026-11-10; where the
+build differs from it, this section and the dated notes in section 5 say
+how. Commits are on `improve-labour-account`.
+
+- **Phase 1, hours formula: done.** d7ea0fd (formula), d3833f0 (check
+  run: world hours per worker -8.9% in 2019), 670739e (a region taking
+  its hours from a fallback region keeps its own vacation days). Gate
+  result: against OECD annual hours actually worked (38 countries, 2019)
+  the new formula is a median 2% high, the old one 15%, so the deduction
+  applies to the ILO and the Eurostat rows alike.
+- **Phase 2, vulnerable employment: done.** 0b78991, f87f7c5 (survey
+  cells with suppressed ICSE 3/5 counts left out of the profiles), 854bebc
+  (warning for a cell with people but no share), 4b91417 (rows renamed
+  `Vulnerable employment: people` / `Vulnerable employment: hours`, so
+  that downstream `Employment people.*` / `Employment hours.*` totals do
+  not count them twice). Built differently from the plan: the national
+  share by sex is ILO's modelled `EMP_2EMP_SEX_STE_NB_A` for every
+  country, spread over the 14 activity groups by the country's survey
+  profile pooled over all its survey years (UN region, then world, where
+  the country has no survey for a group), with one logit shift that keeps
+  ILO's national share. The plan's ILO subregion x income group profile
+  was not used.
+- **Phase 3, skill from occupation: done.** 54313dc, de5856d, 84cd2c1.
+  Built differently from the plan: ILO's *modelled* employment by ISCO-08
+  major group (`EMP_2EMP_SEX_OCU_NB_A`) is the primary source for every
+  country and year, not the survey skill levels, because many countries
+  have one or two survey years (China only its 2000 census). The merged
+  group 96 is split by the country's survey ratio 9 / (6 + 9) pooled over
+  years reporting both groups; else group 6 = the median survey ratio of
+  group 6 to agricultural employment x the country's agricultural
+  employment, where that is below group 96; else the world pooled ratio.
+  RAS on the wage-bill skill mix; the prior is not divided by relative
+  wages (a column scaling, which RAS absorbs). The seven splices are not
+  yet re-measured or retired.
+- **Phase 4, labour-risk account: built as a separate extension**
+  (f9547df, cd122e3, 8bfe486, 0b93e87, ebd6b6d, f512744, 3b47348,
+  e5dddde, b2d55e7): `Informal employment: people` / `hours` (ILOSTAT SDG
+  8.3.1), `Working poverty (below US$3 a day): people` (SDG 1.1.1), `Long
+  hours (49 hours a week or more): people`, `Child labour`, `Child labour:
+  hazardous work`, `Forced labour` (modelled layer), `Long working hours:
+  attributable deaths` and `attributable DALYs` (WHO/ILO joint
+  estimates). Occupational injuries are pending: the WHO/ILO export in
+  hand covers long working hours only; injuries need a WHO/ILO
+  "occupational injuries" export or IHME GBD (login needed). Not yet
+  staged on a release tree.
+- **Phase 5, cleanup: partly done.** Done: 12 dead modules deleted
+  (9c57e3a); process pool by default, ray only with `LABOR_RAY=1`, debug
+  CSVs to the work folder on e3, pytest in `environment.yml` (095aaa7);
+  the three equivalence scripts run under pytest and skip without their
+  data. Open: vectorising the salary split and hours split loops (the
+  `to_string` round trip is still there), a two-region two-year fixture
+  run end to end.
+
 ## 1. Is it working?
 
 Yes. The pipeline runs end to end (`run_windows.py`, 3.9 h on e3 on
@@ -115,7 +170,12 @@ What the releases shipped, from the files on disk:
 This repo has never built it: no code and no commit in its history (51
 commits from 2024-12-17) touches it. exio_hatcher and exio_results still
 list the two rows, as a cross-cutting attribute, not a seventh skill-sex
-class. Gender is still built (male and female on every row).
+class. (Correction 2026-11-10: exio_hatcher only names the 3.8.2 labels
+`Employment: Vulnerable employment` and `Employment hours: Vulnerable
+employment` in its drop list (`generate.py`), and exio_results only
+excludes rows containing "Vulnerable" from its hours total; neither
+knows the new `Vulnerable employment: people` / `hours` rows.) Gender is
+still built (male and female on every row).
 
 Simas, Golsteijn, Huijbregts, Wood, Hertwich (2014), the "bad labour"
 footprint (full text read from vectorsustainability.com), built six
@@ -191,7 +251,7 @@ account. Every phase builds both axes through the axis setting.
 rx2 work committed and pushed on main (4439478), Ukraine documentation
 corrected (c9b63ec), branch created, this plan.
 
-### Phase 1: hours formula (small, isolated)
+### Phase 1: hours formula (small, isolated); done, see Status
 - In `average_working_hours.py`, replace `* 52` by
   `* (260 - vacation) / 5`, with `vacation` the region's `Total Paid
   Vacation Days` (already looked up per region, unused today). On rx2 the
@@ -202,7 +262,7 @@ corrected (c9b63ec), branch created, this plan.
   hours for the OECD and EU countries, 2019.
 - README formula corrected to the one in the code.
 
-### Phase 2: vulnerable employment
+### Phase 2: vulnerable employment; done, built differently, see Status
 - Add `EMP_TEMP_SEX_STE_ECO_NB_A` and `EMP_2EMP_SEX_STE_NB_A` to
   `download_all`.
 - Vulnerable share = (ICSE-93 3 + 5) / total, by country, sex and ISIC
@@ -215,11 +275,12 @@ corrected (c9b63ec), branch created, this plan.
   with the same hours per person, as two new workbook rows. The reformat
   in desire_upload_prepper, `nowcast_tail.py`, `unit.txt`, exio_incubator's
   naming fix and the 00-qa label guards learn the two rows; exio_hatcher
-  and exio_results already list them.
+  and exio_results already list them. (Correction 2026-11-10: they do not;
+  see the note in section 3.)
 - Tests: world vulnerable share by year against ILO's modelled world
   share; the rows stay at or below the six-class totals in every cell.
 
-### Phase 3: skill split from ILO occupation
+### Phase 3: skill split from ILO occupation; done, built differently, see Status
 - National people by skill and sex from `EMP_TEMP_SEX_OCU_NB_A`
   (`OCU_SKILL_L1` low, `L2` medium, `L3-4` high), with
   `EMP_2EMP_SEX_OCU_NB_A` mapped through the ISCO-08 major groups (JRC
@@ -237,7 +298,7 @@ corrected (c9b63ec), branch created, this plan.
   (headcount high-skilled share expected to fall), largest one-year move
   per region as in the 2026-10-27 break scan.
 
-### Phase 4: labour-risk account
+### Phase 4: labour-risk account; built, injuries pending, see Status
 - Coverage audit of the injury and child labour indicators (countries,
   years, activity detail) before any build.
 - Stressors, people-based, allocated to industries by the labour account:
@@ -310,7 +371,7 @@ their publishers, not checked against a download. Related work found: the
 2020 PLOS ONE "indecent labour footprint" (fatal and non-fatal injuries,
 forced labour, MRIO) and PSILCA v4 (106 social indicators on Eora).
 
-### Phase 5: code cleanup (after Phase 3 changes the arithmetic, so the
+### Phase 5 (partly done, see Status): code cleanup (after Phase 3 changes the arithmetic, so the
 equivalence tests are rewritten once)
 - Vectorise the salary split and the hours split per region-year (groupby
   and merge), dropping the `to_string` round trip; record the 1e-6
