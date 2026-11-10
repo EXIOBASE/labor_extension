@@ -42,7 +42,8 @@ paths:
   # retrofitted onto all 1,666 files of the 3.12 tree.
   sut_csv_root: D:/indecol/Projects/MRIOs/EXIOBASE3/${sut_version_folder}/raw/sut/current/
 
-  # LEGACY source, kept for the pre-Ray workforce_salary/salary_split.py:
+  # LEGACY source of the 3.8.2 workforce_salary/salary_split.py, deleted
+  # 2026-11-10 (9c57e3a); nothing reads it now and config.py does not require it:
   # EXIOBASE 3.8.2 public upload-to-Box SUTs as .xls, sheet 'bpdom_fin',
   # read as {salary_sut_root}{REG}_{year}.xls off the Linux X-drive mount.
   salary_sut_root: ${xdrive_root}/indecol/Projects/MRIOs/EXIOBASE3/EXIOBASE_3_8_2/upload_to_Box/public/SUT/
@@ -79,8 +80,8 @@ years:
   end: 2025
 
 # Name of the persons+hours handoff workbook written by
-# workforce_salary/hours_split.py (one sheet per year, 12 stressors x
-# (region, sector) columns). desire_upload_prepper reads a copy of this from
+# working_hours/average_working_hours.py (one sheet per year, 14 stressors x
+# (region, sector) columns; 12 before 2026-11). desire_upload_prepper reads a copy of this from
 # indecol/Projects/EXIOBASE_dev/FINAL_TABLE_LABOR/ and reformats it into
 # EXIOBASE_<version>/raw/Extensions/labour/.
 final_labor_filename: final_labor_SUTs_3_12.xlsx

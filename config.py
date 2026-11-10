@@ -54,9 +54,13 @@ def _req_int(key: str) -> int:
 # code and year directly, matching the legacy behaviour exactly.
 SUT_CSV_ROOT = _req_str("paths.sut_csv_root")
 
-# Legacy .xls SUT root off the X-drive mount, still used by the pre-Ray
-# workforce_salary/salary_split.py.
-SALARY_SUT_ROOT = _req_str("paths.salary_sut_root")
+# Legacy .xls SUT root off the X-drive mount. Its only reader, the 3.8.2
+# workforce_salary/salary_split.py, was deleted on 2026-11-10 (9c57e3a), so
+# the key is optional: read if present, None if absent.
+try:
+    SALARY_SUT_ROOT = _req_str("paths.salary_sut_root")
+except KeyError:
+    SALARY_SUT_ROOT = None
 
 # Inclusive year range for the salary split.
 YEAR_START = _req_int("years.start")

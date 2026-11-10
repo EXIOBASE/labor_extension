@@ -1557,7 +1557,7 @@ def working_hour(workforce,src_csv2,data_path,src_csv3,final_path=None):
         else:
             # 159 x 163 = 25,917 columns is over Excel's 16,384-column sheet
             # limit, so another axis writes each sheet long: (region, sector)
-            # rows, the 12 stressors as columns. desire_upload_prepper's
+            # rows, the 14 stressors as columns. desire_upload_prepper's
             # `--axis rx2` reads it back transposed.
             table_pivot.T.to_excel(writer, sheet_name=str(year))
     writer.close()

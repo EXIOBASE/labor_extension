@@ -1,16 +1,18 @@
 """Windows driver for the labor_extension pipeline (replaces the stale labor.py).
 
-Stage 1 (workforce build): download ILO/Eurostat -> workforce_calculation.
+Stage 1 (workforce build): download ILO/Eurostat -> workforce_calculation
+(which runs the salary split and the skill split). Stage 2: working hours,
+vulnerable employment and the handoff workbook. See method.md.
 
-Run from the repo root with an env that has ray/pandas/country_converter/requests,
-e.g. the conda ``fao_data`` env::
+Run from the repo root with an env that has pandas/country_converter/requests
+and io_utils (the repo .venv; ray only for LABOR_RAY=1)::
 
-    set SKIP_SALARY_SPLIT=1   # workforce build only (skip the heavy Ray salary split)
-    <fao_data-python> run_windows.py
+    set SKIP_SALARY_SPLIT=1   # workforce build only (skip the salary split)
+    <python> run_windows.py
 
 Env vars:
     SKIP_DOWNLOAD=1        skip the network download step (reuse already-downloaded data)
-    SKIP_SALARY_SPLIT=1    skip the Ray salary-split step inside workforce_calculation
+    SKIP_SALARY_SPLIT=1    skip the salary-split step inside workforce_calculation
     SKIP_HOURS=1           skip stage 2 (working hours + combine)
     REUSE_WORKFORCE=1      load final_table/workforce.csv instead of rebuilding it;
                            debugging aid for stage 2, not for a production run
@@ -139,8 +141,9 @@ def main() -> None:
     print(">>> Stage 1 complete. final_table outputs at:", final_path)
 
     # Stage 2: working hours. Converts the employment counts into hours worked
-    # and combines the two into the 12 published stressors (6 "Employment
-    # people: ..." in 1000 p and 6 "Employment hours: ..." in M.hr), writing the
+    # and combines the two into the 14 stressors (6 "Employment people: ..."
+    # in 1000 p, 6 "Employment hours: ..." in M.hr, and "Vulnerable
+    # employment: people" / "Vulnerable employment: hours"), writing the
     # per-year handoff workbook `config.FINAL_LABOR_FILENAME` into final_path.
     # That workbook is what desire_upload_prepper reformats into
     # EXIOBASE_<version>/raw/Extensions/labour/.
