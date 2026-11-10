@@ -62,12 +62,40 @@ DROP_YEARS: set[int] = set()
 
 #: Counts of what `sector_hours_pair` had to fall back on, reported at the end
 #: of the hours split so a run says out loud how much was substituted.
-HOURS_FALLBACKS = {'substituted_other_sex': 0, 'skipped': 0}
+HOURS_FALLBACKS = {'substituted_other_sex': 0, 'skipped': 0,
+                   'regional_infill': 0}
 
 #: Every (region, category, year, what-happened) the hours split had to fall
 #: back on, written to `hours_fallbacks.csv` so the substitutions and the gaps
 #: can be audited instead of taken on trust from a count.
 HOURS_FALLBACK_LOG = []
+
+#: ILO region (auxdata/countries_en.csv) -> the rest-of-world bucket that
+#: holds that part of the world on the e3 axis. A main country with no hours of
+#: its own for a (category, year) takes this bucket's average, as a rest-of-world
+#: member does (3.12.0 release 2; before, the cell stayed at zero hours with
+#: people in it). The Americas map to WL, the Latin America bucket, which is
+#: the nearest there is for Canada and the United States.
+ILO_REGION_BUCKET = {'Africa': 'WF', 'Americas': 'WL', 'Arab States': 'WM',
+                     'Asia and the Pacific': 'WA',
+                     'Europe and Central Asia': 'WE'}
+
+
+def main_country_buckets(hours_main_country,
+                         countries_csv='auxdata/countries_en.csv'):
+    """e3 region -> the W bucket it borrows hours from (see ILO_REGION_BUCKET).
+
+    A region with no ILO region on file, or a region whose country is not in
+    the table, is left out and keeps the old behaviour (no infill).
+    """
+    table = pd.read_csv(countries_csv)
+    ilo_region = dict(zip(table['ISO3 Code'], table['ILO Region']))
+    iso3 = (hours_main_country.drop_duplicates('EXIO3')
+            .set_index('EXIO3')['ref_area'])
+    return {region: ILO_REGION_BUCKET[ilo_region[code]]
+            for region, code in iso3.items()
+            if ilo_region.get(code) in ILO_REGION_BUCKET}
+
 
 def sector_hours_pair(frame, region_column, region, classif1, year,
                       value_column):
@@ -1195,6 +1223,8 @@ def working_hour(workforce,src_csv2,data_path,src_csv3,final_path=None):
     hourSplit = {}
     #writer = pd.ExcelWriter('hours_split.xlsx',engine='xlsxwriter')
 
+    main_buckets = (main_country_buckets(hours_main_country)
+                    if _cfg.IS_E3 else {})
     for years in build_years:
         hours_split_year_full = hours_split_empty.copy()
         hours_split_parts = []
@@ -1221,7 +1251,13 @@ def working_hour(workforce,src_csv2,data_path,src_csv3,final_path=None):
                         if _fb_region is not None else av2_fallback_year.iloc[0:0])
             # Bucket fallback for a missing (category, year) of a country
             # region; e3 keeps None (unchanged behaviour).
-            _bucket_region = None if _cfg.IS_E3 or len(code) != 3 else e3_bucket_of(code)
+            if _cfg.IS_E3:
+                # A main country with no hours for a cell takes the average of
+                # the bucket of its ILO region (the Taiwan rule, see
+                # fallback_regions, is a separate branch).
+                _bucket_region = main_buckets.get(code)
+            else:
+                _bucket_region = None if len(code) != 3 else e3_bucket_of(code)
             _bucket_code = (av2_fallback_year[av2_fallback_year['EXIO3'] == _bucket_region]
                             if _bucket_region is not None else None)
             if code in all_countries:
@@ -1351,6 +1387,13 @@ def working_hour(workforce,src_csv2,data_path,src_csv3,final_path=None):
                             hours_M, hours_F = sector_hours_pair(
                                 _bucket_code, 'EXIO3', _bucket_region, classif1, years,
                                 'Weighted average working hours')
+                            if hours_M is not None:
+                                HOURS_FALLBACKS['skipped'] -= 1
+                                HOURS_FALLBACKS['regional_infill'] += 1
+                                HOURS_FALLBACK_LOG.append(
+                                    (code, classif1, years,
+                                     f'no hours, took {_bucket_region} average',
+                                     'Weighted average working hours'))
                         if hours_M is None:
                             continue
                         #hours_split.loc[(hours_split.EXIO3 ==code) & (hours_split.Sector==sector),'Hours High qualification employement - male' ] = pop_high_skill_men * (hours_M/5) * (365-vacation) / 1000000
@@ -1382,7 +1425,9 @@ def working_hour(workforce,src_csv2,data_path,src_csv3,final_path=None):
     print(f'[hours split] {HOURS_FALLBACKS["substituted_other_sex"]:,} '
           'sector-cells took one sex\'s hours for the other (the ILO '
           'suppresses the second), '
-          f'{HOURS_FALLBACKS["skipped"]:,} skipped with no hours at all')
+          f'{HOURS_FALLBACKS["skipped"]:,} skipped with no hours at all, '
+          f'{HOURS_FALLBACKS["regional_infill"]:,} more had none and took '
+          'the rest-of-world average of their ILO region')
     pd.DataFrame(HOURS_FALLBACK_LOG,
                  columns=['region', 'classif1', 'time', 'reason', 'source']
                  ).to_csv(final_path / 'hours_fallbacks.csv', index=False)

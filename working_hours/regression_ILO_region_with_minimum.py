@@ -69,7 +69,9 @@ def regression(hour_pivot,year_begin,year_end):
                 instant=hour_pivot.loc[(hour_pivot.index==code),[years]]
                 instant=float(instant.to_string(index=False, header=False))
                 valeur=valeur+instant
-            valeur= valeur // 2
+            # Plain mean of the two observed values. Was `valeur // 2`, which
+            # floored the mean to a whole hour (3.12.0 release 2 fix).
+            valeur= valeur / 2
             
             
             for years in range (year_begin,first_year):
