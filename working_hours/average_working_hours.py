@@ -1461,6 +1461,7 @@ def working_hour(workforce,src_csv2,data_path,src_csv3,final_path=None):
     vul_share = vul.set_index(['region', 'sex', 'classif1', 'time'])['share'].to_dict()
     sector_group = {sector: concordance_category(concordance, sector)
                     for sector in concordance['Name'].dropna().unique()}
+    vul_missing = set()
     for years in build_years:
         print(years)
         final_table=final_table_empty.copy()
@@ -1524,6 +1525,11 @@ def working_hour(workforce,src_csv2,data_path,src_csv3,final_path=None):
                 group = sector_group[sector]
                 share = {sex: vul_share.get((code, sex_code, group, years), 0.0)
                          for sex, sex_code in (('male', 'SEX_M'), ('female', 'SEX_F'))}
+                for sex, sex_code in (('male', 'SEX_M'), ('female', 'SEX_F')):
+                    if ((code, sex_code, group, years) not in vul_share
+                            and any(row[name][0] > 0 for name, _ in EMPLOYMENT
+                                    if name.endswith(' ' + sex))):
+                        vul_missing.add((code, sex_code, group, years))
                 row[VULNERABLE_PEOPLE] = [sum(
                     row[name][0] * share[sex] for name, _ in EMPLOYMENT
                     for sex in share if name.endswith(' ' + sex))]
@@ -1534,6 +1540,9 @@ def working_hour(workforce,src_csv2,data_path,src_csv3,final_path=None):
         final_table = pd.concat([final_table] + rows, ignore_index=True)
 
         final[years]=final_table.copy()
+    if vul_missing:
+        print(f"[WARN] vulnerable employment: {len(vul_missing)} region-sex-group-years "
+              f"with people but no vulnerable share, set to 0, e.g. {sorted(vul_missing)[:5]}")
 
     writer = pd.ExcelWriter(final_path / _cfg.FINAL_LABOR_FILENAME,engine='xlsxwriter')
 
