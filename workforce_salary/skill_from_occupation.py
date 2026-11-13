@@ -175,6 +175,13 @@ def region_skill_shares(modelled: pd.DataFrame, survey: pd.DataFrame,
     e["unregion"] = e["ref_area"].map(un).fillna("World")
 
     e = e.join(cs, on=["ref_area", "sex", "time"])
+    # A country whose modelled occupation series stops before its employment
+    # series (Ukraine: 2021, workforce carried flat to 2025) keeps its own
+    # nearest observed mix instead of jumping to its UN region's (Ukraine's
+    # high-skilled share went 37.9% to 42.3% at 2021-2022 without this).
+    ordered = e.sort_values(["ref_area", "sex", "time"])
+    own = ordered.groupby(["ref_area", "sex"], sort=False)[list(SKILLS)]
+    e[list(SKILLS)] = own.ffill().fillna(own.bfill()).reindex(e.index)
     have = e.dropna(subset=list(SKILLS))
     for k in SKILLS:
         have = have.assign(**{f"w_{k}": have[k] * have["obs_value"]})

@@ -139,6 +139,15 @@ def _solve_shift(logit_p, weights, target, iters=60):
     return (lo + hi) / 2
 
 
+def carry_own(frame: pd.DataFrame, columns, keys=("ref_area", "sex"), time="time"):
+    """`columns` of `frame` with gaps filled by the same country and sex's
+    nearest earlier year, then nearest later year; rows of a country with no
+    value at all stay NaN (they take the regional fallback). Index kept."""
+    ordered = frame.sort_values([*keys, time])
+    filled = ordered.groupby(list(keys), sort=False)[columns]
+    return filled.ffill().fillna(filled.bfill()).reindex(frame.index)
+
+
 def country_shares(employment: pd.DataFrame, V: pd.Series, profiles, un_region) -> pd.DataFrame:
     """v(country, sex, group, year), long, with the employment E alongside.
 
@@ -157,6 +166,12 @@ def country_shares(employment: pd.DataFrame, V: pd.Series, profiles, un_region) 
     idx["V"] = V.reindex(E.index).to_numpy()
     idx["Etot"] = E.sum(axis=1).to_numpy()
     idx["unregion"] = idx["ref_area"].map(un_region).fillna("World")
+    # A country whose modelled status series stops before its employment
+    # series (Ukraine: ILO's modelled rows end in 2021, the workforce is
+    # carried flat to 2025) keeps its own nearest observed share. Without
+    # this it fell to its UN region's share from 2022 (Ukraine 19.0% to
+    # 9.3% in one year, rest-of-world Europe's vulnerable people -26%).
+    idx["V"] = carry_own(idx, "V")
     have = idx.dropna(subset=["V"])
     reg_v = (have.assign(w=have.V * have.Etot).groupby(["unregion", "sex", "time"])
              .apply(lambda g: g.w.sum() / g.Etot.sum(), include_groups=False))

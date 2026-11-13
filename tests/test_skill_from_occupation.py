@@ -141,6 +141,26 @@ def test_region_skill_shares_weight_countries_by_employment():
     assert np.allclose(sh.sum(axis=1), 1.0)
 
 
+def test_country_keeps_its_own_mix_after_its_modelled_series_ends():
+    # ILO's modelled occupation rows for Ukraine stop in 2021 while its
+    # workforce is carried to 2025: the later years keep the country's last
+    # mix, not its UN region's.
+    rows = [(c, s, y, k, v) for c, low, years in (("UKR", 10.0, (2021,)), ("POL", 50.0, (2021, 2022)))
+            for y in years for s in ("SEX_M", "SEX_F")
+            for k, v in (("OCU_ISCO08_2", 100.0 - low), ("OCU_ISCO08_96", low))]
+    modelled = pd.DataFrame(rows, columns=["ref_area", "sex", "time", "classif1", "obs_value"])
+    survey = pd.DataFrame([(c, s, 2019, k, v) for c in ("UKR", "POL") for s in ("SEX_M", "SEX_F")
+                           for k, v in (("OCU_ISCO08_9", 1.0), ("OCU_ISCO08_6", 0.0))],
+                          columns=["ref_area", "sex", "time", "classif1", "obs_value"])
+    emp = pd.DataFrame([(c, c, s, "ECO_DETAILS_TOTAL", y, 5.0) for c in ("UKR", "POL")
+                        for y in (2021, 2022) for s in ("SEX_M", "SEX_F")],
+                       columns=["ref_area", "EXIO3", "sex", "classif1", "time", "obs_value"])
+    sh = so.region_skill_shares(modelled, survey, emp, [2021, 2022])
+    assert np.isclose(sh.loc[("UKR", "SEX_M", 2021), "low"], 0.1)
+    assert np.isclose(sh.loc[("UKR", "SEX_M", 2022), "low"], 0.1)
+    assert np.isclose(sh.loc[("POL", "SEX_F", 2022), "low"], 0.5)
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):

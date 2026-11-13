@@ -128,3 +128,20 @@ if __name__ == "__main__":
         test_region_shares_aggregate_countries_and_stay_below_people(Path(d))
     test_row_names_are_outside_the_employment_totals()
     print("ok")
+
+
+def test_country_keeps_its_own_share_after_its_modelled_series_ends():
+    # ILO's modelled status rows for Ukraine stop in 2021 while its workforce
+    # is carried to 2025: the later years keep the country's last share, not
+    # the UN region's.
+    E = pd.concat([_employment(["AAA", "BBB"], year=y) for y in (2020, 2021, 2022)])
+    V = pd.Series({("AAA", s, y): 0.5 for s in ve.SEXES for y in (2020, 2021)}
+                  | {("BBB", s, y): 0.1 for s in ve.SEXES for y in (2020, 2021, 2022)},
+                  name="V")
+    V.index.names = ["ref_area", "sex", "time"]
+    out = ve.country_shares(E, V, _profiles(["AAA"]), UN)
+    got = out.assign(w=out.share * out.E).groupby(["ref_area", "sex", "time"]).apply(
+        lambda g: g.w.sum() / g.E.sum(), include_groups=False)
+    for s in ve.SEXES:
+        assert abs(got[("AAA", s, 2022)] - 0.5) < 1e-6
+        assert abs(got[("BBB", s, 2022)] - 0.1) < 1e-6

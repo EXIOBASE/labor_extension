@@ -53,6 +53,23 @@ All notable changes to this project are documented here. Format follows
 
 ### Fixed (3.12.0 release 2, branch improve-labour-account)
 
+- **Carried countries keep their own vulnerable share and skill mix
+  (2026-11-14).** ILO's modelled status and occupation tables stop early for
+  five countries whose workforce the account carries flat (Ukraine after
+  2021; Lebanon, Palestine, Sudan and South Sudan in the last years). For the
+  years after the stop, `vulnerable_employment.country_shares` and
+  `skill_from_occupation.region_skill_shares` took the UN region's value,
+  so the country jumped in the year its series ended: in the validation
+  builds of 2026-11-10 (8a1521f) Ukraine's vulnerable share went 19.0% to
+  9.3% at 2021-2022 and its male high-skilled share 30.8% to 34.3%;
+  rest-of-world Europe on e3 went 20.65% to 15.14% vulnerable (vulnerable
+  people -26% with total people flat). A country now keeps its own nearest
+  observed year (earlier first, then later); a country with no modelled row
+  at all still takes the regional value. Recomputed on the validation
+  workforce tables: rest-of-world Europe 2022 vulnerable share 20.65%,
+  Ukraine 19.02% in 2022-2025; 10 of 1,519 e3 region-years and 16 of 4,898
+  rx2 region-years change (WE, WF, WM; UKR, LBN, PSE, SDN, SSD, WF). Tests:
+  `tests/test_vulnerable_employment.py`, `tests/test_skill_from_occupation.py`.
 - **Channel Islands counted once (3.12.0 release 2).** ILO reports the
   islands as one entity (CHI), and Jersey (JEY) and Guernsey (GGY) were also
   rebuilt from the Factbook as "missing", so rest-of-world Europe held the
