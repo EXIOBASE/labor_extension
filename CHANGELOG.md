@@ -5,6 +5,65 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Checked (branch improve-labour-account, validation rebuilds of 2026-11-10 at 8a1521f, read on 2026-11-14)
+
+- **e3 and rx2 validation builds against release 1 of 3.12.0** (the frozen
+  trees' `raw/Extensions/labour/ixi`, 1995-2025; the workbooks are the
+  earlier session's `final_e3` and `final_rx2`). No negative and no missing
+  cell in either build; 14 stressors; no cell with people and no hours;
+  vulnerable people and hours never above the cell's totals.
+  - World people (e3): -0.07% (1995) to -0.04% (2025), the territory fixes;
+    only WE (-4.0% to -3.3%), WL (-0.6% to -0.4%) and WF (+0.05% to +0.12%)
+    move by more than 0.01%. 2019: 3,333,357 to 3,331,859 thousand.
+  - World hours (e3): -8.8% (1995) to -9.05% (2025); hours per worker 2,210
+    to 2,013 in 2019. By region the change is the same in every year (the
+    vacation factor): -3.85% (US) to -16.15% (RU), WE -16.7% to -17.4% with
+    the territory fixes. 00-qa's symmetric move of the world total is
+    -0.092 to -0.095 against its warn threshold of 0.10; no region-year
+    exceeds 0.10 under its regional rule.
+  - People by skill, world 2019, million: low 436.3 to 656.6, medium
+    1,996.8 to 1,994.5, high 900.3 to 680.8. The regional skill shares no
+    longer step at the coe-shares break years (CN, IN, ID, WA 2007, WF 2008,
+    US 2001, IT 2000, and the unspliced WM 1996: high-skilled share 29.8%
+    to 35.1% in release 1, 23.3% to 23.4% now), because ILO occupation sets
+    the regional totals; the wage bill only shapes the split inside
+    industries, where the unspliced WM 1996 break still moves the
+    industry-level shares by 2.8 points (people-weighted, 6.1 in release 1;
+    0.45 in a median year).
+  - Vulnerable employment, world: 48.6% of people in 1995, 42.3% in 2019,
+    42.2% in 2025.
+  - rx2 summed to the e3 regions against the e3 build: the 44 countries
+    agree; world people -0.09% to -0.12% before 2008 and -0.01% from 2010
+    (the known rest-of-world gaps), world hours within 0.12% (years read:
+    1995, 2000, 2005, 2007, 2010, 2015, 2019, 2022, 2025); by bucket,
+    people differ by up to 1.0% (WF) and hours by up to 2.2% (WM).
+  - rx2 against release 1 rx2 (1995, 2000, 2007, 2010, 2019, 2020, 2022,
+    2025): world people -0.07% to -0.04%, hours -8.7% to -8.9%; Kosovo -64% to -68% and the rx2 WL bucket -17% to -20% (the
+    population-to-workforce fix on territories that are their own rx2
+    regions or dominate the bucket).
+  - Against the superseded rebuild of 5e60983: low-skilled people -7.3%
+    (1995) to +9.9% (2025), from the later change of the no-survey fallback
+    (de5856d, 84cd2c1); people and hours within 0.07%.
+- **Open, source data.** Taiwan's low-skilled share falls from 2.4% (2019)
+  to 0.6% (2025): ILO's modelled group 96 for Taiwan drops from 277 to 115
+  thousand men and 232 to 95 thousand women over 2019-2025 (below
+  agricultural employment for men in every year read and for women by
+  2025), so almost nothing is left as elementary workers. India's high-skilled share falls from 17.8% (2019) to 11.7%
+  (2023) and Portugal's low-skilled people drop 25.6% in 2021, both in
+  ILO's modelled occupation series. The occupation, status and population
+  downloads are of 2026-11-10, the employment, hours and Eurostat ones of
+  2026-06-17.
+
+### Build route for 3.12.0 release 2 (2026-11-14)
+
+- Built by the hub: `00-workflow/scripts/labour_lane.py` (worktree of the
+  ref in its `LABOUR_REF`, release 2 folders through a generated
+  `config.local.yaml`, `SKIP_DOWNLOAD=1`), called by both drivers; see
+  README, Running. The branch `release-2-small-fixes` (local) is main plus
+  only the four release 2 fixes (Channel Islands, territory participation,
+  missing territories, hours floor and regional infill), 12 stressors, for
+  a release 2 without the method changes.
+
 ### Fixed (labour-risk account, branch improve-labour-account)
 
 - **Results no longer depend on `--years`.** `scripts/build_labour_risk.py`
