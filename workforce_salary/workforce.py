@@ -10,7 +10,8 @@ from pathlib import Path
 # made here is dead code. Confirmed by the root copy's uncommented
 # `data_list_old.to_csv('data_list_old.csv')` firing on every run.
 from workforce_salary.from_cia_to_ilo import (cia_to_ilo,
-                                              load_population_aggregates)
+                                              load_population_aggregates,
+                                              load_population_by_area)
 from workforce_salary.ref_label import add_ref_label
 import country_converter as coco
 
@@ -116,12 +117,15 @@ def workforce_calculation(data_path,src_csv,src_csv2,final_path):
     
     # The hand-compiled territory totals are total population; scale them by
     # the employment-to-population ratio of their ILO aggregate (default).
-    # LABOR_TERRITORY_PARTICIPATION=0 restores the 3.12.0 behaviour.
-    population_agg = None
+    # LABOR_TERRITORY_PARTICIPATION=0 restores the 3.12.0 behaviour. The
+    # same export, by country, scales the countries ILO stops reporting
+    # (Ukraine from 2022) by their population instead of holding them flat.
+    population_agg = population_area = None
     if os.environ.get("LABOR_TERRITORY_PARTICIPATION", "1") != "0":
         population_agg = load_population_aggregates(data_path)
+        population_area = load_population_by_area(data_path)
 
-    from_cia_to_ilo, missing_countries = cia_to_ilo(data_list,data_cia,correspondance_ilo,missing_data,population_agg=population_agg)
+    from_cia_to_ilo, missing_countries = cia_to_ilo(data_list,data_cia,correspondance_ilo,missing_data,population_agg=population_agg,population_area=population_area)
     
     # final = data_list.append(from_cia_to_ilo)
     final = pd.concat([data_list,from_cia_to_ilo])

@@ -248,7 +248,8 @@ workforce; a country with no hours for a cell takes its region's average
 hours (Taiwan on e3, 22 countries on rx2) takes its e3 bucket's average,
 and a main-country cell with no hours takes the rest-of-world bucket of
 its ILO region (`ILO_REGION_BUCKET`). Ukraine's 2022 row in WE carries its
-2021 hours with the population scaled by 0.845 (e3 only).
+2021 hours, weighted by its 2022 workforce as the employment account
+carries it (2021 times the population ratio, 0.927; e3 only).
 
 ### Hours per year
 

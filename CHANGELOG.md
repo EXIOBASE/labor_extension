@@ -5,6 +5,35 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Changed (countries ILO stops reporting, 2026-11-17)
+
+- **Carried countries follow their population instead of being held flat
+  (Richard's decision of 2026-11-17).** Ukraine (ILO rows to 2021), Sudan
+  and Palestine (to 2022), Lebanon and South Sudan (to 2023) kept their last
+  reported workforce in every later year. Each cell is now that value times
+  the country's total population of the year over that of its last reported
+  year (`POP_2POP_SEX_NB_A`, ILO modelled estimates, the file the territory
+  totals use, read by country code in `load_population_by_area`): a constant
+  employment-to-population ratio, one factor for every sex and activity of
+  a year. Ukraine: 0.927 (2022), 0.852 (2023), 0.855 (2024), 0.880 (2025),
+  so 18,518.9 thousand workers in 2021 become 17,160, 15,774, 15,827 and
+  16,296. By 2025 Lebanon is at 1.013 of its last year, Palestine 1.054,
+  Sudan 1.046 and South Sudan 1.061. These are the factors applied to the
+  ILO export's country totals; no build has been run with them. The factor
+  follows the people who left, not the employment rate of those who stayed,
+  so for Ukraine it is a floor on the fall and not an estimate of wartime
+  employment. With `LABOR_TERRITORY_PARTICIPATION=0` (no population table)
+  the carry is flat as before. Tests: `tests/test_dropout_carry.py`.
+- **Ukraine's 2022 weight in the hours average is the carried workforce.**
+  `UKRAINE_WAR_FACTOR = 0.845`, a number with no recorded source, is gone
+  from `average_working_hours.py`: Ukraine's 2022 row is weighted by its
+  2021 workforce times `ukraine_carry_factor(workforce)`, the ratio of its
+  2022 to its 2021 workforce in the employment account (0.927). This closes
+  R-LAB-07 below. Not changed: the same 0.845 in the ISIC3 conversion
+  (`isic3_to_isic4_vectorised._UKR_FACTOR`, and the original module its
+  equivalence test compares against), which that module's own comment calls
+  dead, since Ukraine reports ISIC3 hours for 2009-2012 only.
+
 ### Fixed (people by skill: Taiwan, Portugal, India; 2026-11-17)
 
 The three source-data items left open by the check of 2026-11-14 below.
@@ -242,7 +271,8 @@ to 701.2). Tests: `tests/test_skill_from_occupation.py`.
   57.4% at factor 1.0; average weekly hours (all categories and both sexes,
   population-weighted) 39.684 against 39.637 (+0.047 hours a week, 0.12%);
   by sex and category the change runs from -0.168 to +0.007 hours a week.
-  The weight is left as it is, pending the decision on Ukraine from 2022.
+  The weight is left as it is, pending the decision on Ukraine from 2022
+  (decided 2026-11-17: both sides use the population ratio, see above).
 
 ### Changed (branch improve-labour-account, docs/improvement_plan_2026-11-06.md)
 

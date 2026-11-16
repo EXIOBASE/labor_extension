@@ -99,7 +99,12 @@ than the projected tail does:
    so for these entities **every year after 2022 is a constant-share
    projection**, however far ILO runs. Extending them needs new source
    data, not a code change.
-2. **Ukraine is held flat from 2022.** ILO stopped reporting Ukraine after
+2. **Ukraine is carried by its population from 2022 (held flat until
+   2026-11-17).** Since 2026-11-17 every country ILO stops reporting is its
+   last reported workforce times its population ratio to that year
+   (`POP_2POP_SEX_NB_A`; Ukraine 0.927 in 2022, 0.852 in 2023, 0.855 in
+   2024, 0.880 in 2025), a floor on the war's effect, not an estimate of
+   it. The history: ILO stopped reporting Ukraine after
    2021 (`EMP_2EMP_SEX_ECO_NB_A` has 81 rows a year to 2021 and none
    after). Until 2026-09-18 the pipeline booked the missing years as zero,
    which took RoW Europe from 33.6 to 15.3 million between 2021 and 2022

@@ -39,6 +39,18 @@ CIA_ISO3_OVERRIDES = {"isle_of_man": "IMN"}
 POPULATION_CSV = "POP_2POP_SEX_NB_A.csv"
 
 
+def load_population_by_area(data_path):
+    """ref_area x time -> total population (thousands), SEX_T, from the same
+    export as `load_population_aggregates`. Keyed by code, not label: the
+    employment and population exports label Palestine differently."""
+    pop = pd.read_csv(Path(data_path) / POPULATION_CSV, encoding="utf-8-sig",
+                      usecols=["ref_area", "sex", "time", "obs_value"])
+    pop = pop[pop["sex"] == AGG_TOTAL_SEX]
+    return (pop.drop_duplicates(["ref_area", "time"])
+               .set_index(["ref_area", "time"])["obs_value"]
+               .unstack("time").sort_index())
+
+
 def drop_double_counted(missing_countries, iso3_in_ilo):
     """Remove from `missing_countries` the parts of a combined ILO entity.
 
@@ -339,8 +351,22 @@ def _build_country_lookup(data_list_old):
     return pivot, labels
 
 
+def _population_ratio(population_area, area, last_obs, targets):
+    """{year: population(year) / population(last_obs)} for a carried country;
+    1.0 where the population table is absent or lacks the country or year."""
+    flat = {y: 1.0 for y in targets}
+    if population_area is None or area not in population_area.index:
+        return flat
+    row = pd.to_numeric(population_area.loc[area], errors="coerce")
+    base = row.get(last_obs, float("nan"))
+    if not base > 0:
+        return flat
+    return {y: (float(row[y]) / float(base) if row.get(y, float("nan")) > 0 else 1.0)
+            for y in targets}
+
+
 def _build_dropouts(data_list_old, cc_all, classifications, list_sex, years,
-                    columns, already_covered):
+                    columns, already_covered, population_area=None):
     """Countries ILO reported and then stopped reporting.
 
     `missing_countries` asks whether a country appears in the ILO export at
@@ -351,8 +377,19 @@ def _build_dropouts(data_list_old, cc_all, classifications, list_sex, years,
     account lost 18.5 million workers, taking EXIOBASE's RoW Europe down 54%
     from 2022. That was in the published 3.11.2 account too.
 
-    The carry is HOLD FLAT on the country's own last observed year: each
-    (classif1, sex) cell keeps its last reported value for every later year.
+    The carry keeps the country's employment-to-population ratio of its last
+    observed year: each (classif1, sex) cell is its last reported value times
+    the country's total population of the year over that of the last observed
+    year, from ILO's population export (`population_area`,
+    `load_population_by_area`; the file the territory totals use, which runs
+    to 2030). One ratio for
+    every cell of a year, so the sexes still sum to the total and the
+    sections to the country. Ukraine: 0.927 in 2022, 0.852 in 2023, 0.855 in
+    2024, 0.880 in 2025 (44,299 thousand people in 2021). Without
+    `population_area` (LABOR_TERRITORY_PARTICIPATION=0), or for a country or
+    year the table lacks, the cell is held flat, as it was for every carried
+    country until 2026-11-17.
+
     Deliberately not the constant-share-of-an-aggregate method the other two
     builders use. That method needs the country to be a stable share of an
     aggregate that contains it, and for Ukraine it is not: its 2021
@@ -360,10 +397,11 @@ def _build_dropouts(data_list_old, cc_all, classifications, list_sex, years,
     income` aggregate, so that aggregate plainly excludes it and its growth
     path is set by unrelated countries.
 
-    Hold flat is the no-information projection, which is what this is. It
-    does NOT represent the war's effect on Ukrainian employment; no source
-    available to this pipeline quantifies that. If a Ukraine series is
-    obtained, add it as a source rather than tuning this carry.
+    This follows the people who left or arrived, not the employment rate of
+    those present, so for Ukraine it is the smallest fall the war can have
+    caused, not an estimate of wartime employment; no source available to
+    this pipeline quantifies that. If a Ukraine series is obtained, add it as
+    a source rather than tuning this carry.
 
     Rows are tagged `obs_status = ILO_dropout_carried` so they can be found.
     """
@@ -391,8 +429,9 @@ def _build_dropouts(data_list_old, cc_all, classifications, list_sex, years,
         if carry.isna().all():
             continue
         carry = carry.fillna(0.0)
+        ratio = _population_ratio(population_area, area, last_obs, targets)
 
-        long = (pd.DataFrame({y: carry for y in targets})
+        long = (pd.DataFrame({y: carry * ratio[y] for y in targets})
                   .stack().rename("obs_value").reset_index())
         long = long.rename(columns={"level_2": "time"})
         long["sex"] = pd.Categorical(long["sex"], categories=list_sex, ordered=True)
@@ -413,14 +452,14 @@ def _build_dropouts(data_list_old, cc_all, classifications, list_sex, years,
         out["obs_status"] = "ILO_dropout_carried"
         frames.append(out)
         total = float(carry.get((AGG_TOTAL_CLASSIF, AGG_TOTAL_SEX), float("nan")))
-        carried.append((area, last_obs, targets[-1], total))
+        carried.append((area, last_obs, targets[-1], total, ratio[targets[-1]]))
 
     if carried:
         print(f"[cia_to_ilo] carrying {len(carried)} dropped-out country(ies) "
-              f"forward at their last observed year:")
-        for area, lo, hi, total in sorted(carried, key=lambda r: -(r[3] or 0)):
+              f"forward from their last observed year by their population:")
+        for area, lo, hi, total, r in sorted(carried, key=lambda r: -(r[3] or 0)):
             print(f"    {area}: last ILO year {lo}, carried {lo + 1}-{hi}, "
-                  f"{total:,.1f} thousand at {lo}")
+                  f"{total:,.1f} thousand at {lo}, population ratio {r:.3f} at {hi}")
     else:
         print("[cia_to_ilo] no dropped-out countries to carry")
 
@@ -429,7 +468,8 @@ def _build_dropouts(data_list_old, cc_all, classifications, list_sex, years,
     return pd.concat(frames, ignore_index=True)
 
 
-def cia_to_ilo(data_list,data_cia,df,missing_data,population_agg=None):
+def cia_to_ilo(data_list,data_cia,df,missing_data,population_agg=None,
+               population_area=None):
 
     cc_all = coco.CountryConverter(include_obsolete=True)
    
@@ -612,6 +652,7 @@ def cia_to_ilo(data_list,data_cia,df,missing_data,population_agg=None):
         columns=column_data_list,
         already_covered=(set(from_cia_to_ilo["ref_area"].unique())
                          | set(from_cia_to_ilo2["ref_area"].unique())),
+        population_area=population_area,
     )
 
     print(f"[cia_to_ilo] built {len(from_cia_to_ilo):,} rows from CIA-anchored "
