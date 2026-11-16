@@ -166,3 +166,63 @@ if __name__ == "__main__":
         if name.startswith("test_"):
             fn()
     print("ok")
+
+
+def _long(rows):
+    return pd.DataFrame(rows, columns=["ref_area", "sex", "time", "classif1", "obs_value"])
+
+
+def test_merged_elementary_takes_low_skilled_out_of_groups_7_and_8():
+    # TTT's survey has groups 1-6 and 8 and never 7 or 9 (Taiwan): group 96
+    # is all farmers, and the elementary workers come out of group 8 by the
+    # region's survey ratio 9 / (7 + 8 + 9) = 10 / 50, whatever group 96 does.
+    modelled = _long([("TTT", s, y, k, v) for s in ("SEX_M", "SEX_F")
+                      for y, g96 in ((2019, 10.0), (2025, 2.0))
+                      for k, v in (("OCU_ISCO08_2", 30.0), ("OCU_ISCO08_8", 60.0),
+                                   ("OCU_ISCO08_96", g96))])
+    survey = _long([("TTT", s, 2019, f"OCU_ISCO88_{g}", 1.0)
+                    for s in ("SEX_M", "SEX_F") for g in (1, 2, 3, 4, 5, 6, 8)]
+                   + [("PPP", s, 2019, k, v) for s in ("SEX_M", "SEX_F")
+                      for k, v in (("OCU_ISCO08_6", 5.0), ("OCU_ISCO08_7", 20.0),
+                                   ("OCU_ISCO08_8", 20.0), ("OCU_ISCO08_9", 10.0))])
+    assert so.merged_elementary(survey) == {"TTT"}
+    out = so.country_skill_shares(modelled, survey, {"TTT": "R", "PPP": "R"}, [2019, 2025])
+    assert np.isclose(out.loc[("TTT", "SEX_M", 2019), "low"], 0.2 * 60 / 100)
+    assert np.isclose(out.loc[("TTT", "SEX_M", 2025), "low"], 0.2 * 60 / 92)
+    assert np.isclose(out.loc[("TTT", "SEX_M", 2019), "high"], 0.3)
+
+
+def test_ratio_break_pools_each_side_of_the_break(monkeypatch):
+    # Group 6 drops from 30 to 10 in the survey and in the modelled group 96
+    # at the break; group 9 stays at 30, and so must the low-skilled people.
+    monkeypatch.setattr(so, "RATIO_BREAKS", {"AAA": (2021,)})
+    modelled = _long([("AAA", s, y, k, v) for s in ("SEX_M", "SEX_F")
+                      for y, g96 in ((2020, 60.0), (2021, 40.0))
+                      for k, v in (("OCU_ISCO08_2", 40.0), ("OCU_ISCO08_96", g96))])
+    survey = _long([("AAA", s, y, k, v) for s in ("SEX_M", "SEX_F")
+                    for y, g6 in ((2019, 30.0), (2020, 30.0), (2021, 10.0), (2022, 10.0))
+                    for k, v in (("OCU_ISCO08_6", g6), ("OCU_ISCO08_9", 30.0))])
+    out = so.country_skill_shares(modelled, survey, {"AAA": "R"}, [2020, 2021])
+    assert np.isclose(out.loc[("AAA", "SEX_M", 2020), "low"], 30 / 100)
+    assert np.isclose(out.loc[("AAA", "SEX_M", 2021), "low"], 30 / 80)
+
+
+def test_level_break_carries_the_new_level_back_and_ignores_years_asked(monkeypatch):
+    # High-skilled share 40% on the old basis (to 2020), 20% on the new one
+    # (from 2023): 2020-2022 take the 2023 shares, 2019 keeps its movement
+    # against 2020, and a build of 2019 alone gives the same 2019.
+    monkeypatch.setattr(so, "LEVEL_BREAKS", {"AAA": (2020, 2023)})
+    high = {2019: 30.0, 2020: 40.0, 2021: 33.0, 2022: 27.0, 2023: 20.0}
+    modelled = _long([("AAA", s, y, k, v) for s in ("SEX_M", "SEX_F") for y, h in high.items()
+                      for k, v in (("OCU_ISCO08_2", h), ("OCU_ISCO08_5", 100.0 - h))])
+    survey = _long([("AAA", s, 2019, k, 1.0) for s in ("SEX_M", "SEX_F")
+                    for k in ("OCU_ISCO08_6", "OCU_ISCO08_9")])
+    out = so.country_skill_shares(modelled, survey, {"AAA": "R"}, list(high))
+    for y in (2020, 2021, 2022, 2023):
+        assert np.isclose(out.loc[("AAA", "SEX_M", y), "high"], 0.2)
+    h, m = 0.3 * 0.2 / 0.4, 0.7 * 0.8 / 0.6
+    assert np.isclose(out.loc[("AAA", "SEX_M", 2019), "high"], h / (h + m))
+    assert np.allclose(out.sum(axis=1), 1.0)
+    one = so.country_skill_shares(modelled, survey, {"AAA": "R"}, [2019])
+    assert list(one.index.get_level_values("time").unique()) == [2019]
+    assert np.isclose(one.loc[("AAA", "SEX_M", 2019), "high"], h / (h + m))

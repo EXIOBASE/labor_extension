@@ -5,6 +5,58 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Fixed (people by skill: Taiwan, Portugal, India; 2026-11-17)
+
+The three source-data items left open by the check of 2026-11-14 below.
+Measured with `country_skill_shares` and `region_skill_shares` on the
+workforce tables of the validation builds of 2026-11-10 (e3 and rx2), old
+code against new; no full rebuild has been run with them. Only Taiwan,
+Portugal and India change at country level; on e3 the regions TW, PT, IN and
+WE (territories that take a UN region's mix), on rx2 also XKX. World people
+by skill, 2019, million: low 656.6 to 658.6, medium 1,994.5 to 2,019.3, high
+680.8 to 654.0 (India); 2025 changes by Taiwan and Portugal only (low 699.9
+to 701.2). Tests: `tests/test_skill_from_occupation.py`.
+
+- **Taiwan: elementary workers taken out of group 8, not group 96.**
+  Taiwan's survey rows (`EMP_TEMP_SEX_OCU_NB_A`, 2001-2020, ISCO-88) have
+  groups 1-6 and 8 and never 7 or 9: craft workers, operators and elementary
+  labourers come as one group, filed under 8. The modelled group 96 is
+  therefore the farmers alone (509 thousand in 2019, survey group 6: 507)
+  and ILO extrapolates it down to 210 thousand by 2025, so splitting it left
+  2.4% low-skilled in 2019 and 0.6% in 2025. A country whose survey has
+  groups 6 and 8, at least five major groups and never 7 or 9 (Taiwan is the
+  only one) now counts all of group 96 as medium and takes its elementary
+  workers out of the modelled groups 7 + 8 by the survey ratio 9 / (7 + 8 +
+  9) pooled over its UN region (Eastern Asia: Japan, Korea, Hong Kong and
+  Mongolia; men 0.318, women 0.593). Taiwan's low-skilled share: 14.4%
+  (1995), 11.6% (2019), 11.5% (2025); the high-skilled share is unchanged.
+  Not checked against a national figure: a search for the DGBAS share of
+  elementary labourers found none.
+- **Portugal: the 9 / (6 + 9) ratio is pooled each side of the 2021 survey
+  break.** In the survey, group 6 falls from 254 to 113 thousand at
+  2020-2021 while group 9 goes from 392 to 363, and the modelled group 96
+  follows (649 to 478). One ratio pooled over all years passed the farmers'
+  break on to the elementary workers: low-skilled share 8.5% to 6.4%. With
+  the ratio pooled over the years before 2021 and from 2021 separately
+  (`RATIO_BREAKS`; men 0.391 and 0.619, women 0.749 and 0.910) it goes 7.9%
+  to 7.8%. A ratio taken year by year for every country was measured and
+  rejected: 51 one-year moves of the low-skilled share above 5 points over
+  1995-2025, against none with the pooled ratio.
+- **India: the level of ISCO-08 carried back over the ISCO-88 years.**
+  India's survey rows are ISCO-88 to 2020 and ISCO-08 from 2022: group 1
+  goes from 35.2 million (2020) to 17.1 million (2023), group 5 from 33.5 to
+  59.0 million, and the modelled series bridges the two (high-skilled share
+  17.8% in 2019, 17.0% in 2020, 11.7% in 2023). For the years to 2020 the
+  shares are now scaled, skill by skill, by the 2023 share over the 2020
+  share and renormalised, and 2021 and 2022 take the 2023 shares
+  (`LEVEL_BREAKS`, `splice_levels`), which assumes no real change between
+  2020 and 2023. High-skilled share: 4.6% (1995, was 6.8%), 12.4% (2019,
+  was 17.8%), 11.8% (2020), 11.7% (2023). That the fall is the
+  classification and not the labour market is read from the survey table's
+  change of classification in the same years; no ILO or NSO note on it was
+  read. The shares are computed over every modelled year and cut to the
+  build's years afterwards, so the splice does not depend on `LABOR_YEARS`.
+
 ### Checked (branch improve-labour-account, validation rebuilds of 2026-11-10 at 8a1521f, read on 2026-11-14)
 
 - **e3 and rx2 validation builds against release 1 of 3.12.0** (the frozen
@@ -44,7 +96,8 @@ All notable changes to this project are documented here. Format follows
   - Against the superseded rebuild of 5e60983: low-skilled people -7.3%
     (1995) to +9.9% (2025), from the later change of the no-survey fallback
     (de5856d, 84cd2c1); people and hours within 0.07%.
-- **Open, source data.** Taiwan's low-skilled share falls from 2.4% (2019)
+- **Source data (open on 2026-11-14, fixed on 2026-11-17, see above).**
+  Taiwan's low-skilled share falls from 2.4% (2019)
   to 0.6% (2025): ILO's modelled group 96 for Taiwan drops from 277 to 115
   thousand men and 232 to 95 thousand women over 2019-2025 (below
   agricultural employment for men in every year read and for women by

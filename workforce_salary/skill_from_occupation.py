@@ -29,14 +29,44 @@ in the country's survey data (`EMP_TEMP_SEX_OCU_NB_A`, ISCO-08 rows, pooled
 over the years that report both groups); for a country without them, group 6
 is set to the survey median ratio of group 6 to agricultural employment times
 the country's agricultural employment, the rest of group 96 being elementary.
-Where that would take all of group 96 (Taiwan's men), agriculture says nothing
-about the split and the world's pooled ratio is used instead. The survey's own skill
+Where that would take all of group 96 (Oman's and Syria's women in the
+1990s), agriculture says nothing about the split and the world's pooled ratio
+is used instead. The survey's own skill
 levels are not used as the margin: many countries have one or two survey
 years (China only the 2000 census, with almost no elementary occupations),
 so carrying them would freeze the skill mix, while the modelled series is
 annual for every country. A country with no modelled row (the hand-compiled
 supplementary entities) takes its UN region's employment-weighted mix, then
 the world's.
+
+Three country cases the rules above get wrong (2026-11-17):
+
+- Taiwan's national classification reports craft workers, machine operators
+  and elementary labourers as one group, which ILO files under group 8: its
+  survey rows (2001-2020) have groups 1-6 and 8, never 7 or 9, and the
+  modelled group 96 is the farmers alone (509 thousand in 2019 against 507
+  in survey group 6), extrapolated down to 210 thousand by 2025. Splitting
+  group 96 left Taiwan 2.4% low-skilled in 2019 and 0.6% in 2025. For a
+  country whose survey has groups 6 and 8 and never 7 or 9
+  (`merged_elementary`), all of group 96 is skilled agricultural and the
+  elementary workers are taken out of groups 7 + 8 by the pooled survey
+  ratio 9 / (7 + 8 + 9) of its UN region (`elementary_of_manual`).
+- Portugal's labour force survey breaks in 2021: group 6 falls from 254 to
+  113 thousand while group 9 goes from 392 to 363, and the modelled group 96
+  follows (649 to 478). One ratio pooled over all years passed the farmers'
+  break on to the elementary workers (low-skilled people -25.6% in 2021).
+  For the countries in `RATIO_BREAKS` the ratio is pooled separately before
+  and from the break year.
+- India's survey changes from ISCO-88 (to 2020) to ISCO-08 (from 2022) and
+  group 1 falls from 35.2 million (2020, ISCO-88) to 17.1 million (2023)
+  while group 5 rises from 33.5 to 59.0 million; the modelled series bridges
+  the two (high-skilled share 17.0% in 2020, 11.7% in 2023). For the
+  countries in `LEVEL_BREAKS` the shares of the years up to the last year of
+  the old basis are scaled, skill by skill, by the ratio of the first new
+  year to that last old year and renormalised, and the years between take
+  the first new year's shares: the level of ISCO-08 with the year-to-year
+  movement of the old series, on the assumption of no real change across
+  the gap.
 """
 from __future__ import annotations
 
@@ -47,6 +77,12 @@ import pandas as pd
 
 OCCUPATION_MODELLED = "EMP_2EMP_SEX_OCU_NB_A.csv"
 OCCUPATION_SURVEY = "EMP_TEMP_SEX_OCU_NB_A.csv"
+
+# ref_area: first years of a new basis for the survey ratio 9 / (6 + 9).
+RATIO_BREAKS = {"PRT": (2021,)}
+# ref_area: (last year of the old classification, first year of the new one)
+# in the modelled series.
+LEVEL_BREAKS = {"IND": (2020, 2023)}
 
 SKILLS = ("low", "middle", "high")
 SEXES = {"SEX_M": "male", "SEX_F": "female"}
@@ -87,6 +123,81 @@ def elementary_ratio(survey: pd.DataFrame, un_region: dict) -> pd.DataFrame:
     return country, ratio(reg), ratio(wld)
 
 
+def _segment(ref_area, time, breaks: dict) -> list:
+    return [sum(t >= b for b in breaks.get(a, ())) for a, t in zip(ref_area, time)]
+
+
+def segment_ratio(survey: pd.DataFrame, breaks: dict | None = None) -> pd.Series:
+    """r = ISCO-08 group 9 / (6 + 9) by (ref_area, sex, segment) for the
+    countries in `breaks` (default `RATIO_BREAKS`), pooled over the survey
+    years of each segment; segment = number of break years <= the year."""
+    breaks = RATIO_BREAKS if breaks is None else breaks
+    s = survey[survey["classif1"].isin(["OCU_ISCO08_6", "OCU_ISCO08_9"])
+               & survey["sex"].isin(SEXES) & survey["ref_area"].isin(list(breaks))]
+    if s.empty:
+        return pd.Series(dtype=float)
+    p = s.pivot_table(index=["ref_area", "sex", "time"], columns="classif1",
+                      values="obs_value", aggfunc="sum")
+    p = p.reindex(columns=["OCU_ISCO08_6", "OCU_ISCO08_9"]).dropna().reset_index()
+    p["segment"] = _segment(p["ref_area"], p["time"], breaks)
+    p = p.groupby(["ref_area", "sex", "segment"])[["OCU_ISCO08_6", "OCU_ISCO08_9"]].sum()
+    p = p[p.sum(axis=1) > 0]
+    return p["OCU_ISCO08_9"] / p.sum(axis=1)
+
+
+def merged_elementary(survey: pd.DataFrame) -> set:
+    """Countries whose survey reports groups 6 and 8 and at least five major
+    groups (ISCO-88 or ISCO-08) but never group 7 or 9: craft workers,
+    operators and elementary workers come as one group (Taiwan)."""
+    s = survey[survey["classif1"].str.match(r"OCU_ISCO(88|08)_[1-9]$")]
+    groups = s.groupby("ref_area")["classif1"].agg(lambda c: {x[-1] for x in c})
+    return {a for a, g in groups.items()
+            if {"6", "8"} <= g and not ({"7", "9"} & g) and len(g) >= 5}
+
+
+def elementary_of_manual(survey: pd.DataFrame, un_region: dict, exclude=()) -> tuple:
+    """ISCO-08 group 9 / (7 + 8 + 9) by (unregion, sex) and by sex for the
+    world, pooled over the survey country-years reporting all three."""
+    cols = ["OCU_ISCO08_7", "OCU_ISCO08_8", "OCU_ISCO08_9"]
+    s = survey[survey["classif1"].isin(cols) & survey["sex"].isin(SEXES)
+               & ~survey["ref_area"].isin(list(exclude))]
+    p = s.pivot_table(index=["ref_area", "sex", "time"], columns="classif1",
+                      values="obs_value", aggfunc="sum")
+    p = p.reindex(columns=cols).dropna().reset_index()
+    p["unregion"] = p["ref_area"].map(un_region).fillna("World")
+    ratio = lambda d: d["OCU_ISCO08_9"] / d[cols].sum(axis=1)
+    reg = p.groupby(["unregion", "sex"])[cols].sum()
+    wld = p.groupby("sex")[cols].sum()
+    return ratio(reg[reg.sum(axis=1) > 0]), ratio(wld[wld.sum(axis=1) > 0])
+
+
+def splice_levels(shares: pd.DataFrame, breaks: dict | None = None) -> pd.DataFrame:
+    """Carry the level of a new classification back over the old one's years.
+
+    `shares`: low, middle, high by (ref_area, sex, time). For each country in
+    `breaks` (default `LEVEL_BREAKS`) with both years present: years up to
+    the last old year are multiplied, skill by skill, by new / old and
+    renormalised; the years between take the first new year's shares."""
+    breaks = LEVEL_BREAKS if breaks is None else breaks
+    out = shares.copy()
+    area = out.index.get_level_values("ref_area")
+    sexes = out.index.get_level_values("sex")
+    time = out.index.get_level_values("time")
+    for a, (old, new) in breaks.items():
+        for s in pd.unique(sexes[area == a]):
+            if (a, s, old) not in out.index or (a, s, new) not in out.index:
+                continue
+            target = out.loc[(a, s, new)].to_numpy(dtype=float)
+            base = out.loc[(a, s, old)].to_numpy(dtype=float)
+            f = np.divide(target, base, out=np.ones_like(target), where=base > 0)
+            here = (area == a) & (sexes == s)
+            before = here & (time <= old)
+            scaled = out.loc[before].to_numpy(dtype=float) * f
+            out.loc[before] = scaled / scaled.sum(axis=1, keepdims=True)
+            out.loc[here & (time > old) & (time < new)] = target
+    return out
+
+
 def agri_alpha(survey: pd.DataFrame, agri: pd.Series) -> pd.Series:
     """Median over survey country-years of ISCO-08 group 6 / agricultural
     employment, by sex (ratios outside (0, 2) dropped as mismatched)."""
@@ -111,14 +222,26 @@ def country_skill_shares(modelled: pd.DataFrame, survey: pd.DataFrame,
     is below group 96. Otherwise (alpha * agri >= group 96, which would
     leave no elementary workers) and without agricultural employment, the
     world's pooled ratio.
+
+    The module docstring gives the three country cases: `RATIO_BREAKS`
+    (ratio pooled by segment), `merged_elementary` (elementary workers out
+    of groups 7 + 8) and `LEVEL_BREAKS` (`splice_levels`). The shares are
+    computed over every modelled year and cut to `years` at the end, so the
+    splice does not depend on the years asked for.
     """
-    m = modelled[modelled["sex"].isin(SEXES) & modelled["time"].isin(years)
+    m = modelled[modelled["sex"].isin(SEXES)
                  & (modelled["classif1"] != "OCU_ISCO08_TOTAL")]
     p = m.pivot_table(index=["ref_area", "sex", "time"], columns="classif1",
                       values="obs_value", aggfunc="sum").fillna(0.0)
     country, reg, wld = elementary_ratio(survey, un_region)
     idx = p.index.to_frame(index=False)
     r = pd.Series([country.get((a, s), np.nan) for a, s in zip(idx.ref_area, idx.sex)])
+    seg = segment_ratio(survey)
+    if len(seg):
+        hit = idx.ref_area.isin(seg.index.get_level_values("ref_area")).to_numpy()
+        sub = idx[hit]
+        r[hit] = [seg.get((a, s, k), r0) for a, s, k, r0 in
+                  zip(sub.ref_area, sub.sex, _segment(sub.ref_area, sub.time, RATIO_BREAKS), r[hit])]
     g = lambda c: p[c].to_numpy() if c in p.columns else 0.0
     # No survey for groups 6 and 9: tie group 6 to the country's own farm
     # workforce. Skilled agricultural workers work in agriculture, so group 6
@@ -135,8 +258,8 @@ def country_skill_shares(modelled: pd.DataFrame, survey: pd.DataFrame,
         g96 = g("OCU_ISCO08_96") * np.ones(len(p))
         g6 = np.array([alpha.get(s, np.nan) for s in idx.sex]) * a
         # Only where agriculture is informative: if alpha * agri reaches
-        # group 96 (Taiwan's men every year; Oman's and Syria's women in the
-        # 1990s), capping g6 at group 96 would leave no elementary workers,
+        # group 96 (Oman's and Syria's women in the 1990s; Taiwan is handled
+        # below), capping g6 at group 96 would leave no elementary workers,
         # so those fall through to the world pool below.
         with np.errstate(invalid="ignore", divide="ignore"):
             r_agri = np.where((g96 > 0) & (g6 < g96), 1 - g6 / g96, np.nan)
@@ -145,14 +268,26 @@ def country_skill_shares(modelled: pd.DataFrame, survey: pd.DataFrame,
     miss = r.isna()
     r[miss] = [wld.get(s, 0.5) for s in idx.sex[miss]]
     r = r.to_numpy()
+    # Craft workers, operators and elementary workers reported as one group:
+    # group 96 is the farmers, the elementary workers sit in groups 7 + 8.
+    lam = np.zeros(len(p))
+    merged = merged_elementary(survey)
+    one = idx.ref_area.isin(merged).to_numpy()
+    if one.any():
+        reg_l, wld_l = elementary_of_manual(survey, un_region, exclude=merged)
+        lam[one] = [reg_l.get((un_region.get(a, "World"), s), wld_l.get(s, 0.0))
+                    for a, s in zip(idx.ref_area[one], idx.sex[one])]
+        r[one] = 0.0
+    manual = (g("OCU_ISCO08_7") + g("OCU_ISCO08_8")) * np.ones(len(p))
     out = pd.DataFrame({
-        "low": g("OCU_ISCO08_96") * r,
-        "middle": g("OCU_ISCO08_4") + g("OCU_ISCO08_5") + g("OCU_ISCO08_7")
-                  + g("OCU_ISCO08_8") + g("OCU_ISCO08_96") * (1 - r),
+        "low": g("OCU_ISCO08_96") * r + manual * lam,
+        "middle": g("OCU_ISCO08_4") + g("OCU_ISCO08_5") + manual * (1 - lam)
+                  + g("OCU_ISCO08_96") * (1 - r),
         "high": g("OCU_ISCO08_1") + g("OCU_ISCO08_2") + g("OCU_ISCO08_3"),
     }, index=p.index)
     out = out[out.sum(axis=1) > 0]
-    return out.div(out.sum(axis=1), axis=0)
+    out = splice_levels(out.div(out.sum(axis=1), axis=0))
+    return out[out.index.get_level_values("time").isin(list(years))]
 
 
 def region_skill_shares(modelled: pd.DataFrame, survey: pd.DataFrame,

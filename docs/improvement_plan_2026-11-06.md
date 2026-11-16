@@ -43,6 +43,9 @@ how. Commits are on `improve-labour-account`.
   years reporting both groups; else group 6 = the median survey ratio of
   group 6 to agricultural employment x the country's agricultural
   employment, where that is below group 96; else the world pooled ratio.
+  Since 2026-11-17 three country cases (CHANGELOG): Taiwan's elementary
+  workers out of groups 7 + 8, Portugal's ratio pooled each side of 2021,
+  India's ISCO-88 years scaled to the ISCO-08 level.
   RAS on the wage-bill skill mix; the prior is not divided by relative
   wages (a column scaling, which RAS absorbs). The seven splices are not
   yet re-measured or retired.

@@ -190,7 +190,11 @@ split). Per region, year and sex:
   the years that report both groups); else group 6 = alpha x the
   country's agricultural employment, alpha the median survey ratio of
   group 6 to agricultural employment for that sex, where that is below
-  group 96; else the world's pooled ratio. Countries are summed to the
+  group 96; else the world's pooled ratio. Three country cases: Taiwan
+  (elementary workers reported inside group 8) takes them out of groups
+  7 + 8 by its UN region's survey ratio 9 / (7 + 8 + 9); Portugal's ratio
+  9 / (6 + 9) is pooled each side of its 2021 survey break; India's shares
+  to 2020 (ISCO-88) are scaled to the 2023 (ISCO-08) level. Countries are summed to the
   region with their employment as weight; a country with no modelled row
   takes its UN region's mix, then the world's;
 - structure inside each industry: the wage bill by skill, balanced to

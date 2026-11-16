@@ -86,7 +86,13 @@ The wage split above gives each industry its people by sex. The number of people
 
 1. A country with ISCO-08 survey rows for both groups (`EMP_TEMP_SEX_OCU_NB_A`) uses its own ratio 9 / (6 + 9), pooled over the survey years that report both groups.
 2. Otherwise group 6 = alpha x the country's agricultural employment (ILO section A), with alpha the median, over survey country-years, of group 6 over agricultural employment for that sex; the rest of group 96 is elementary. This is used only where alpha x agricultural employment is below group 96. China, whose only survey is its 2000 census, is the largest country split this way.
-3. Where step 2 would take all of group 96 (Taiwan's men, for example), the world's pooled survey ratio 9 / (6 + 9).
+3. Where step 2 would take all of group 96 (Oman's and Syria's women in the 1990s), the world's pooled survey ratio 9 / (6 + 9).
+
+Three country cases depart from these steps (`workforce_salary/skill_from_occupation.py`, 2026-11-17):
+
+- Taiwan reports craft workers, operators and elementary labourers as one group, filed under group 8, so its group 96 is farmers only. A country whose survey has groups 6 and 8 and never 7 or 9 takes its elementary workers out of groups 7 + 8 by the survey ratio 9 / (7 + 8 + 9) pooled over its UN region.
+- Portugal's survey breaks in 2021 (group 6 halves, group 9 does not): its ratio 9 / (6 + 9) is pooled separately before and from 2021 (`RATIO_BREAKS`).
+- India's survey changes from ISCO-88 to ISCO-08 between 2020 and 2023 and its high-skilled share drops with it: the shares of the years to 2020 are scaled to the 2023 level, and 2021 and 2022 take the 2023 shares (`LEVEL_BREAKS`).
 
 A country with no modelled occupation row (the hand-compiled supplementary entities) takes its UN region's employment-weighted skill mix, then the world's.
 
