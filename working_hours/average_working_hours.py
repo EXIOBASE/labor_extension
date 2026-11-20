@@ -38,10 +38,27 @@ ISIC3_CONVERSION_YEARS = range(1995, 2023)
 # 2021 further down.
 UKRAINE_POPULATION_YEARS = range(1991, 2022)
 
-# Ukraine's ILO series ends here; the following year is carried forward with the
-# population scaled by this factor. The same 0.845 appears in isic3_to_isic4.
+# Ukraine's ILO series ends here; the following year's hours are its 2021
+# hours, weighted by its 2021 workforce times `ukraine_carry_factor`.
 UKRAINE_LAST_YEAR = 2021
-UKRAINE_WAR_FACTOR = 0.845
+
+
+def ukraine_carry_factor(workforce):
+    """Ukraine's workforce of UKRAINE_LAST_YEAR + 1 over that of
+    UKRAINE_LAST_YEAR, as the employment account carries it, so the hours
+    average weights Ukraine by the people the account holds (register
+    R-LAB-07). On this branch the workforce stage holds Ukraine flat at its
+    2021 value (from_cia_to_ilo._build_dropouts), so the factor is 1.0; on
+    main, where the carry follows population, the same function gives 0.927.
+    Until 2026-11-20 on this branch a fixed 0.845 with no recorded source.
+    1.0 where the workforce has no Ukraine rows for either year."""
+    w = workforce[(workforce['ref_area'] == 'UKR')
+                  & workforce['sex'].isin(['SEX_F', 'SEX_M'])]
+    value = pd.to_numeric(w['obs_value'], errors='coerce')
+    time = pd.to_numeric(w['time'], errors='coerce')
+    old = value[time == UKRAINE_LAST_YEAR].sum()
+    new = value[time == UKRAINE_LAST_YEAR + 1].sum()
+    return float(new / old) if old > 0 and new > 0 else 1.0
 
 #: Per-year hours-by-skill workbook, written by the hours split and read back by
 #: the final table build. One name for both: the writer said
@@ -358,7 +375,7 @@ def e3_bucket_average(hours, workforce, build_years, w_avg):
     The average is taken over every country the e3 bucket held, whichever
     region it has on this axis, with the same exclusions as the e3 `hours_RoW`
     average (the aggregate categories; SYC, REU and IMN; Ukraine's 2022 from
-    its 2021 at UKRAINE_WAR_FACTOR population), so these countries get the
+    its 2021 at `ukraine_carry_factor` population), so these countries get the
     hours they got on e3 as bucket members. Not used on e3, which keeps `av2`.
     """
     frame = hours.copy()
@@ -377,7 +394,7 @@ def e3_bucket_average(hours, workforce, build_years, w_avg):
                     & (frame['time'] == UKRAINE_LAST_YEAR)].copy()
     if len(ukraine):
         ukraine['time'] = UKRAINE_LAST_YEAR + 1
-        ukraine['population (1000)'] = UKRAINE_WAR_FACTOR * pd.to_numeric(
+        ukraine['population (1000)'] = ukraine_carry_factor(workforce) * pd.to_numeric(
             ukraine['population (1000)']).to_numpy()
         frame = pd.concat([frame, ukraine])
     frame = frame.reset_index(drop=True)
@@ -954,9 +971,10 @@ def working_hour(workforce,src_csv2,data_path,src_csv3,final_path=None):
     hours = hours.loc[hours.classif1 !='ECO_DETAILS_X']                   
     hours_RoW.dropna(subset=['population (1000)'], inplace=True)               
 
-    ''' Add values for 2022 for Ukraine as they are missing.
-    We assume that the 2022 values are 15.5% below the 2021 values ->
-    Source ILO
+    ''' Add values for 2022 for Ukraine as they are missing: its 2021 hours,
+    weighted by its 2021 workforce times `ukraine_carry_factor` (the ratio the
+    employment account carries Ukraine at; 1.0 on this branch). Until
+    2026-11-20 a 15.5% cut attributed to ILO, with no recorded source.
     '''
     
     '''drop data for UKR 2022'''
@@ -975,7 +993,7 @@ def working_hour(workforce,src_csv2,data_path,src_csv3,final_path=None):
                     value_2021 = float(hours_RoW.loc[(hours_RoW['ref_area']=='UKR')&(hours_RoW['sex']==sex)&(hours_RoW['classif1']==c)&(hours_RoW['time']==2021),['population (1000)']].to_string(index=False, header=False))
                     hours_2021 = float(hours_RoW.loc[(hours_RoW['ref_area']=='UKR')&(hours_RoW['sex']==sex)&(hours_RoW['classif1']==c)&(hours_RoW['time']==2021),['average weekly hours']].to_string(index=False, header=False))
                     print(c,value_2021,hours_2021)
-                    new_row = pd.DataFrame({'EXIO3' : 'WE','ref_area':'UKR','sex':[sex],'classif1':[c],'time' :2022,'average weekly hours': [hours_2021], 'population (1000)': 0.845 * value_2021 })
+                    new_row = pd.DataFrame({'EXIO3' : 'WE','ref_area':'UKR','sex':[sex],'classif1':[c],'time' :2022,'average weekly hours': [hours_2021], 'population (1000)': ukraine_carry_factor(workforce) * value_2021 })
                     hours_RoW=pd.concat([hours_RoW,new_row])
     
     hours_RoW = hours_RoW.reset_index()
@@ -985,7 +1003,6 @@ def working_hour(workforce,src_csv2,data_path,src_csv3,final_path=None):
     av2 = hours_RoW.groupby(['EXIO3','sex','classif1','time']).apply(w_avg, 'average weekly hours', 'population (1000)')
     av2 = av2.reset_index()
     av2.rename({0: 'Weighted average working hours'}, axis=1, inplace=True)
-    ''' - 15.5% from previsous year'''
     
     
     '''WE NEED TO ADD DATA FOR COUNTRIES FOR WHICH WE HAVE WORKFORCE BUT NOT WORKING HOURS'''
@@ -1052,7 +1069,7 @@ def working_hour(workforce,src_csv2,data_path,src_csv3,final_path=None):
         hours_main_country = pd.concat([hours_main_country, infilled_taiwan])
 
     # Ukraine's ILO series stops in 2021, so 2022 carries its 2021 hours with
-    # the population scaled by the war-year factor. Was a per-(sex, category)
+    # the population scaled by `ukraine_carry_factor`. Was a per-(sex, category)
     # loop of unguarded lookups; categories with no 2021 row now drop out
     # instead of raising, since there is nothing to carry forward.
     #
@@ -1068,12 +1085,13 @@ def working_hour(workforce,src_csv2,data_path,src_csv3,final_path=None):
         ukraine_2022 = ukraine_2021.copy()
         ukraine_2022['EXIO3'] = 'WE'
         ukraine_2022['time'] = UKRAINE_LAST_YEAR + 1
+        ukraine_factor = ukraine_carry_factor(workforce)
         ukraine_2022['population (1000)'] = (
-            UKRAINE_WAR_FACTOR * pd.to_numeric(
+            ukraine_factor * pd.to_numeric(
                 ukraine_2021['population (1000)']).to_numpy())
         print(f'[ukraine] carrying {len(ukraine_2022):,} rows from '
               f'{UKRAINE_LAST_YEAR} to {UKRAINE_LAST_YEAR + 1} at '
-              f'{UKRAINE_WAR_FACTOR} population')
+              f'{ukraine_factor:.3f} population')
         hours_RoW = pd.concat([hours_RoW, ukraine_2022])
 
 

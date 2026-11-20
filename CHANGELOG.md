@@ -68,6 +68,29 @@ All notable changes to this project are documented here. Format follows
   population-weighted) 39.684 against 39.637 (+0.047 hours a week, 0.12%);
   by sex and category the change runs from -0.168 to +0.007 hours a week.
   The weight is left as it is, pending the decision on Ukraine from 2022.
+- **Ukraine's 2022 hours weight follows the employment account (branch
+  release-2-ukraine-weight, cut from release-2-small-fixes at 45fa020;
+  register R-LAB-07, fix list D20).** `UKRAINE_WAR_FACTOR = 0.845` and the
+  literal 0.845 in the e3 `hours_RoW` carry are gone from
+  `average_working_hours.py`: Ukraine's 2022 row is weighted by its 2021
+  workforce times `ukraine_carry_factor(workforce)`, its 2022 over 2021
+  workforce in the account the hours stage is given. This branch's
+  workforce stage holds Ukraine flat (18,518.87 thousand in 2021 and 2022 in
+  the release 2 `workforce.csv`), so the factor is 1.0 and the two stages
+  agree. Only the hours side of main's ff039f3 is taken: the workforce stage
+  is unchanged, so Ukraine's employment (and every published employment
+  figure) is the same as on release-2-small-fixes; on main the same function
+  gives the population ratio, 0.927. Effect, recomputed from the release 2
+  build's `hours_RoW_2403_3.csv` (45fa020, e3, 17 November 2026) with
+  Ukraine's 2022 rows rescaled from 0.845 to 1.0, rest-of-world Europe 2022
+  (10 countries with hours): Ukraine's share of the weight 53.2% to 57.4%;
+  average weekly hours (all categories and both sexes, population-weighted)
+  39.595 to 39.541 (-0.054 hours a week, -0.14%); by sex and category -0.224
+  to +0.017 hours a week. Other years and regions are not touched. Not
+  changed: the 0.845 in the ISIC3 conversion (`isic3_to_isic4.py` and
+  `isic3_to_isic4_vectorised._UKR_FACTOR`), which that module's own comment
+  calls dead since Ukraine reports ISIC3 hours for 2009-2012 only. Tests:
+  `tests/test_ukraine_hours_weight.py`.
 
 ### Added
 
